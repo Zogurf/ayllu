@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_blank" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&amp;family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-surface": "#0f172a",
+          "secondary-container": "#e0e7ff",
+          "on-primary-fixed": "#00174b",
+          "surface-container": "#f1f5f9",
+          "primary-fixed": "#dbeafe",
+          "on-error-container": "#93000a",
+          "primary": "#2563eb",
+          "surface": "#f8fafc",
+          "on-tertiary": "#ffffff",
+          "tertiary": "#ea580c",
+          "on-primary-container": "#ffffff",
+          "secondary": "#475569",
+          "error-container": "#fee2e2",
+          "inverse-surface": "#0f172a",
+          "surface-container-highest": "#e2e8f0",
+          "on-secondary": "#ffffff",
+          "background": "#f8fafc",
+          "on-background": "#0f172a",
+          "surface-container-lowest": "#ffffff",
+          "on-error": "#ffffff",
+          "outline": "#94a3b8",
+          "error": "#ef4444",
+          "surface-variant": "#f1f5f9",
+          "surface-dim": "#e2e8f0",
+          "on-surface-variant": "#64748b",
+          "on-primary": "#ffffff",
+          "surface-bright": "#ffffff",
+          "surface-tint": "#2563eb",
+          "surface-container-low": "#f8fafc",
+          "surface-container-high": "#e2e8f0",
+          "primary-container": "#1d4ed8",
+          "outline-variant": "#cbd5e1"
+        },
+        borderRadius: {
+          "DEFAULT": "0.375rem",
+          "lg": "0.625rem",
+          "xl": "1rem",
+          "2xl": "1.25rem",
+          "3xl": "1.75rem",
+          "full": "9999px"
+        },
+        spacing: {
+          "space-xs": "0.25rem",
+          "space-sm": "0.5rem",
+          "space-md": "1rem",
+          "space-lg": "1.5rem",
+          "space-xl": "2rem",
+          "margin": "1.25rem"
+        },
+        fontFamily: {
+          "headline": ["Plus Jakarta Sans", "sans-serif"],
+          "body": ["Inter", "sans-serif"]
+        }
+      }
+    }
+  };
+</script><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;background-color:#f8fafc;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;font-family:'Inter',sans-serif;}.pb-safe{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 1rem);}.pt-safe{padding-top:calc(env(safe-area-inset-top,0px) + 0.5rem);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col selection:bg-blue-100 selection:text-blue-900"><main class="flex flex-col relative w-full pt-safe pb-safe bg-slate-50 max-w-[430px] mx-auto min-h-screen"><div class="flex flex-col w-full px-margin pb-space-xl">
+<!-- Header Compacto Minimalista y Elegante -->
+<header class="flex items-center gap-3.5 pt-2 pb-4">
+<div class="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center p-2 shrink-0">
+<img alt="Ayllu Logo" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida/ALJJyrAS_stjRWo1GKHKMBsQBdzAygPgnSXQqqPcxASowNablWdRP0gOOOjmP54zrvFxckhVTQCCKsVGx9sVEDPZTwPim3161mE_qVqD_AxuVj8J2a-2fafV5sH65sxUlqEmsmmaVQFZujuKvfVLWoOAqfvP8b_2ttIlF_l2jRsV0VVDVk_70ekoCokfPtQCffvPTOjaQVl73G7anmZRPlHDX6xB2mAQT9W93Yrtk9-LnW2s"/>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<h1 class="font-headline font-bold text-xl text-slate-900 tracking-tight">Únete a Ayllu</h1>
+<span class="bg-blue-50 text-blue-700 border border-blue-200/60 font-headline text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">Comunal</span>
+</div>
+<p class="font-body text-xs text-slate-500 truncate mt-0.5">Resiliencia y apoyo comunitario hiperlocal</p>
+</div>
+</header>
+<!-- Botón Tutorial Destacado (RF-04) Civic Horizon Modern Card -->
+<div class="mb-4">
+<button class="w-full flex items-center justify-between p-3.5 bg-gradient-to-r from-blue-50/80 via-white to-white border border-blue-100 rounded-2xl text-left shadow-xs hover:border-blue-200 active:scale-[0.99] transition-all min-h-[52px] group" id="open-tutorial-btn" type="button">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+</div>
+<div class="truncate">
+<p class="font-headline text-xs font-semibold text-slate-900 tracking-tight">¿Primera vez aquí? Conoce Ayllu</p>
+<p class="font-body text-[11px] text-blue-600 font-medium">Ver guía rápida en 3 claves cívicas</p>
+</div>
+</div>
+<div class="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-blue-600 text-sm">chevron_right</span>
+</div>
+</button>
+</div>
+<!-- Formulario de Registro Geográfico (RF-01, RF-02) -->
+<section class="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_2px_12px_rgba(15,23,42,0.04)] border border-slate-200/70 flex flex-col gap-4">
+<!-- Identidad Comunitaria -->
+<div class="flex flex-col gap-1.5">
+<label class="font-headline text-xs font-semibold text-slate-800 flex items-center justify-between" for="nickname">
+<span>¿Cómo te conocen en el barrio?</span>
+<span class="text-orange-600 text-[11px] font-medium">* Obligatorio</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[20px] pointer-events-none">sentiment_satisfied</span>
+<input class="w-full h-12 pl-11 pr-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-900 font-body text-sm placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all" id="nickname" placeholder="Ej. Doña Rosa, Chalo, Migue" required="" type="text"/>
+</div>
+</div>
+<!-- Teléfono Móvil de Alerta -->
+<div class="flex flex-col gap-1.5">
+<label class="font-headline text-xs font-semibold text-slate-800 flex items-center justify-between" for="phone">
+<span>Teléfono móvil</span>
+<span class="text-slate-400 font-body text-[11px]">SMS / Alertas WhatsApp</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-slate-400 text-[20px] pointer-events-none">smartphone</span>
+<input class="w-full h-12 pl-11 pr-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-900 font-body text-sm placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all" id="phone" placeholder="984 123 456" type="tel"/>
+</div>
+</div>
+<!-- Jerarquía Geográfica Obligatoria (RF-01) -->
+<div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
+<div class="flex items-center justify-between pt-1">
+<span class="font-headline text-xs font-semibold text-slate-800">Ubicación comunitaria fija</span>
+<span class="bg-slate-100 text-slate-600 font-headline text-[10px] font-semibold px-2 py-0.5 rounded-md border border-slate-200/60">RF-01</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+<p class="font-body text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Región</p>
+<p class="font-headline text-sm font-bold text-slate-800 truncate mt-0.5">Cusco</p>
+</div>
+<div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60">
+<p class="font-body text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Distrito</p>
+<p class="font-headline text-sm font-bold text-slate-800 truncate mt-0.5">Cusco</p>
+</div>
+</div>
+<!-- Selector de Barrio Interactivo con Modal -->
+<button class="w-full min-h-[50px] p-3 rounded-xl bg-blue-50/60 border border-blue-100 text-left flex items-center justify-between hover:bg-blue-50 active:bg-blue-100/70 transition-colors group" id="open-neighborhood-btn" type="button">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">location_city</span>
+</div>
+<div class="truncate">
+<span class="font-body text-[10px] text-slate-500 font-medium block">Barrio / Sector asignado *</span>
+<span class="font-headline text-xs font-bold text-blue-700 block truncate" id="selected-neighborhood-text">San Blas (Sector Central)</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-blue-600 text-[18px] shrink-0 group-hover:scale-110 transition-transform">edit_location_alt</span>
+</button>
+</div>
+<!-- Toggle GPS Opcional (RF-02 / RNF-11) -->
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col gap-2">
+<div class="flex items-center justify-between gap-2">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-blue-600 text-[20px] shrink-0">share_location</span>
+<label class="font-headline text-xs font-semibold text-slate-800 cursor-pointer select-none" for="gps-toggle">
+            GPS opcional para cercanía
+          </label>
+</div>
+<div class="relative inline-block w-11 h-6 shrink-0 cursor-pointer">
+<input class="sr-only peer" id="gps-toggle" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-300 peer-checked:bg-blue-600 rounded-full transition-colors duration-200 shadow-inner"></div>
+<div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 peer-checked:translate-x-5 shadow-xs"></div>
+</div>
+</div>
+<p class="font-body text-[11px] text-slate-500 leading-relaxed">
+<strong class="text-slate-700 font-medium">No es obligatorio.</strong> Solo calcula distancias estimadas dentro de tu red vecinal. Tu ubicación precisa jamás se comparte ni se guarda en servidores públicos.
+      </p>
+</div>
+</section>
+<!-- Botón Principal CTA (Civic Horizon Coral/Terracotta & Slate Accent) -->
+<div class="pt-4 flex flex-col gap-3">
+<button class="w-full min-h-[52px] bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white rounded-xl font-headline font-semibold text-sm shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 transition-all" id="submit-registration-btn" type="button">
+<span class="material-symbols-outlined text-[20px]">how_to_reg</span>
+<span>Crear Mi Cuenta Vecinal</span>
+</button>
+<!-- Indicador de Privacidad y Accesibilidad (RNF-06 / RNF-10) -->
+<div class="flex items-center justify-center gap-2 text-center px-2">
+<span class="material-symbols-outlined text-blue-600 text-[18px] shrink-0">verified_user</span>
+<p class="font-body text-xs text-slate-500">
+        Sin DNI obligatorio. Respaldo cifrado local apto para emergencias sin internet.
+      </p>
+</div>
+</div>
+<!-- MODAL / BOTTOM SHEET: Tutorial 'Conoce Ayllu' (RF-04) -->
+<div class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-end justify-center" id="tutorial-modal">
+<div class="w-full max-w-[430px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col max-h-[85vh] overflow-y-auto border-t border-slate-200 animate-in slide-in-from-bottom duration-200">
+<div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 shrink-0"></div>
+<div class="flex items-center justify-between pb-2">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">diversity_3</span>
+</div>
+<h2 class="font-headline font-bold text-lg text-slate-900">Conoce Ayllu</h2>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors" id="close-tutorial-x" type="button">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<p class="font-body text-xs text-slate-500 mb-4">Tu red hiperlocal de cooperación mutua y respuesta ciudadana.</p>
+<div class="flex flex-col gap-3 mb-5">
+<!-- Clave 1 -->
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex gap-3 items-start">
+<div class="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[18px]">crisis_alert</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline text-xs font-semibold text-slate-900">1. Modo Cotidiano vs. Emergencia</h3>
+<p class="font-body text-xs text-slate-500 leading-snug mt-0.5">En el día a día intercambia herramientas o apoyo. En catástrofe o corte de servicios, activa el botón SOS comunitario al instante.</p>
+</div>
+</div>
+<!-- Clave 2 -->
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex gap-3 items-start">
+<div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[18px]">volunteer_activism</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline text-xs font-semibold text-slate-900">2. Cadena de Favores (Sin Dinero)</h3>
+<p class="font-body text-xs text-slate-500 leading-snug mt-0.5">100% solidario. No hay transacciones monetarias ni comisiones; nos cuidamos mutuamente como vecindad.</p>
+</div>
+</div>
+<!-- Clave 3 -->
+<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 flex gap-3 items-start">
+<div class="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs">
+<span class="material-symbols-outlined text-[18px]">wifi_off</span>
+</div>
+<div class="flex flex-col">
+<h3 class="font-headline text-xs font-semibold text-slate-900">3. 100% Offline y Privacidad</h3>
+<p class="font-body text-xs text-slate-500 leading-snug mt-0.5">Funciona por Bluetooth/mallas locales si cae la red celular. Tus coordenadas exactas nunca salen de tu control.</p>
+</div>
+</div>
+</div>
+<button class="w-full min-h-[48px] bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-headline font-semibold text-xs tracking-wide shadow-md active:bg-blue-800 flex items-center justify-center transition-colors" id="close-tutorial-btn" type="button">
+        Entendido y Continuar
+      </button>
+</div>
+</div>
+<!-- MODAL: Selector de Barrios (RF-01) -->
+<div class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-end justify-center" id="neighborhood-modal">
+<div class="w-full max-w-[430px] bg-white rounded-t-3xl p-5 shadow-2xl flex flex-col max-h-[80vh] border-t border-slate-200">
+<div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 shrink-0"></div>
+<div class="flex items-center justify-between pb-1 shrink-0">
+<div>
+<h2 class="font-headline font-bold text-base text-slate-900">Selecciona tu Barrio</h2>
+<p class="font-body text-xs text-slate-500">Distrito de Cusco</p>
+</div>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors" id="close-neighborhood-btn" type="button">
+<span class="material-symbols-outlined text-sm">close</span>
+</button>
+</div>
+<div class="relative my-3 shrink-0">
+<span class="material-symbols-outlined absolute left-3.5 top-3 text-slate-400 text-[18px] pointer-events-none">search</span>
+<input class="w-full h-10 pl-10 pr-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-body text-xs focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-100" id="neighborhood-search" placeholder="Buscar barrio o sector..." type="text"/>
+</div>
+<div class="flex flex-col gap-1.5 overflow-y-auto pr-0.5" id="neighborhood-list">
+<button class="neighborhood-option min-h-[44px] w-full px-3.5 py-2.5 rounded-xl bg-blue-50/70 border border-blue-100 text-left flex items-center justify-between active:bg-blue-100 transition-colors" data-name="San Blas (Sector Central)" type="button">
+<span class="font-headline text-xs font-semibold text-blue-900">San Blas (Sector Central)</span>
+<span class="material-symbols-outlined text-blue-600 text-base" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</button>
+<button class="neighborhood-option min-h-[44px] w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-slate-100 text-left flex items-center justify-between active:bg-blue-50 transition-colors" data-name="San Cristóbal" type="button">
+<span class="font-headline text-xs font-medium text-slate-800">San Cristóbal</span>
+</button>
+<button class="neighborhood-option min-h-[44px] w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-slate-100 text-left flex items-center justify-between active:bg-blue-50 transition-colors" data-name="Santa Ana" type="button">
+<span class="font-headline text-xs font-medium text-slate-800">Santa Ana</span>
+</button>
+<button class="neighborhood-option min-h-[44px] w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-slate-100 text-left flex items-center justify-between active:bg-blue-50 transition-colors" data-name="Lucrepata" type="button">
+<span class="font-headline text-xs font-medium text-slate-800">Lucrepata</span>
+</button>
+<button class="neighborhood-option min-h-[44px] w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-slate-100 text-left flex items-center justify-between active:bg-blue-50 transition-colors" data-name="Tandapata" type="button">
+<span class="font-headline text-xs font-medium text-slate-800">Tandapata</span>
+</button>
+<button class="neighborhood-option min-h-[44px] w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-slate-100 text-left flex items-center justify-between active:bg-blue-50 transition-colors" data-name="Wanchaq Norte" type="button">
+<span class="font-headline text-xs font-medium text-slate-800">Wanchaq Norte</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Toast de Confirmación Minimalista -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[390px] bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 hidden items-center gap-3 z-50 transition-all" id="toast">
+<span class="material-symbols-outlined text-blue-400 text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-body text-xs font-medium text-slate-100 leading-snug" id="toast-message">Registro completado con éxito. ¡Bienvenido/a al Ayllu!</span>
+</div>
+</div>
+<script>
+  (function() {
+    // Control Tutorial Modal
+    const tutorialModal = document.getElementById('tutorial-modal');
+    const openTutorialBtn = document.getElementById('open-tutorial-btn');
+    const closeTutorialBtn = document.getElementById('close-tutorial-btn');
+    const closeTutorialX = document.getElementById('close-tutorial-x');
+
+    function showTutorial() {
+      tutorialModal.classList.remove('hidden');
+      tutorialModal.classList.add('flex');
+    }
+    function hideTutorial() {
+      tutorialModal.classList.add('hidden');
+      tutorialModal.classList.remove('flex');
+    }
+
+    openTutorialBtn.addEventListener('click', showTutorial);
+    closeTutorialBtn.addEventListener('click', hideTutorial);
+    closeTutorialX.addEventListener('click', hideTutorial);
+
+    // Control Neighborhood Modal
+    const neighborhoodModal = document.getElementById('neighborhood-modal');
+    const openNeighborhoodBtn = document.getElementById('open-neighborhood-btn');
+    const closeNeighborhoodBtn = document.getElementById('close-neighborhood-btn');
+    const neighborhoodOptions = document.querySelectorAll('.neighborhood-option');
+    const selectedNeighborhoodText = document.getElementById('selected-neighborhood-text');
+    const searchInput = document.getElementById('neighborhood-search');
+
+    function showNeighborhood() {
+      neighborhoodModal.classList.remove('hidden');
+      neighborhoodModal.classList.add('flex');
+    }
+    function hideNeighborhood() {
+      neighborhoodModal.classList.add('hidden');
+      neighborhoodModal.classList.remove('flex');
+    }
+
+    openNeighborhoodBtn.addEventListener('click', showNeighborhood);
+    closeNeighborhoodBtn.addEventListener('click', hideNeighborhood);
+
+    neighborhoodOptions.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const name = this.getAttribute('data-name');
+        selectedNeighborhoodText.textContent = name;
+        hideNeighborhood();
+        showToast('Barrio actualizado a: ' + name);
+      });
+    });
+
+    searchInput.addEventListener('input', function(e) {
+      const term = e.target.value.toLowerCase();
+      neighborhoodOptions.forEach(opt => {
+        const txt = opt.getAttribute('data-name').toLowerCase();
+        if (txt.includes(term)) {
+          opt.style.display = 'flex';
+        } else {
+          opt.style.display = 'none';
+        }
+      });
+    });
+
+    // Toast Utility
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    let toastTimeout;
+
+    function showToast(msg) {
+      clearTimeout(toastTimeout);
+      toastMessage.textContent = msg;
+      toast.classList.remove('hidden');
+      toast.classList.add('flex');
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('flex');
+      }, 3500);
+    }
+
+    // Submit Validation & Action
+    const submitBtn = document.getElementById('submit-registration-btn');
+    const nicknameInput = document.getElementById('nickname');
+    const gpsToggle = document.getElementById('gps-toggle');
+
+    submitBtn.addEventListener('click', function() {
+      const nick = nicknameInput.value.trim();
+      if (!nick) {
+        showToast('Por favor escribe cómo te conocen en el barrio.');
+        nicknameInput.focus();
+        return;
+      }
+
+      const gpsActive = gpsToggle.checked;
+      const statusText = gpsActive ? 'GPS aproximado activado.' : 'Registro completado sin GPS (Ubicación estática protegida).';
+      showToast('¡Bienvenido, ' + nick + '! ' + statusText);
+    });
+  })();
+</script></main></body></html>

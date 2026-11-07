@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+
+<html lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "on-surface": "#0f172a",
+          "secondary-container": "#e2e8f0",
+          "on-primary-fixed": "#00174b",
+          "surface-container": "#f1f5f9",
+          "primary-fixed": "#dbeafe",
+          "on-error-container": "#93000a",
+          "primary": "#2563eb",
+          "surface": "#f8fafc",
+          "on-tertiary": "#ffffff",
+          "on-primary-fixed-variant": "#1d4ed8",
+          "tertiary-fixed": "#fee2e2",
+          "on-primary-container": "#ffffff",
+          "secondary": "#475569",
+          "secondary-fixed-dim": "#cbd5e1",
+          "error-container": "#fee2e2",
+          "on-tertiary-container": "#991b1b",
+          "inverse-surface": "#0f172a",
+          "surface-container-highest": "#e2e8f0",
+          "on-secondary": "#ffffff",
+          "background": "#f8fafc",
+          "on-background": "#0f172a",
+          "surface-container-lowest": "#ffffff",
+          "on-error": "#ffffff",
+          "outline": "#94a3b8",
+          "error": "#ef4444",
+          "surface-variant": "#f1f5f9",
+          "surface-dim": "#e2e8f0",
+          "on-surface-variant": "#64748b",
+          "inverse-on-surface": "#f8fafc",
+          "on-primary": "#ffffff",
+          "secondary-fixed": "#f1f5f9",
+          "primary-fixed-dim": "#bfdbfe",
+          "surface-bright": "#ffffff",
+          "on-secondary-container": "#334155",
+          "surface-container-low": "#f8fafc",
+          "surface-container-high": "#e2e8f0",
+          "primary-container": "#1d4ed8",
+          "outline-variant": "#cbd5e1",
+          "slate-text-dim": "#64748b"
+        },
+        borderRadius: {
+          "DEFAULT": "0.375rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "2xl": "1rem",
+          "3xl": "1.5rem",
+          "full": "9999px"
+        },
+        spacing: {
+          "space-xs": "0.25rem",
+          "space-sm": "0.5rem",
+          "space-md": "1rem",
+          "space-lg": "1.5rem",
+          "space-xl": "2rem",
+          "gutter": "1rem",
+          "margin": "1.25rem"
+        },
+        fontFamily: {
+          "body-sm": ["Inter", "sans-serif"],
+          "body-md": ["Inter", "sans-serif"],
+          "body-lg": ["Inter", "sans-serif"],
+          "label-sm": ["Inter", "sans-serif"],
+          "label-md": ["Inter", "sans-serif"],
+          "label-lg": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-sm": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-md": ["Plus Jakarta Sans", "sans-serif"],
+          "headline-lg": ["Plus Jakarta Sans", "sans-serif"]
+        }
+      }
+    }
+  };
+</script><style>
+@layer base {
+  html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+  }
+  body {
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+  main > :first-child { margin-top: 0 !important; }
+  main > :last-child { margin-bottom: 0 !important; }
+}
+::-webkit-scrollbar { display: none; }
+body { min-height: max(884px, 100dvh); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col selection:bg-blue-100 selection:text-primary"><header class="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-[0_1px_3px_rgba(15,23,42,0.03)] pt-safe"><div class="h-16 px-margin flex items-center justify-between gap-space-sm max-w-[430px] mx-auto"><div class="flex items-center gap-2.5 min-w-0"><img alt="Ayllu Logo" class="h-8 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/ALJJyrAS_stjRWo1GKHKMBsQBdzAygPgnSXQqqPcxASowNablWdRP0gOOOjmP54zrvFxckhVTQCCKsVGx9sVEDPZTwPim3161mE_qVqD_AxuVj8J2a-2fafV5sH65sxUlqEmsmmaVQFZujuKvfVLWoOAqfvP8b_2ttIlF_l2jRsV0VVDVk_70ekoCokfPtQCffvPTOjaQVl73G7anmZRPlHDX6xB2mAQT9W93Yrtk9-LnW2s"/><div class="flex flex-col min-w-0"><div class="flex items-center gap-1.5"><span class="font-headline-sm font-bold text-xs tracking-wider text-primary uppercase truncate">Ayllu</span><span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-label-sm text-[10px] font-semibold leading-none"><span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>Online</span></div><button class="flex items-center gap-0.5 text-left text-slate-800 font-semibold text-xs truncate hover:text-primary transition-colors"><span class="truncate max-w-[155px]">Barrio San Blas, Cusco</span><span class="material-symbols-outlined text-[15px] text-slate-400 flex-shrink-0">expand_more</span></button></div></div><div class="flex items-center gap-space-sm flex-shrink-0"><a class="relative p-0.5 rounded-full flex items-center justify-center min-w-[40px] min-h-[40px] focus:outline-none focus:ring-2 focus:ring-primary/40" data-path="perfil-vecinal" href="#"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw35jNQkOKITNDlOI7LXlo5ZgbLukbL32mJUqJpWK3K4Qa-AJl1PqvUEKseEMExMGcKZX0xCv_tgYMX880LtmYZ_Vg0EypXwu7gvhUvDSfPLwYKmJR9ryLMDOxIEwBgGfhJgWsbEhLztcPSHzai61WrxaratvOGNh9S_8fSFRAgb_KXmwaE-C8JhBlF1xcC8hrPrh_1PAtr-wexJp5HoXlQiChJQLJyG1q-6sokZw"/><span class="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-white"></span></a></div></div></header><main class="flex flex-col relative w-full pt-16 pb-24 bg-surface max-w-[430px] mx-auto min-h-screen"><div class="flex flex-col w-full px-margin pb-6 gap-space-md">
+<!-- Banner Solidario Filosófico Ayllu (RF-11) -->
+<section class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-xl bg-primary-fixed flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">volunteer_activism</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-on-surface">Cadena de Favores</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Economía solidaria · Sin intercambio monetario</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-primary" style="font-variation-settings: 'FILL' 1;">handshake</span>
+        Ayni Activo
+      </span>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm bg-surface-container-low rounded-xl px-3 py-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+<span>Colaboración altruista protegida</span>
+</div>
+<span class="font-label-sm text-label-sm font-semibold text-primary">RNF-10 Seguro</span>
+</div>
+</section>
+<!-- Botón de Acción Principal y Métricas de Impacto Comunitario -->
+<section class="grid grid-cols-2 gap-space-sm">
+<button class="col-span-2 w-full py-3.5 px-4 rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.99] transition-transform" onclick="openPublishModal()">
+<span class="material-symbols-outlined text-[22px]">add_circle</span>
+      Pedir u Ofrecer Favor
+    </button>
+<div class="bg-surface-container-lowest p-3 rounded-xl shadow-sm flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]">cached</span>
+</div>
+<div class="min-w-0">
+<p class="font-headline-sm text-headline-sm text-on-surface">38</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant truncate">Favores en curso</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-xl shadow-sm flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">energy_savings_leaf</span>
+</div>
+<div class="min-w-0">
+<p class="font-headline-sm text-headline-sm text-on-surface">142</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant truncate">Completados este mes</p>
+</div>
+</div>
+</section>
+<!-- Filtros Rápidos Dinámicos (RF-11) -->
+<section class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-margin px-margin">
+<button class="px-3.5 py-1.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm whitespace-nowrap shadow-sm">
+      Todos (24)
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container shadow-sm">
+      Herramientas
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container shadow-sm">
+      Acompañamiento
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-on-surface font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container shadow-sm">
+      Cuidado Mutuo
+    </button>
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest text-tertiary font-label-sm text-label-sm whitespace-nowrap hover:bg-surface-container shadow-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+      Urgente
+    </button>
+</section>
+<!-- Muro de Publicaciones Solidarias (RF-11, RF-12, RF-14) -->
+<section class="flex flex-col gap-space-md">
+<!-- Card 1: Préstamo de herramienta (Ofrecimiento) -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2.5">
+<img class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="Retrato fotográfico cálido de un vecino sonriente de Cusco de mediana edad, luz natural de día, fondo desenfocado de portal colonial andino, estilo realista y nítido." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBD68QWk_ixJZqD39YpSUbpwR-BIEzc5ihOZhi6YpNmqeA78f5hNEPwlOcLY5GZ7yTeOjFHtcrOP5MJPhe1vqBSvNGqqW63Dc53qBtFc7gX-8slIQFIEyz97lC3MUpEXgWh4CN1f5Cp0k9BZY6dU7zGI0E3yTa4srd0KvSVehvvtMdKVbWGNyKykkgrDvwWvGgW2J85lq5lPS2eNqOS9t6uqKIukOKpQFcUnssGSAo"/>
+<div>
+<div class="flex items-center gap-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Mateo Quispe</h2>
+<span class="material-symbols-outlined text-[16px] text-primary" title="Identidad verificada">verified</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">location_on</span>
+              San Blas (a 180 m)
+            </p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">
+            Disponible
+          </span>
+<span class="text-[11px] font-label-sm text-primary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+            14 favores dados
+          </span>
+</div>
+</div>
+<div>
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface font-label-sm text-label-sm mb-1.5">
+<span class="material-symbols-outlined text-[14px]">handyman</span>
+          Préstamo · Ofrezco
+        </div>
+<h3 class="font-title-md text-title-md text-on-surface font-bold">Taladro percutor + juego de brocas de concreto</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          Tengo taladro percutor Bosch para prestar este fin de semana para arreglos domésticos en el barrio. Incluye kit básico de brocas. Solo vecinos responsables del vecindario.
+        </p>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">schedule</span>
+          Por 2 a 3 días
+        </span>
+<span class="text-on-surface font-medium">Trueque / Préstamo vecinal</span>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2.5 px-3 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" onclick="openResponseModal('Mateo Quispe', 'Taladro percutor + juego de brocas')">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+          Responder favor
+        </button>
+<button class="p-2.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-tertiary flex items-center justify-center transition-colors" onclick="reportItem('Mateo Quispe')" title="Reporte comunitario seguro RF-21">
+<span class="material-symbols-outlined text-[18px]">flag</span>
+</button>
+</div>
+</article>
+<!-- Card 2: Acompañamiento médico urgente (Solicitud) -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2.5">
+<img class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="Fotografía empática de una vecina mayor con lentes y bufanda andina elegante, retrato cálido, iluminación suave matinal en un patio de Cusco, alta definición." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlrXlb2VUnPEifZMWiNGghSIfs_PTjqZAL6SNCV0JIe94VQImJw5bIPHuRBWo71ZwBw6lhB7U2Xlu4I_WNEnYk-RVOk132iZcAs9qJ3KsG05vVh_XwHqkI64kRtj47TZi7tXekPNFLnTGI3pc7sl7uVH-N-06l5BzM3aCV_JI7euzhBuiCi5whk4s_6uihCer6ZD5zEV43I3Z2oCZh9stiupwxtVdA-_rhCbJ7AR4"/>
+<div>
+<div class="flex items-center gap-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Doña Elena Rivas</h2>
+<span class="material-symbols-outlined text-[16px] text-primary">verified</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">location_on</span>
+              Lucrepata (a 420 m)
+            </p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error animate-ping"></span>
+            Urgente
+          </span>
+<span class="text-[11px] font-label-sm text-primary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+            8 favores dados
+          </span>
+</div>
+</div>
+<div>
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary-container text-on-secondary-container font-label-sm text-label-sm mb-1.5">
+<span class="material-symbols-outlined text-[14px]">personal_injury</span>
+          Acompañamiento · Solicito
+        </div>
+<h3 class="font-title-md text-title-md text-on-surface font-bold">Acompañamiento al Policlínico Metropolitano</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          Tengo cita médica de oftalmología este jueves 9:00 AM y requiero que alguien me acompañe a tomar el transporte y de regreso. Tengo movilidad lenta.
+        </p>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">event</span>
+          Jueves 17 · 2 horas aprox.
+        </span>
+<span class="text-on-surface font-medium">Solidaridad vecinal</span>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2.5 px-3 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-transform" onclick="openResponseModal('Doña Elena Rivas', 'Acompañamiento al Policlínico')">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+          Brindar mi apoyo
+        </button>
+<button class="p-2.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-tertiary flex items-center justify-center transition-colors" onclick="reportItem('Doña Elena Rivas')">
+<span class="material-symbols-outlined text-[18px]">flag</span>
+</button>
+</div>
+</article>
+<!-- Card 3: Apoyo escolar comunitario (Ofrecimiento) -->
+<article class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between gap-2">
+<div class="flex items-center gap-2.5">
+<img class="w-10 h-10 rounded-full object-cover shadow-sm" data-alt="Retrato de un joven universitario peruano con casaca azul en biblioteca comunitaria de Cusco, expresión sonriente y amable, iluminación cálida y limpia." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP7WblefvlynNqrmtNB_SWKOui2DB8VamPD5c3hH6oF3Sem7cGA-uGZ1jqBeXB0xPuwdM9eLVD8l3AIKq1jEFVG7Cv53nVymvBOYMp945NP4AetGLB1ycZ-BSaSredosvWlqVoo8yeq3OYK0Fq51jrN0aN1pvZ8PdzTGWBCgUotr1MTFq3HHLvgAtDhhGHe_dLXyUHrT65LMCn4h5icE_ObRdWM7MHXCnOVeXdrBY"/>
+<div>
+<div class="flex items-center gap-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Carlos Huamán</h2>
+<span class="material-symbols-outlined text-[16px] text-primary">verified</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">location_on</span>
+              San Blas (a 250 m)
+            </p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold">
+            En curso
+          </span>
+<span class="text-[11px] font-label-sm text-primary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+            22 favores dados
+          </span>
+</div>
+</div>
+<div>
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface font-label-sm text-label-sm mb-1.5">
+<span class="material-symbols-outlined text-[14px]">school</span>
+          Educación · Ofrezco
+        </div>
+<h3 class="font-title-md text-title-md text-on-surface font-bold">Refuerzo de matemáticas para primaria / secundaria</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          Estudiante de ingeniería disponible sábados por la mañana en el centro comunitario o por videollamada para niños y jóvenes del barrio.
+        </p>
+</div>
+<div class="bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">schedule</span>
+          Sábados 10:00 - 12:00
+        </span>
+<span class="text-on-surface font-medium">Ayni Educativo</span>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="flex-1 py-2.5 px-3 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-container-high transition-colors" onclick="openResponseModal('Carlos Huamán', 'Refuerzo de matemáticas')">
+<span class="material-symbols-outlined text-[18px]">group_add</span>
+          Unirse a grupo de apoyo
+        </button>
+<button class="p-2.5 rounded-xl bg-surface-container text-on-surface-variant hover:text-tertiary flex items-center justify-center transition-colors" onclick="reportItem('Carlos Huamán')">
+<span class="material-symbols-outlined text-[18px]">flag</span>
+</button>
+</div>
+</article>
+</section>
+<!-- MODAL / BOTTOM SHEET: PUBLICAR FAVOR EN 3 PASOS (RF-13) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-sm hidden items-end sm:items-center justify-center transition-opacity" id="publishModal">
+<div class="bg-surface-container-lowest w-full max-w-[430px] rounded-t-3xl sm:rounded-2xl p-space-md shadow-xl flex flex-col gap-4 max-h-[751px] overflow-y-auto">
+<!-- Encabezado Modal -->
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Publicar en Cadena de Favores</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Paso <span id="currentStepNumber">1</span> de 3 · Sin intercambio comercial</p>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" onclick="closePublishModal()">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Barra de Progreso de 3 Pasos -->
+<div class="grid grid-cols-3 gap-2">
+<div class="h-1.5 rounded-full bg-primary transition-colors" id="stepBar1"></div>
+<div class="h-1.5 rounded-full bg-surface-container transition-colors" id="stepBar2"></div>
+<div class="h-1.5 rounded-full bg-surface-container transition-colors" id="stepBar3"></div>
+</div>
+<!-- Paso 1: Tipo y Categoría -->
+<div class="flex flex-col gap-3" id="step1Content">
+<label class="font-title-md text-title-md text-on-surface font-semibold">¿Qué acción deseas realizar?</label>
+<div class="grid grid-cols-2 gap-2">
+<button class="p-3 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex flex-col items-center gap-1.5" id="btnActionPedir" onclick="selectActionType('pedir')" type="button">
+<span class="material-symbols-outlined text-[24px]">front_hand</span>
+            Pedir un favor
+          </button>
+<button class="p-3 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex flex-col items-center gap-1.5 hover:bg-surface-container-high" id="btnActionOfrecer" onclick="selectActionType('ofrecer')" type="button">
+<span class="material-symbols-outlined text-[24px]">volunteer_activism</span>
+            Brindar apoyo
+          </button>
+</div>
+<label class="font-title-md text-title-md text-on-surface font-semibold mt-2">Categoría solidaria</label>
+<div class="grid grid-cols-2 gap-2">
+<label class="flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-low cursor-pointer">
+<input checked="" class="text-primary focus:ring-0" name="categoria" type="radio"/>
+<span class="font-body-sm text-body-sm text-on-surface">Herramientas</span>
+</label>
+<label class="flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-low cursor-pointer">
+<input class="text-primary focus:ring-0" name="categoria" type="radio"/>
+<span class="font-body-sm text-body-sm text-on-surface">Acompañamiento</span>
+</label>
+<label class="flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-low cursor-pointer">
+<input class="text-primary focus:ring-0" name="categoria" type="radio"/>
+<span class="font-body-sm text-body-sm text-on-surface">Cuidado mutuo</span>
+</label>
+<label class="flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-low cursor-pointer">
+<input class="text-primary focus:ring-0" name="categoria" type="radio"/>
+<span class="font-body-sm text-body-sm text-on-surface">Víveres / Traslado</span>
+</label>
+</div>
+<button class="w-full mt-3 py-3 rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-2" onclick="goToStep(2)">
+          Continuar
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<!-- Paso 2: Detalles Breves -->
+<div class="hidden flex-col gap-3" id="step2Content">
+<div>
+<label class="font-title-md text-title-md text-on-surface font-semibold block mb-1">Título breve</label>
+<input class="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container" placeholder="Ej: Escalera de aluminio de 4 peldaños" type="text"/>
+</div>
+<div>
+<label class="font-title-md text-title-md text-on-surface font-semibold block mb-1">Descripción</label>
+<textarea class="w-full p-3 rounded-xl bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container" placeholder="Explica detalladamente en qué consiste el favor y para cuándo se necesita..." rows="3"></textarea>
+</div>
+<div>
+<label class="font-title-md text-title-md text-on-surface font-semibold block mb-1">Tiempo estimado de uso o dedicación</label>
+<input class="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:bg-surface-container" placeholder="Ej: 2 horas, fin de semana completo" type="text"/>
+</div>
+<div class="flex gap-2 mt-2">
+<button class="w-1/3 py-3 rounded-xl bg-surface-container text-on-surface font-headline-sm text-headline-sm" onclick="goToStep(1)">Atrás</button>
+<button class="w-2/3 py-3 rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-1" onclick="goToStep(3)">
+            Continuar
+            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Paso 3: Privacidad y Medio de Contacto Seguro (RNF-10) -->
+<div class="hidden flex-col gap-3" id="step3Content">
+<div class="p-3 bg-surface-container-low rounded-xl flex items-start gap-2.5">
+<span class="material-symbols-outlined text-[20px] text-primary flex-shrink-0 mt-0.5">security</span>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">Privacidad Comunal Garantizada</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Nunca publicamos tu dirección exacta ni número personal abiertamente (RNF-10). Solo se muestra tu distancia estimada.</p>
+</div>
+</div>
+<label class="font-title-md text-title-md text-on-surface font-semibold">Canal preferido para coordinar</label>
+<div class="space-y-2">
+<label class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">chat</span>
+<div>
+<p class="font-body-sm text-body-sm font-semibold text-on-surface">Chat Interno Ayllu</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Recomendado · Encriptado vecinal</p>
+</div>
+</div>
+<input checked="" class="text-primary focus:ring-0" name="contacto" type="radio"/>
+</label>
+<label class="flex items-center justify-between p-3 rounded-xl bg-surface-container-low cursor-pointer">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">smartphone</span>
+<div>
+<p class="font-body-sm text-body-sm font-semibold text-on-surface">WhatsApp con máscara</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Número no visible al público</p>
+</div>
+</div>
+<input class="text-primary focus:ring-0" name="contacto" type="radio"/>
+</label>
+</div>
+<div class="flex gap-2 mt-2">
+<button class="w-1/3 py-3 rounded-xl bg-surface-container text-on-surface font-headline-sm text-headline-sm" onclick="goToStep(2)">Atrás</button>
+<button class="w-2/3 py-3 rounded-xl bg-primary text-on-primary font-headline-sm text-headline-sm flex items-center justify-center gap-1 shadow-sm" onclick="finishPublish()">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+            Publicar Favor
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- MODAL: RESPONDER FAVOR DE FORMA SEGURA (RF-14) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/40 backdrop-blur-sm hidden items-end sm:items-center justify-center transition-opacity" id="responseModal">
+<div class="bg-surface-container-lowest w-full max-w-[430px] rounded-t-3xl sm:rounded-2xl p-space-md shadow-xl flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm font-semibold">Contacto Seguro</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mt-1">Conectar con <span id="targetNeighbor">Vecino</span></h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant" id="targetFavorTitle">Detalle del favor</p>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface" onclick="closeResponseModal()">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Opciones de Contacto Respetuoso -->
+<div class="flex flex-col gap-2.5">
+<button class="w-full p-3.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-left flex items-center justify-between transition-colors" onclick="confirmContact('chat')">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">forum</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Mensaje Interno Ayllu</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Chat seguro sin exponer número telefónico</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">chevron_right</span>
+</button>
+<button class="w-full p-3.5 rounded-xl bg-surface-container-low hover:bg-surface-container text-left flex items-center justify-between transition-colors" onclick="confirmContact('whatsapp')">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[22px]">phone_in_talk</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">WhatsApp Protegido</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Conexión intermediada vía Ayllu Bot</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant">chevron_right</span>
+</button>
+</div>
+<!-- Advertencia Comunitaria y Reporte (RF-21) -->
+<div class="p-3 bg-surface-container-low rounded-xl text-on-surface-variant font-label-sm text-label-sm flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary">gavel</span>
+<span>Reglas de respeto comunitario vigentes</span>
+</div>
+<button class="text-tertiary font-semibold hover:underline" onclick="reportItem('moderacion')">
+          Reportar abuso
+        </button>
+</div>
+</div>
+</div>
+<!-- Toast de Notificación Dinámico -->
+<div class="fixed top-20 inset-x-4 max-w-[390px] mx-auto z-50 bg-inverse-surface text-inverse-on-surface px-4 py-3 rounded-xl shadow-lg flex items-center gap-2.5 transition-all transform -translate-y-24 opacity-0 pointer-events-none" id="toastNotification">
+<span class="material-symbols-outlined text-[20px] text-primary-fixed" id="toastIcon">check_circle</span>
+<span class="font-body-sm text-body-sm flex-1" id="toastMessage">Operación exitosa</span>
+</div>
+</div>
+<script>
+  function openPublishModal() {
+    const modal = document.getElementById('publishModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    goToStep(1);
+  }
+
+  function closePublishModal() {
+    const modal = document.getElementById('publishModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function goToStep(step) {
+    document.getElementById('currentStepNumber').innerText = step;
+    
+    // Contenido
+    document.getElementById('step1Content').classList.toggle('hidden', step !== 1);
+    document.getElementById('step1Content').classList.toggle('flex', step === 1);
+    document.getElementById('step2Content').classList.toggle('hidden', step !== 2);
+    document.getElementById('step2Content').classList.toggle('flex', step === 2);
+    document.getElementById('step3Content').classList.toggle('hidden', step !== 3);
+    document.getElementById('step3Content').classList.toggle('flex', step === 3);
+
+    // Barras
+    document.getElementById('stepBar1').className = step >= 1 ? 'h-1.5 rounded-full bg-primary transition-colors' : 'h-1.5 rounded-full bg-surface-container transition-colors';
+    document.getElementById('stepBar2').className = step >= 2 ? 'h-1.5 rounded-full bg-primary transition-colors' : 'h-1.5 rounded-full bg-surface-container transition-colors';
+    document.getElementById('stepBar3').className = step >= 3 ? 'h-1.5 rounded-full bg-primary transition-colors' : 'h-1.5 rounded-full bg-surface-container transition-colors';
+  }
+
+  function selectActionType(type) {
+    const btnPedir = document.getElementById('btnActionPedir');
+    const btnOfrecer = document.getElementById('btnActionOfrecer');
+    if(type === 'pedir') {
+      btnPedir.className = 'p-3 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex flex-col items-center gap-1.5';
+      btnOfrecer.className = 'p-3 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex flex-col items-center gap-1.5 hover:bg-surface-container-high';
+    } else {
+      btnOfrecer.className = 'p-3 rounded-xl bg-primary text-on-primary font-label-md text-label-md font-semibold flex flex-col items-center gap-1.5';
+      btnPedir.className = 'p-3 rounded-xl bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex flex-col items-center gap-1.5 hover:bg-surface-container-high';
+    }
+  }
+
+  function finishPublish() {
+    closePublishModal();
+    showToast('¡Favor publicado con éxito en el Muro Comunitario!');
+  }
+
+  function openResponseModal(neighborName, favorTitle) {
+    document.getElementById('targetNeighbor').innerText = neighborName;
+    document.getElementById('targetFavorTitle').innerText = favorTitle;
+    const modal = document.getElementById('responseModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeResponseModal() {
+    const modal = document.getElementById('responseModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  function confirmContact(channel) {
+    closeResponseModal();
+    if(channel === 'chat') {
+      showToast('Abriendo chat seguro de Ayllu...');
+    } else {
+      showToast('Generando enlace protegido de WhatsApp...');
+    }
+  }
+
+  function reportItem(target) {
+    showToast('Reporte enviado a los moderadores del barrio San Blas.');
+  }
+
+  function showToast(message) {
+    const toast = document.getElementById('toastNotification');
+    document.getElementById('toastMessage').innerText = message;
+    toast.classList.remove('-translate-y-24', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+    setTimeout(() => {
+      toast.classList.add('-translate-y-24', 'opacity-0');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }, 3200);
+  }
+</script></main>
+<!-- Bottom Navigation Minimal & Modern -->
+<nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-white/95 backdrop-blur-xl border-t border-slate-200/70 shadow-[0_-2px_10px_rgba(15,23,42,0.03)]"><div class="flex justify-around items-center h-16 px-space-xs max-w-[430px] mx-auto"><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-space-xs text-slate-400 hover:text-slate-600 transition-colors" data-path="inicio" href="#"><span class="material-symbols-outlined text-[22px]">roofing</span><span class="text-[10px] font-medium leading-tight mt-1">Inicio</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-space-xs text-slate-400 hover:text-slate-600 transition-colors" data-path="directorio" href="#"><span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">diversity_1</span><span class="text-[10px] font-bold leading-tight mt-1 text-primary">Directorio</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-space-xs text-slate-500 transition-colors group" data-path="publicar-recurso" href="#"><div class="w-10 h-10 -mt-3.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white flex items-center justify-center shadow-md group-active:scale-95 transition-transform"><span class="material-symbols-outlined text-[20px]">add</span></div><span class="text-[10px] font-medium leading-tight mt-1 text-slate-600">Publicar</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-space-xs text-red-500 hover:text-red-600 transition-colors" data-path="emergencia" href="#"><span class="material-symbols-outlined text-[22px]">sos</span><span class="text-[10px] font-bold leading-tight mt-1 text-red-600">Emergencia</span></a></div></nav></body></html>

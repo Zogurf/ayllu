@@ -1,0 +1,21 @@
+{
+  "name": "stitch-ayni-resiliencia-comunitaria",
+  "version": "1.0.0",
+  "description": "Ayllu - Resiliencia Comunitaria Local en React Native (Android, iOS y Web)",
+  "scripts": {
+    "start": "cd ayllu-app && npm start",
+    "android": "cd ayllu-app && npm run android",
+    "ios": "cd ayllu-app && npm run ios",
+    "web": "cd ayllu-app && npm run web"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "ayllu",
+    "resiliencia",
+    "comunidad",
+    "ayni"
+  ],
+  "author": "Ayllu Team",
+  "license": "MIT"
+}
