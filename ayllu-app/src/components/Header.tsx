@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 
@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTutorial,
   onNavigateProfile,
 }) => {
-  const { user, isOnline, toggleConnectivity } = useApp();
+  const { user, isOnline } = useApp();
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -47,18 +47,15 @@ export const Header: React.FC<HeaderProps> = ({
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>AYLLU</Text>
               
-              {/* Online / Offline clickable toggle */}
-              <TouchableOpacity 
+              {/* Actual device network state */}
+              <View
                 style={[styles.statusPill, isOnline ? styles.onlinePill : styles.offlinePill]}
-                onPress={toggleConnectivity}
-                activeOpacity={0.8}
-                accessibilityLabel="Alternar conexión online u offline"
               >
                 <View style={[styles.statusDot, isOnline ? styles.onlineDot : styles.offlineDot]} />
                 <Text style={[styles.statusText, isOnline ? styles.onlineText : styles.offlineText]}>
                   {isOnline ? 'Online' : 'Offline'}
                 </Text>
-              </TouchableOpacity>
+              </View>
             </View>
 
             {/* Neighborhood selector button */}

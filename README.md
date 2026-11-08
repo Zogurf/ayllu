@@ -1,6 +1,8 @@
 # Ayllu - Resiliencia Comunitaria Local en React Native 🏔️🤝
 
-Aplicación móvil desarrollada en **React Native con Expo y TypeScript**, basada en las plantillas y especificaciones de diseño **Stitch ("Civic Horizon")**. La plataforma fortalece la resiliencia, la confianza y la autogestión de las comunidades locales a través de dos modos operativos: **Modo Cotidiano** y **Modo Emergencia**, con funcionamiento resiliente **100% offline** y almacenamiento local seguro.
+Prototipo móvil desarrollado en **React Native con Expo y TypeScript**, basado en las plantillas **Stitch ("Civic Horizon")**. Presenta flujos de apoyo vecinal, servicios locales y emergencias. Los datos operativos se guardan localmente en SQLite en Android/iOS y en AsyncStorage en Web. El código incluye una primera integración con Supabase para Auth, perfiles vecinales y sincronización de reportes de emergencia; requiere configurar un proyecto y sus credenciales antes de activarse.
+
+> **Estado:** prototipo funcional para demostración. No usar para coordinar emergencias reales ni ingresar datos personales reales. Los roles se pueden cambiar localmente y no autorizan ni protegen información.
 
 ---
 
@@ -24,9 +26,41 @@ npm start
 - **Web:** Presiona `w` en la terminal (o ejecuta `npm run web`).
 - **Expo Go en tu celular físico:** Escanea el código QR que muestra la terminal con la app **Expo Go** (Android o iOS).
 
+## Estado real frente a los requisitos
+
+Las pantallas y los flujos visuales de los módulos están implementados en distintos grados; la tabla resume el comportamiento real del código, no el objetivo de producto.
+
+| Área | Estado actual | Pendiente para cumplir el README |
+|---|---|---|
+| Registro y perfil | Perfil local persistido; Auth por correo/contraseña y perfil remoto opcionales al configurar Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo |
+| Directorio y contactos | Datos semilla locales | Fuente administrable y sincronizada; verificación real de proveedores y vigencia de contactos |
+| Servicios, avales y favores | Flujos locales; avales guardados en el dispositivo | API compartida, autorización en servidor y reglas transaccionales contra duplicados |
+| Emergencias y recursos | Reportes pueden sincronizarse por RPC autenticado con RLS; el tablero y recursos siguen locales | Completar sincronización de estados/recursos y auditoría antes de uso real |
+| Mensajería | Confirmación simulada en la interfaz | Canal de mensajería real o apertura de WhatsApp con consentimiento |
+| Moderación | Denuncias y ocultamiento local | Cola compartida, persistencia y permisos administrativos en servidor |
+| Offline y sincronización | Expo detecta conectividad; la cola persiste errores; los reportes sensibles se guardan en SecureStore móvil y usan RPC idempotente al iniciar sesión | Configurar proyecto/credenciales; completar sincronización para servicios, favores, avales, recursos y moderación |
+
+Los formularios limitan longitudes, validan celulares peruanos, comprueban edades entre 0 y 125 y requieren cantidades positivas para recursos. Los mensajes de confirmación indican cuándo el registro solo quedó guardado en el dispositivo.
+
+### Persistencia local
+
+En Android e iOS la app usa `expo-sqlite` (`ayllu-local.db`) con tablas separadas para perfiles, servicios, favores, reportes, recursos, moderación y cola de sincronización. En la primera apertura, migra los registros previos de AsyncStorage a SQLite y elimina las claves antiguas después de completar la migración. En Web conserva AsyncStorage como alternativa, porque el build web actual no configura SQLite WASM. Los datos identificables de reportes se guardan por separado en SecureStore móvil.
+
+### Identidad y permisos
+
+Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proyecto configurado, aparece el inicio de sesión por correo/contraseña, el alta guarda un perfil y rol inicial de vecino, y la aplicación obtiene el rol desde `community_memberships`. Los roles privilegiados nunca se asignan desde el cliente. Las migraciones en `supabase/migrations/` preparan RLS y un RPC idempotente para reportes de emergencia.
+
+### Base de datos y backend (siguiente etapa)
+
+La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. La integración actual cubre Auth, perfiles, barrios y reportes de emergencia. Los campos privados de reportes se separan de la información comunitaria. El directorio, avales, favores, recursos y moderación aún son locales; se incorporarán con sus propias migraciones, políticas y adaptadores de sincronización.
+
+Sigue [SUPABASE_SETUP.md](SUPABASE_SETUP.md) para crear el proyecto, aplicar migraciones, configurar Auth, guardar las variables y probar el flujo. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
+
 ---
 
-## 🏛️ Módulos y Cobertura de Requerimientos
+## 🏛️ Requisitos objetivo del producto
+
+Esta sección conserva los requisitos acordados para el producto. Su presencia aquí no implica que estén terminados; consulta la tabla de estado real arriba.
 
 ### Módulo 1: Registro, Onboarding y Perfil Geográfico
 - **RF-01 (Registro y localidad obligatoria):** Captura nombre/apodo barrial, teléfono y jerarquía territorial (Región: Cusco, Distrito: Cusco, Localidad/Barrio: San Blas, San Cristóbal, etc.).
@@ -76,26 +110,26 @@ npm start
 ---
 
 ### Módulo 5: Funcionamiento Sin Conexión (Offline First)
-- **RF-22 (Consulta offline):** Almacenamiento local en `AsyncStorage` de todo el directorio, contactos de apoyo, favores y recursos. Funciona completamente sin internet y muestra la última fecha de sincronización.
-- **RF-23 (Guardado local de reportes):** Si el usuario crea un reporte o publicación sin conexión, se guarda localmente en el dispositivo y se encola en `syncQueue` con estado `PENDIENTE`.
-- **RF-24 (Sincronización y prevención de duplicados):** Al restablecerse la conexión (o presionar *"Sincronizar ahora"*), la cola se procesa evitando duplicados mediante identificadores únicos.
-- **RF-25 (Límite de la coordinación offline):** Mensaje claro y visible en cada reporte encolado: *"Guardado únicamente en tu dispositivo. Este reporte NO ha llegado a los coordinadores hasta que se sincronice con internet."*
+- **RF-22 (Consulta offline):** Los datos operativos guardados se leen localmente desde SQLite en Android/iOS y AsyncStorage en Web; contactos de apoyo siguen siendo datos semilla y no hay sincronización real.
+- **RF-23 (Guardado local de reportes):** El reporte de emergencia se guarda localmente y se encola con estado `PENDIENTE`. Servicios y favores se guardan localmente; cuando se crean sin conexión también se añaden a la cola, que aún no tiene transporte para estos tipos.
+- **RF-24 (Sincronización y prevención de duplicados):** La cola no elimina elementos hasta recibir confirmación. Reportes de emergencia usan un RPC idempotente; requiere proyecto Supabase, barrio sembrado y sesión válida. Otros tipos aún no tienen transporte backend.
+- **RF-25 (Límite de la coordinación offline):** Objetivo de producto. La advertencia se muestra en algunos flujos de demo, pero la cola aún no se entrega a coordinadores.
 
 ---
 
 ## 🎨 Requerimientos No Funcionales y Diseño (Civic Horizon)
-- **RNF-01 (Compatibilidad móvil):** Compatible con Android 8.0+ e iOS 14.0+ y Web.
-- **RNF-02 (Almacenamiento local):** Implementado con `@react-native-async-storage/async-storage`.
-- **RNF-03 (Sincronización segura):** Cola de sincronización idempotente sin pérdida de información.
-- **RNF-04 (Claridad de conexión):** Pill interactivo en el header y barra de sincronización que indica en tiempo real si el dispositivo está en línea, fuera de línea o con elementos en cola.
+- **RNF-01 (Compatibilidad móvil):** Plataformas objetivo: Android, iOS y Web. La matriz de versiones mínimas todavía no está validada.
+- **RNF-02 (Almacenamiento local):** SQLite en Android/iOS organiza los datos operativos; Web usa AsyncStorage como alternativa. SecureStore móvil mantiene separado el contenido sensible de reportes.
+- **RNF-03 (Sincronización segura):** La cola local conserva los fallos; el RPC de reportes de emergencia es idempotente. La conexión remota y los otros tipos requieren configuración/implementación.
+- **RNF-04 (Claridad de conexión):** Expo Network informa el estado de conectividad real del dispositivo y la cola muestra fallos pendientes.
 - **RNF-05 (Publicación en 3 pasos):** Modal con barra de progreso tipo stepper ágil.
 - **RNF-06 (Accesibilidad vecinal):** Alto contraste (Cobalto `#2563EB`, Pizarra `#0F172A`, Terracota `#EA580C`, Rojo `#DC2626`), tipografía legible y lenguaje directo.
 - **RNF-07 (Tolerancia a errores):** Confirmaciones antes de enviar reportes críticos y validación de campos obligatorios.
 - **RNF-08 (Rendimiento):** Renderizado en memoria local sin esperas de red (< 200 ms).
-- **RNF-09 (Disponibilidad offline):** Directorio y contactos accesibles en cualquier circunstancia.
-- **RNF-10 / RNF-11 / RNF-12 (Privacidad y consentimientos):** Direcciones exactas no expuestas públicamente, GPS estrictamente opcional.
-- **RNF-13 (Seguridad de roles):** Conmutador interactivo de roles en la pestaña *"Mi Barrio"* para alternar entre **Vecino**, **Proveedor**, **Coordinador Comunitario** y **Administrador**.
-- **RNF-14 (Integridad de avales):** Validación estricta en el Context para evitar avales duplicados de un mismo usuario.
+- **RNF-09 (Disponibilidad offline):** Objetivo de producto; no se garantiza disponibilidad ni vigencia de datos en cualquier circunstancia.
+- **RNF-10 / RNF-11 / RNF-12 (Privacidad y consentimientos):** Los identificadores del reporte se separan en el esquema servidor y los datos locales se guardan en SecureStore móvil. Falta autenticar usuarios y verificar RLS en un proyecto real; la demo no debe contener datos personales reales.
+- **RNF-13 (Seguridad de roles):** El conmutador en *"Mi Barrio"* solo cambia el rol local para la demo. La autorización de producción está pendiente y debe ser aplicada en el backend.
+- **RNF-14 (Integridad de avales):** La demo evita repetir un aval en el estado local; falta una restricción transaccional compartida en servidor.
 
 ---
 
@@ -118,7 +152,7 @@ npm start
 ```text
 ayllu-app/
 ├── App.tsx                     # Punto de entrada con SafeAreaProvider y AppProvider
-├── package.json                # Dependencias Expo SDK 58, React Native, AsyncStorage
+├── package.json                # Dependencias Expo SDK 58, React Native, SQLite y AsyncStorage (fallback Web)
 ├── src/
 │   ├── AppNavigator.tsx        # Navegador principal con tabs inferiores y header Stitch
 │   ├── theme/
@@ -127,7 +161,8 @@ ayllu-app/
 │   │   └── index.ts            # Interfaces TypeScript (Roles, Servicios, Favores, Reportes)
 │   ├── storage/
 │   │   ├── mockData.ts         # Datos semilla realistas de la comunidad andina (Cusco)
-│   │   └── offlineStorage.ts   # Manejador de persistencia en AsyncStorage
+│   │   ├── offlineStorage.ts   # SQLite nativo, fallback Web y migración desde AsyncStorage
+│   │   └── privateReportStorage.ts # Datos privados de reportes en SecureStore móvil
 │   ├── context/
 │   │   └── AppContext.tsx      # Estado global, sincronización offline, avales y roles
 │   ├── components/

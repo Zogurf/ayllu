@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import * as Network from 'expo-network';
 import { 
   UserProfile, 
   UserRole, 
@@ -13,7 +14,9 @@ import {
   FavorStatus,
   EmergencyStatus
 } from '../types';
-import { OfflineStorage } from '../storage/offlineStorage';
+import { OfflineStorage, redactEmergencyReport } from '../storage/offlineStorage';
+import { submitQueuedItem } from '../services/syncTransport';
+import { supabase } from '../lib/supabase';
 import { 
   INITIAL_USER, 
   INITIAL_SERVICES, 
@@ -25,6 +28,7 @@ import {
 } from '../storage/mockData';
 
 interface AppContextType {
+  isHydrated: boolean;
   // User Profile & Roles
   user: UserProfile;
   updateProfile: (profile: Partial<UserProfile>) => void;
@@ -33,10 +37,9 @@ interface AppContextType {
   
   // Connectivity & Offline
   isOnline: boolean;
-  toggleConnectivity: () => void;
   lastSyncTime: string;
   syncQueue: SyncQueueItem[];
-  synchronizeQueue: () => Promise<{ success: boolean; count: number }>;
+  synchronizeQueue: (retryFailed?: boolean) => Promise<{ success: boolean; count: number; failed: number; message?: string }>;
   removeSyncQueueItem: (id: string) => void;
 
   // Emergency Mode
@@ -46,27 +49,27 @@ interface AppContextType {
   // Local Services & Directory
   services: LocalService[];
   filteredServices: LocalService[];
-  addService: (service: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified'>) => void;
+  addService: (service: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified' | 'isOfflinePending'>) => Promise<void>;
   toggleAval: (serviceId: string) => { success: boolean; message: string };
   reportAval: (serviceId: string, reason: string) => void;
 
   // Cadena de Favores
   favors: CommunityFavor[];
   filteredFavors: CommunityFavor[];
-  addFavor: (favor: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor'>) => void;
+  addFavor: (favor: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => Promise<void>;
   updateFavorStatus: (favorId: string, status: FavorStatus) => void;
   removeFavor: (favorId: string) => void;
 
   // Emergency Reports & Sensitive Data
   emergencyReports: EmergencyReport[];
   filteredEmergencyReports: EmergencyReport[];
-  addEmergencyReport: (report: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => void;
-  updateEmergencyReportStatus: (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => void;
+  addEmergencyReport: (report: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
+  updateEmergencyReportStatus: (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => Promise<void>;
 
   // Critical Resources
   criticalResources: CriticalResource[];
   filteredCriticalResources: CriticalResource[];
-  addCriticalResource: (resource: Omit<CriticalResource, 'id' | 'updatedAt'>) => void;
+  addCriticalResource: (resource: Omit<CriticalResource, 'id' | 'updatedAt'>) => Promise<void>;
 
   // Moderation
   contentReports: ContentReport[];
@@ -81,16 +84,22 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const createUuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, token => {
+  const random = Math.floor(Math.random() * 16);
+  return (token === 'x' ? random : (random & 0x3) | 0x8).toString(16);
+});
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [user, setUser] = useState<UserProfile>(INITIAL_USER);
-  const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [lastSyncTime, setLastSyncTime] = useState<string>('Hoy 08:30 AM');
+  const [isOnline, setIsOnline] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [syncQueue, setSyncQueue] = useState<SyncQueueItem[]>([]);
   const [emergencyMode, setEmergencyMode] = useState<EmergencyModeState>(INITIAL_EMERGENCY_MODE);
   
   const [services, setServices] = useState<LocalService[]>(INITIAL_SERVICES);
   const [favors, setFavors] = useState<CommunityFavor[]>(INITIAL_FAVORS);
-  const [emergencyReports, setEmergencyReports] = useState<EmergencyReport[]>(INITIAL_EMERGENCY_REPORTS);
+  const [emergencyReports, setEmergencyReports] = useState<EmergencyReport[]>(INITIAL_EMERGENCY_REPORTS.map(redactEmergencyReport));
   const [criticalResources, setCriticalResources] = useState<CriticalResource[]>(INITIAL_CRITICAL_RESOURCES);
   const [contentReports, setContentReports] = useState<ContentReport[]>([]);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
@@ -98,32 +107,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Load persisted offline state on startup
   useEffect(() => {
     (async () => {
-      const savedUser = await OfflineStorage.getUserProfile();
-      setUser(savedUser);
+      try {
+        const savedUser = await OfflineStorage.getUserProfile();
+        setUser(savedUser);
 
-      const savedServices = await OfflineStorage.getServices();
-      setServices(savedServices);
+        const savedServices = await OfflineStorage.getServices();
+        setServices(savedServices);
 
-      const savedFavors = await OfflineStorage.getFavors();
-      setFavors(savedFavors);
+        const savedFavors = await OfflineStorage.getFavors();
+        setFavors(savedFavors);
 
-      const savedReports = await OfflineStorage.getEmergencyReports();
-      setEmergencyReports(savedReports);
+        const savedReports = await OfflineStorage.getEmergencyReports();
+        setEmergencyReports(savedReports);
 
-      const savedResources = await OfflineStorage.getCriticalResources();
-      setCriticalResources(savedResources);
+        const savedResources = await OfflineStorage.getCriticalResources();
+        setCriticalResources(savedResources);
 
-      const savedMode = await OfflineStorage.getEmergencyMode();
-      setEmergencyMode(savedMode);
+        const savedMode = await OfflineStorage.getEmergencyMode();
+        setEmergencyMode(savedMode);
 
-      const savedQueue = await OfflineStorage.getSyncQueue();
-      setSyncQueue(savedQueue);
+        const savedQueue = await OfflineStorage.getSyncQueue();
+        setSyncQueue(savedQueue);
 
-      const savedSyncTime = await OfflineStorage.getLastSyncTime();
-      setLastSyncTime(savedSyncTime);
+        const savedSyncTime = await OfflineStorage.getLastSyncTime();
+        setLastSyncTime(savedSyncTime);
 
-      const savedContentReports = await OfflineStorage.getContentReports();
-      setContentReports(savedContentReports);
+        const savedContentReports = await OfflineStorage.getContentReports();
+        setContentReports(savedContentReports);
+      } catch (error) {
+        console.warn('Could not restore local app state:', error);
+      } finally {
+        setIsHydrated(true);
+      }
     })();
   }, []);
 
@@ -136,53 +151,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setUserRole = (role: UserRole) => {
     updateProfile({ role });
+    // Demo roles only affect layout; private report data never comes from local role state.
   };
 
   const setCoverageScope = (coverageScope: CoverageScope) => {
     updateProfile({ coverageScope });
   };
 
-  // Toggle Simulated Connectivity
-  const toggleConnectivity = () => {
-    setIsOnline(prev => {
-      const next = !prev;
-      // If switching back online and there are items in queue, attempt auto-sync
-      if (next && syncQueue.length > 0) {
-        setTimeout(() => {
-          synchronizeQueue();
-        }, 500);
+  // Drain the persistent outbox sequentially. An item leaves it only after server acknowledgement.
+  const syncInProgress = useRef(false);
+  const synchronizeQueue = useCallback(async (retryFailed = true): Promise<{ success: boolean; count: number; failed: number; message?: string }> => {
+    if (!isOnline) return { success: false, count: 0, failed: syncQueue.length, message: 'Sin conexión a internet.' };
+    if (syncInProgress.current) return { success: false, count: 0, failed: 0, message: 'La sincronización ya está en curso.' };
+    syncInProgress.current = true;
+
+    let acknowledgedCount = 0;
+    let failedCount = 0;
+    let queue = await OfflineStorage.getSyncQueue();
+    try {
+      for (const item of queue) {
+        if (item.status === 'error' && !retryFailed) continue;
+        try {
+          await submitQueuedItem(item);
+          queue = await OfflineStorage.acknowledgeSyncItem(item.id);
+          setSyncQueue(queue);
+          acknowledgedCount += 1;
+
+          if (item.type === 'emergency_report') {
+            const payload = item.payload as Record<string, unknown>;
+            const reportId = String(payload.localReportId ?? payload.reportId);
+            const privateDataRef = String(payload.privateDataRef ?? reportId);
+            setEmergencyReports(current => {
+              const updated = current.map(report => report.id === reportId ? { ...report, isOfflinePending: false } : report);
+              void OfflineStorage.saveEmergencyReports(updated).catch(error => console.warn('Could not persist synced report state:', error));
+              return updated;
+            });
+            void OfflineStorage.removePrivateEmergencyReport(privateDataRef).catch(error => console.warn('Could not remove synced private cache:', error));
+          }
+        } catch (error) {
+          const failedItem: SyncQueueItem = {
+            ...item,
+            status: 'error',
+            errorMessage: error instanceof Error ? error.message : 'Error desconocido al sincronizar.',
+          };
+          queue = await OfflineStorage.updateSyncItem(failedItem);
+          setSyncQueue(queue);
+          failedCount += 1;
+        }
       }
-      return next;
-    });
-  };
+    } finally {
+      syncInProgress.current = false;
+    }
 
-  // Synchronize Offline Queue (RF-24: Prevents Duplicates)
-  const synchronizeQueue = async (): Promise<{ success: boolean; count: number }> => {
-    if (syncQueue.length === 0) return { success: true, count: 0 };
-
-    const count = syncQueue.length;
-    
-    // Mark pending favors and reports as synced in local memory
-    setFavors(prev => prev.map(f => ({ ...f, isOfflinePending: false })));
-    setEmergencyReports(prev => prev.map(r => ({ ...r, isOfflinePending: false })));
-
-    // Clear the queue
-    setSyncQueue([]);
-    await OfflineStorage.saveSyncQueue([]);
-
-    const now = new Date();
-    const formatted = `Hoy ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    setLastSyncTime(formatted);
-    await OfflineStorage.setLastSyncTime(formatted);
-
-    return { success: true, count };
-  };
+    if (acknowledgedCount > 0) {
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      await OfflineStorage.setLastSyncTime(now);
+    }
+    return {
+      success: failedCount === 0,
+      count: acknowledgedCount,
+      failed: failedCount,
+      message: failedCount > 0 ? 'Los elementos sin confirmación del servidor permanecen en la cola.' : undefined,
+    };
+  }, [isOnline, syncQueue.length]);
 
   const removeSyncQueueItem = (id: string) => {
-    const updated = syncQueue.filter(item => item.id !== id);
-    setSyncQueue(updated);
-    OfflineStorage.saveSyncQueue(updated);
+    void OfflineStorage.removeSyncItem(id).then(setSyncQueue);
   };
+
+  const enqueueSyncItem = async (item: SyncQueueItem) => {
+    const queue = await OfflineStorage.enqueueSyncItem(item);
+    setSyncQueue(queue);
+    return queue;
+  };
+
+  useEffect(() => {
+    const updateConnectivity = (state: Network.NetworkState) => {
+      setIsOnline(state.isConnected === true && state.isInternetReachable !== false);
+    };
+
+    void Network.getNetworkStateAsync().then(updateConnectivity).catch(() => setIsOnline(false));
+    const subscription = Network.addNetworkStateListener(updateConnectivity);
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (isOnline && syncQueue.length > 0) {
+      void synchronizeQueue(true);
+    }
+  }, [isOnline, syncQueue.length, synchronizeQueue]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) setTimeout(() => { void synchronizeQueue(true); }, 0);
+    });
+    return () => subscription.unsubscribe();
+  }, [synchronizeQueue]);
 
   // Emergency Mode Management (RF-15)
   const toggleEmergencyMode = (isActive: boolean, affectedZone?: string, emergencyType?: string) => {
@@ -200,33 +266,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Local Services & Avales (RF-08, RF-09)
-  const addService = (data: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified'>) => {
+  const addService = async (data: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified' | 'isOfflinePending'>) => {
     const newService: LocalService = {
       ...data,
       id: `srv-${Date.now()}`,
-      createdAt: 'Hoy',
+      createdAt: new Date().toISOString(),
       avalesCount: 0,
       avalesUserIds: [],
-      isVerified: true,
+      isVerified: false,
+      isOfflinePending: true,
     };
 
     const updated = [newService, ...services];
-    setServices(updated);
-    OfflineStorage.saveServices(updated);
-
     if (!isOnline) {
       const queueItem: SyncQueueItem = {
         id: `sync-srv-${Date.now()}`,
+        ownerUserId: user.id,
         type: 'service_post',
         payload: newService,
-        createdAt: 'Ahora',
+        createdAt: new Date().toISOString(),
         status: 'pending',
         title: `Publicación de servicio: ${newService.title}`,
       };
-      const nextQueue = [queueItem, ...syncQueue];
-      setSyncQueue(nextQueue);
-      OfflineStorage.saveSyncQueue(nextQueue);
+      await enqueueSyncItem(queueItem);
     }
+    await OfflineStorage.saveServices(updated);
+    setServices(updated);
   };
 
   // RF-08: Otorgar Visto Bueno Vecinal (1 solo aval activo por usuario)
@@ -265,15 +330,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isOnline) {
       const queueItem: SyncQueueItem = {
         id: `sync-aval-${Date.now()}`,
+        ownerUserId: user.id,
         type: 'aval',
         payload: { serviceId, userId: user.id, action: alreadyAvaled ? 'remove' : 'add' },
         createdAt: 'Ahora',
         status: 'pending',
         title: `Aval vecinal para ${targetService.providerName}`,
       };
-      const nextQueue = [queueItem, ...syncQueue];
-      setSyncQueue(nextQueue);
-      OfflineStorage.saveSyncQueue(nextQueue);
+      void enqueueSyncItem(queueItem).catch(error => console.warn('Could not persist aval in outbox:', error));
     }
 
     return {
@@ -295,34 +359,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Cadena de Favores (RF-11 to RF-14)
-  const addFavor = (favorData: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor'>) => {
+  const addFavor = async (favorData: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => {
     const newFavor: CommunityFavor = {
       ...favorData,
       id: `fav-${Date.now()}`,
-      createdAt: 'Ahora',
+      createdAt: new Date().toISOString(),
       status: 'disponible',
       distanceMeters: Math.floor(Math.random() * 350) + 50,
       favorsCompletedByAuthor: 1,
-      isOfflinePending: !isOnline,
+      isOfflinePending: true,
     };
 
     const updatedFavors = [newFavor, ...favors];
-    setFavors(updatedFavors);
-    OfflineStorage.saveFavors(updatedFavors);
 
     if (!isOnline) {
       const queueItem: SyncQueueItem = {
         id: `sync-fav-${Date.now()}`,
+        ownerUserId: user.id,
         type: 'favor',
         payload: newFavor,
-        createdAt: 'Ahora',
+        createdAt: new Date().toISOString(),
         status: 'pending',
         title: `Favor: ${newFavor.title}`,
       };
-      const nextQueue = [queueItem, ...syncQueue];
-      setSyncQueue(nextQueue);
-      OfflineStorage.saveSyncQueue(nextQueue);
+      await enqueueSyncItem(queueItem);
     }
+    await OfflineStorage.saveFavors(updatedFavors);
+    setFavors(updatedFavors);
   };
 
   const updateFavorStatus = (favorId: string, status: FavorStatus) => {
@@ -338,63 +401,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Emergency Reports (RF-17, RF-18, RF-19)
-  const addEmergencyReport = (reportData: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => {
+  const addEmergencyReport = async (reportData: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => {
+    const id = createUuid();
     const codeNum = Math.floor(100 + Math.random() * 900);
     const newReport: EmergencyReport = {
       ...reportData,
-      id: `rep-${Date.now()}`,
+      id,
       code: `#AY-${codeNum}`,
       createdAt: 'Ahora',
       updatedAt: 'Ahora',
       status: 'pendiente',
-      isOfflinePending: !isOnline,
+      isOfflinePending: true,
     };
 
     const updatedReports = [newReport, ...emergencyReports];
-    setEmergencyReports(updatedReports);
-    OfflineStorage.saveEmergencyReports(updatedReports);
+    await OfflineStorage.savePrivateEmergencyReport(id, {
+      category: reportData.category,
+      title: reportData.title,
+      description: reportData.description,
+      neighborhood: reportData.neighborhood,
+      priority: reportData.priority,
+      reportedBy: reportData.reportedBy,
+      beneficiaryName: reportData.beneficiaryName,
+      beneficiaryAge: reportData.beneficiaryAge,
+      exactAddress: reportData.exactAddress,
+      contactPhone: reportData.contactPhone,
+      consentAt: new Date().toISOString(),
+    });
 
-    if (!isOnline) {
-      const queueItem: SyncQueueItem = {
-        id: `sync-rep-${Date.now()}`,
-        type: 'emergency_report',
-        payload: newReport,
-        createdAt: 'Ahora',
-        status: 'pending',
-        title: `Reporte de Emergencia ${newReport.code}: ${newReport.title}`,
-      };
-      const nextQueue = [queueItem, ...syncQueue];
-      setSyncQueue(nextQueue);
-      OfflineStorage.saveSyncQueue(nextQueue);
+    const queueItem: SyncQueueItem = {
+      id: createUuid(),
+      ownerUserId: user.id,
+      type: 'emergency_report',
+      payload: { privateDataRef: id, reportId: id },
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+      title: `Reporte de Emergencia ${newReport.code}`,
+    };
+    try {
+      const queue = await OfflineStorage.enqueueSyncItem(queueItem);
+      const publicReports = updatedReports.map(redactEmergencyReport);
+      await OfflineStorage.saveEmergencyReports(publicReports);
+      setEmergencyReports(publicReports);
+      setSyncQueue(queue);
+    } catch (error) {
+      setSyncQueue(await OfflineStorage.removeSyncItem(queueItem.id));
+      await OfflineStorage.removePrivateEmergencyReport(id);
+      throw error;
     }
   };
 
-  const updateEmergencyReportStatus = (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => {
+  const updateEmergencyReportStatus = async (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => {
     const updated = emergencyReports.map(r => {
       if (r.id === reportId) {
         return {
           ...r,
           status,
           assignedBrigade: assignedBrigade !== undefined ? assignedBrigade : r.assignedBrigade,
-          updatedAt: 'Ahora',
+          updatedAt: new Date().toISOString(),
         };
       }
       return r;
     });
+    await OfflineStorage.saveEmergencyReports(updated);
     setEmergencyReports(updated);
-    OfflineStorage.saveEmergencyReports(updated);
   };
 
   // Critical Resources (RF-20)
-  const addCriticalResource = (data: Omit<CriticalResource, 'id' | 'updatedAt'>) => {
+  const addCriticalResource = async (data: Omit<CriticalResource, 'id' | 'updatedAt'>) => {
     const newResource: CriticalResource = {
       ...data,
       id: `res-${Date.now()}`,
-      updatedAt: 'Hoy',
+      updatedAt: new Date().toISOString(),
     };
     const updated = [newResource, ...criticalResources];
+    await OfflineStorage.saveCriticalResources(updated);
     setCriticalResources(updated);
-    OfflineStorage.saveCriticalResources(updated);
   };
 
   // Content Moderation (RF-21)
@@ -426,11 +508,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(INITIAL_USER);
     setServices(INITIAL_SERVICES);
     setFavors(INITIAL_FAVORS);
-    setEmergencyReports(INITIAL_EMERGENCY_REPORTS);
+    setEmergencyReports(INITIAL_EMERGENCY_REPORTS.map(redactEmergencyReport));
     setCriticalResources(INITIAL_CRITICAL_RESOURCES);
     setEmergencyMode(INITIAL_EMERGENCY_MODE);
     setSyncQueue([]);
-    setLastSyncTime('Hoy 08:30 AM');
+    setLastSyncTime('');
     setContentReports([]);
   };
 
@@ -453,12 +535,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider
       value={{
+        isHydrated,
         user,
         updateProfile,
         setUserRole,
         setCoverageScope,
         isOnline,
-        toggleConnectivity,
         lastSyncTime,
         syncQueue,
         synchronizeQueue,

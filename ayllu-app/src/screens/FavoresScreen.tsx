@@ -89,7 +89,6 @@ export const FavoresScreen: React.FC = () => {
               <MaterialIcons name="verified-user" size={14} color={Colors.primary} />
               <Text style={styles.securityText}>Colaboración altruista protegida</Text>
             </View>
-            <Text style={styles.rnfTag}>RNF-10 Seguro</Text>
           </View>
         </View>
 
@@ -184,7 +183,7 @@ export const FavoresScreen: React.FC = () => {
                     <View style={styles.offlinePendingBadge}>
                       <MaterialIcons name="cloud-queue" size={14} color={Colors.warningText} />
                       <Text style={styles.offlinePendingText}>
-                        Guardado en tu móvil (Pendiente de sincronizar - RF-25)
+                        Guardado en tu móvil; aún no se ha compartido.
                       </Text>
                     </View>
                   )}

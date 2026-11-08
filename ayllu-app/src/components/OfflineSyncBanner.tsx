@@ -17,7 +17,9 @@ export const OfflineSyncBanner: React.FC = () => {
     setSyncFeedback(null);
     try {
       const res = await synchronizeQueue();
-      setSyncFeedback(`¡${res.count} elemento(s) sincronizado(s) exitosamente!`);
+      setSyncFeedback(res.success
+        ? `El servidor confirmó ${res.count} elemento(s).`
+        : `${res.count} confirmado(s); ${res.failed} sigue(n) pendiente(s). ${res.message ?? ''}`);
       setTimeout(() => setSyncFeedback(null), 3500);
     } catch {
       setSyncFeedback('Error al sincronizar');
@@ -34,11 +36,8 @@ export const OfflineSyncBanner: React.FC = () => {
         <View style={styles.leftRow}>
           <MaterialIcons name="cloud-done" size={16} color={Colors.primary} />
           <Text style={styles.onlineText} numberOfLines={1}>
-            Directorio guardado offline en dispositivo
+            Datos disponibles en este dispositivo
           </Text>
-        </View>
-        <View style={styles.rnfTag}>
-          <Text style={styles.rnfText}>RNF-09</Text>
         </View>
       </View>
     );
@@ -66,9 +65,11 @@ export const OfflineSyncBanner: React.FC = () => {
           <Text style={styles.subtitleText}>
             {!isOnline 
               ? (pendingCount > 0 
-                  ? `${pendingCount} acción(es) en cola local. (RF-25: No visible a otros hasta conectar)` 
-                  : `Caché disponible. Última sinc: ${lastSyncTime}`)
-              : `Haz clic para sincronizar con la red comunitaria.`
+                  ? `${pendingCount} acción(es) solo en este dispositivo; no han llegado al servidor.`
+                  : `Caché disponible. Última confirmación del servidor: ${lastSyncTime || 'ninguna todavía'}`)
+              : syncQueue.some(item => item.status === 'error')
+                ? 'Algunos envíos fallaron. Se conservan en la cola para reintentar.'
+                : `Haz clic para sincronizar con la red comunitaria.`
             }
           </Text>
         </View>
@@ -116,17 +117,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.secondaryMuted,
     fontWeight: '500',
-  },
-  rnfTag: {
-    backgroundColor: '#dbeafe',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  rnfText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.primaryDark,
   },
   container: {
     paddingHorizontal: 16,

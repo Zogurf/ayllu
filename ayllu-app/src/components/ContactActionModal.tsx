@@ -40,7 +40,7 @@ export const ContactActionModal: React.FC<ContactActionModalProps> = ({
     setHasSent(true);
     setTimeout(() => {
       Alert.alert(
-        'Mensaje Enviado (RF-14)',
+        'Mensaje enviado',
         `Tu mensaje ha sido enviado a ${targetName} a través de la red Ayllu protegida. Recibirás su respuesta sin exponer tu número celular.`,
         [
           {
@@ -87,7 +87,7 @@ export const ContactActionModal: React.FC<ContactActionModalProps> = ({
             />
             <Text style={styles.channelText}>
               {channel === 'ayllu' 
-                ? 'Canal Seguro: Mensajería interna Ayllu (Teléfono protegido - RNF-10)' 
+                ? 'Canal seguro: mensajería interna Ayllu (teléfono protegido)'
                 : `Canal Verificado: WhatsApp Vecinal (${phone || 'Directo'})`}
             </Text>
           </View>

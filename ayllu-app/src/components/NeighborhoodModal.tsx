@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, FlatList, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { INITIAL_NEIGHBORHOODS } from '../storage/mockData';
+import { supabase } from '../lib/supabase';
 
 interface NeighborhoodModalProps {
   visible: boolean;
@@ -23,11 +24,24 @@ export const NeighborhoodModal: React.FC<NeighborhoodModalProps> = ({
     n.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSelect = (name: string) => {
+  const handleSelect = async (name: string) => {
     if (onSelect) {
       onSelect(name);
     } else {
-      updateProfile({ neighborhood: name });
+      if (supabase) {
+        try {
+          const { error } = await supabase.rpc('complete_community_profile', {
+            p_nickname: user.nickname,
+            p_phone: user.phone,
+            p_neighborhood_name: name,
+          });
+          if (error) throw error;
+        } catch (error) {
+          Alert.alert('No se cambió el barrio', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+          return;
+        }
+      }
+      updateProfile({ neighborhood: name, ...(supabase && name !== user.neighborhood ? { role: 'vecino' } : {}) });
     }
     onClose();
   };

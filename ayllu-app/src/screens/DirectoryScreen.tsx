@@ -56,7 +56,7 @@ export const DirectoryScreen: React.FC = () => {
 
   const handleAval = (service: LocalService) => {
     const res = toggleAval(service.id);
-    Alert.alert('Visto Bueno Vecinal (RF-08)', res.message);
+    Alert.alert('Visto bueno vecinal', res.message);
   };
 
   const handleCall = (phone: string) => {
@@ -170,7 +170,7 @@ export const DirectoryScreen: React.FC = () => {
                 <MaterialIcons name="search-off" size={40} color={Colors.border} />
                 <Text style={styles.emptyTitle}>No se encontraron oficios</Text>
                 <Text style={styles.emptySubtitle}>
-                  Prueba ampliando el radio de búsqueda a barrios colindantes en tu perfil (RF-03).
+                  Prueba ampliando el radio de búsqueda a barrios colindantes en tu perfil.
                 </Text>
               </View>
             ) : (
@@ -260,7 +260,7 @@ export const DirectoryScreen: React.FC = () => {
             <View style={styles.disclaimerBox}>
               <MaterialIcons name="info-outline" size={15} color={Colors.slateDim} />
               <Text style={styles.disclaimerText}>
-                RF-09: Los avales son otorgados por vecinos del mismo barrio o colindantes. No constituyen una garantía legal ni técnica de calidad o seguridad.
+                Los avales son otorgados por vecinos del mismo barrio o colindantes. No constituyen una garantía legal ni técnica de calidad o seguridad.
               </Text>
             </View>
           </View>
@@ -280,7 +280,7 @@ export const DirectoryScreen: React.FC = () => {
             <View style={{ flex: 1 }}>
               <Text style={styles.emergencyBannerTitle}>Líneas de Respuesta Inmediata</Text>
               <Text style={styles.emergencyBannerDesc}>
-                Contactos validados y sincronizados para acceso sin internet (RNF-09).
+                Contactos de emergencia disponibles en este dispositivo.
               </Text>
             </View>
           </View>

@@ -50,7 +50,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
     });
 
     Alert.alert(
-      'Reporte Registrado (RF-21)',
+      'Reporte registrado',
       'Gracias por cuidar la confianza vecinal. Los coordinadores y administradores revisarán el contenido de inmediato.',
       [
         {
@@ -77,7 +77,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
                 <MaterialIcons name="flag" size={20} color={Colors.tertiary} />
               </View>
               <View>
-                <Text style={styles.title}>Reportar Contenido (RF-21)</Text>
+                <Text style={styles.title}>Reportar contenido</Text>
                 <Text style={styles.subtitle} numberOfLines={1}>{itemTitle}</Text>
               </View>
             </View>

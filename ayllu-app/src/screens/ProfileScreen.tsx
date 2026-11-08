@@ -15,6 +15,8 @@ import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { UserRole, CoverageScope } from '../types';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
+import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
+import { supabase } from '../lib/supabase';
 
 interface ProfileScreenProps {
   onOpenTutorial: () => void;
@@ -27,7 +29,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
     setUserRole, 
     setCoverageScope,
     isOnline, 
-    toggleConnectivity, 
     syncQueue, 
     synchronizeQueue, 
     removeSyncQueueItem,
@@ -42,7 +43,34 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
   const [showNeighborhoodModal, setShowNeighborhoodModal] = useState(false);
 
   const handleSaveName = () => {
-    updateProfile({ nickname, phone });
+    if (!isReasonableText(nickname, 80)) {
+      Alert.alert('Revisa el apodo', 'Ingresa entre 1 y 80 caracteres.');
+      return;
+    }
+    const normalizedPhone = normalizePeruMobilePhone(phone);
+    if (!normalizedPhone) {
+      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
+      return;
+    }
+    if (supabase) {
+      void (async () => {
+        try {
+          const { error } = await supabase.rpc('complete_community_profile', {
+            p_nickname: nickname.trim(),
+            p_phone: normalizedPhone,
+            p_neighborhood_name: user.neighborhood,
+          });
+          if (error) throw error;
+          updateProfile({ nickname: nickname.trim(), phone: normalizedPhone });
+          setIsEditingName(false);
+          Alert.alert('Perfil actualizado', 'Tus datos vecinales se guardaron en la comunidad.');
+        } catch (error) {
+          Alert.alert('No se actualizó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+        }
+      })();
+      return;
+    }
+    updateProfile({ nickname: nickname.trim(), phone: normalizedPhone });
     setIsEditingName(false);
     Alert.alert('Perfil Actualizado', 'Tus datos vecinales han sido guardados.');
   };
@@ -50,7 +78,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
   const handleGpsToggle = (value: boolean) => {
     if (value) {
       Alert.alert(
-        'Permiso de Ubicación GPS (RF-02 / RNF-11)',
+        'Permiso de ubicación GPS',
         'Ayllu solo utilizará tus coordenadas para calcular distancias aproximadas dentro de tu red vecinal o adjuntarlas a un reporte de auxilio crítico si tú lo decides. Tu ubicación exacta jamás se hace pública ni se guarda en servidores externos.',
         [
           { text: 'Denegar', style: 'cancel' },
@@ -72,7 +100,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
 
   const handleManualSync = async () => {
     const res = await synchronizeQueue();
-    Alert.alert('Sincronización (RF-24)', `Se sincronizaron ${res.count} elemento(s) pendientes.`);
+    Alert.alert(
+      'Sincronización',
+      res.success
+        ? `El servidor confirmó ${res.count} elemento(s).`
+        : `${res.count} confirmado(s), ${res.failed} pendiente(s). ${res.message ?? 'No se recibió confirmación del servidor.'}`,
+    );
   };
 
   return (
@@ -86,11 +119,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               {isOnline ? 'Modo Ayllu Conectado' : 'Modo Ayllu Sin Conexión (Offline)'}
             </Text>
           </View>
-          <TouchableOpacity style={styles.toggleConnBtn} onPress={toggleConnectivity}>
-            <Text style={styles.toggleConnText}>
-              {isOnline ? 'Simular Offline' : 'Simular Online'}
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.toggleConnText}>Estado de red real</Text>
         </View>
 
         {/* Profile Card & Geographic Header (RF-01, RF-05) */}
@@ -164,7 +193,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           <View style={styles.privacyBanner}>
             <MaterialIcons name="shield" size={18} color={Colors.primary} />
             <Text style={styles.privacyBannerText}>
-              <Text style={{ fontWeight: '700' }}>Privacidad RNF-10: </Text>
+              <Text style={{ fontWeight: '700' }}>Privacidad: </Text>
               Tu dirección exacta nunca se comparte. Solo se muestra tu barrio general en el uso cotidiano.
             </Text>
           </View>
@@ -174,10 +203,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Radio de Cobertura Geográfica</Text>
-            <View style={styles.rfTag}>
-              <MaterialIcons name="radar" size={13} color={Colors.primary} />
-              <Text style={styles.rfTagText}>RF-03</Text>
-            </View>
           </View>
           <Text style={styles.sectionSubtitle}>
             Selecciona el alcance para filtrar pedidos de ayuda y servicios en tu comunidad:
@@ -255,7 +280,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               <View style={{ flex: 1 }}>
                 <Text style={styles.gpsTitle}>Ubicación GPS Opcional</Text>
                 <Text style={styles.gpsSubtitle}>
-                  Solo calcula cercanía estimada. La app funciona normalmente si se desactiva (RF-02).
+                  Solo calcula cercanía estimada. La app funciona normalmente si se desactiva.
                 </Text>
               </View>
             </View>
@@ -268,16 +293,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           </View>
         </View>
 
-        {/* ROLE SWITCHER FOR PROTOTYPE / DEMO (RNF-13) */}
+        {/* Demo-only local role switcher. */}
+        {!supabase && (
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Conmutador de Roles (Demostración)</Text>
-            <View style={styles.rfTag}>
-              <Text style={styles.rfTagText}>RNF-13</Text>
-            </View>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Prueba cómo se adaptan los permisos y la protección de datos según el actor:
+            Solo cambia la vista de esta demo. No verifica identidad ni concede permisos reales; los datos de demostración no son privados.
           </Text>
 
           <View style={styles.rolesGrid}>
@@ -312,6 +335,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             })}
           </View>
         </View>
+        )}
 
         {/* OFFLINE SYNC QUEUE MANAGER (RF-23, RF-24, RF-25) */}
         <View style={styles.sectionCard}>
@@ -335,7 +359,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                   <View style={{ flex: 1 }}>
                     <Text style={styles.queueItemTitle}>{item.title}</Text>
                     <Text style={styles.queueItemStatus}>
-                      Estado: Pendiente (En dispositivo - RF-25)
+                      {item.status === 'error'
+                        ? `Error al enviar: ${item.errorMessage ?? 'se conserva para reintentar'}`
+                        : 'Pendiente de confirmación del servidor (solo en este dispositivo)'}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -362,9 +388,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Bandeja de Moderación Comunitaria</Text>
-              <View style={[styles.rfTag, { backgroundColor: '#fee2e2' }]}>
-                <Text style={[styles.rfTagText, { color: Colors.emergencyDark }]}>RF-21</Text>
-              </View>
             </View>
             <Text style={styles.sectionSubtitle}>
               Reportes enviados por vecinos sobre publicaciones o avales presuntamente engañosos:
@@ -408,7 +431,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
         <View style={styles.bottomActions}>
           <TouchableOpacity style={styles.tutorialBtn} onPress={onOpenTutorial}>
             <MaterialIcons name="school" size={18} color={Colors.primary} />
-            <Text style={styles.tutorialBtnText}>Volver a ver Tutorial Inicial (RF-04)</Text>
+            <Text style={styles.tutorialBtnText}>Volver a ver el tutorial inicial</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -427,6 +450,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             <MaterialIcons name="restart-alt" size={18} color={Colors.emergencyDark} />
             <Text style={styles.resetBtnText}>Restablecer Datos Demo</Text>
           </TouchableOpacity>
+          {supabase && (
+            <TouchableOpacity
+              style={styles.signOutBtn}
+              onPress={async () => {
+                if (!supabase) return;
+                try {
+                  const { error } = await supabase.auth.signOut();
+                  if (error) throw error;
+                } catch (error) {
+                  Alert.alert('No se pudo cerrar sesión', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+                }
+              }}
+            >
+              <MaterialIcons name="logout" size={18} color={Colors.secondary} />
+              <Text style={styles.signOutBtnText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -922,4 +962,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.emergencyDark,
   },
+  signOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 42,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 9,
+    backgroundColor: '#ffffff',
+  },
+  signOutBtnText: { color: Colors.secondary, fontSize: 12, fontWeight: '700' },
 });

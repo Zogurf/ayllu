@@ -37,7 +37,7 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
     toggleEmergencyMode(isActive, user.neighborhood, finalType);
 
     Alert.alert(
-      'Gestión de Emergencias (RF-15)',
+      'Gestión de emergencias',
       isActive 
         ? `Modo Emergencia ACTIVADO para ${user.neighborhood}. Se priorizarán recursos y reportes críticos en la pantalla principal.` 
         : `Modo Emergencia DESACTIVADO para ${user.neighborhood}. Retomando Modo Cotidiano.`,
@@ -132,7 +132,7 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
           <View style={styles.infoCard}>
             <MaterialIcons name="info" size={16} color={Colors.primary} />
             <Text style={styles.infoText}>
-              RF-16: Al activar la emergencia, la pantalla principal priorizará automáticamente los contactos de auxilio, alertas de vulnerabilidad y recursos críticos.
+              Al activar la emergencia, la pantalla principal priorizará automáticamente los contactos de auxilio, las alertas de vulnerabilidad y los recursos críticos.
             </Text>
           </View>
 

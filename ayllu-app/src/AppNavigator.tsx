@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   SafeAreaView, 
   Platform, 
-  TouchableOpacity 
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,6 +18,9 @@ import { EmergencyAlertBanner } from './components/EmergencyAlertBanner';
 import { NeighborhoodModal } from './components/NeighborhoodModal';
 import { TutorialModal } from './components/TutorialModal';
 import { ManageEmergencyModal } from './components/ManageEmergencyModal';
+import { SupabaseAuthScreen } from './components/SupabaseAuthScreen';
+import { supabase } from './lib/supabase';
+import { Session } from '@supabase/supabase-js';
 
 // Screens
 import { DirectoryScreen } from './screens/DirectoryScreen';
@@ -28,19 +32,130 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 type TabType = 'directorio' | 'favores' | 'emergencia' | 'perfil';
 
 export const AppNavigator: React.FC = () => {
-  const { user, emergencyMode, showTutorial, setShowTutorial } = useApp();
+  const { user, updateProfile, isHydrated, emergencyMode, showTutorial, setShowTutorial } = useApp();
+  const profileLookupInProgress = useRef(false);
+  const updateProfileRef = useRef(updateProfile);
 
   const [activeTab, setActiveTab] = useState<TabType>('directorio');
   const [showNeighborhoodModal, setShowNeighborhoodModal] = useState(false);
   const [showManageEmergencyModal, setShowManageEmergencyModal] = useState(false);
   const [forceOnboarding, setForceOnboarding] = useState(!user.isRegistered);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(Boolean(supabase));
+  const [profileCheck, setProfileCheck] = useState<'loading' | 'missing' | 'exists' | 'error'>(supabase ? 'loading' : 'missing');
+  const [profileError, setProfileError] = useState('');
+  const [profileRetry, setProfileRetry] = useState(0);
+
+  useEffect(() => {
+    updateProfileRef.current = updateProfile;
+  }, [updateProfile]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let mounted = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mounted) return;
+      setSession(nextSession);
+      setProfileError('');
+      setProfileCheck(nextSession ? 'loading' : 'missing');
+    });
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) setProfileError(error.message);
+      setSession(data.session);
+      setProfileCheck(data.session ? 'loading' : 'missing');
+      setAuthLoading(false);
+    }).catch(error => {
+      if (mounted) {
+        setProfileError(error instanceof Error ? error.message : 'No se pudo recuperar la sesión.');
+        setAuthLoading(false);
+      }
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !session || !isHydrated || profileCheck === 'exists' || profileCheck === 'missing' || profileCheck === 'error') return;
+    if (profileLookupInProgress.current) return;
+    let mounted = true;
+    profileLookupInProgress.current = true;
+    void (async () => {
+      try {
+        const { data: profile, error: profileQueryError } = await supabase
+          .from('profiles')
+          .select('nickname, phone, neighborhood_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (profileQueryError) throw profileQueryError;
+        if (!profile) {
+          if (mounted) setProfileCheck('missing');
+          return;
+        }
+
+        const [neighborhoodResult, membershipResult] = await Promise.all([
+          supabase.from('neighborhoods').select('name, district, region').eq('id', profile.neighborhood_id).maybeSingle(),
+          supabase.from('community_memberships').select('role').eq('user_id', session.user.id).eq('neighborhood_id', profile.neighborhood_id).maybeSingle(),
+        ]);
+        if (neighborhoodResult.error) throw neighborhoodResult.error;
+        if (membershipResult.error) throw membershipResult.error;
+        if (!mounted) return;
+        updateProfileRef.current({
+          id: session.user.id,
+          nickname: profile.nickname,
+          phone: profile.phone ?? '',
+          neighborhood: neighborhoodResult.data?.name ?? '',
+          district: neighborhoodResult.data?.district ?? '',
+          region: neighborhoodResult.data?.region ?? '',
+          role: membershipResult.data?.role ?? 'vecino',
+          isRegistered: true,
+        });
+        setProfileCheck('exists');
+      } catch (error) {
+        if (mounted) {
+          setProfileError(error instanceof Error ? error.message : 'No se pudo cargar el perfil de Supabase.');
+          setProfileCheck('error');
+        }
+      }
+    })();
+    return () => {
+      mounted = false;
+      profileLookupInProgress.current = false;
+    };
+  }, [session, isHydrated, profileRetry, profileCheck]);
+
+  if (supabase && authLoading) {
+    return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+  }
+  if (supabase && !session) return <SupabaseAuthScreen />;
+  if (supabase && profileCheck === 'loading') {
+    return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+  }
+  if (supabase && profileCheck === 'error') {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.authError}>
+          <Text style={styles.authErrorTitle}>No se pudo conectar con el perfil</Text>
+          <Text style={styles.authErrorText}>{profileError}</Text>
+          <TouchableOpacity style={styles.authErrorButton} onPress={() => { setProfileError(''); setProfileCheck('loading'); setProfileRetry(value => value + 1); }}>
+            <Text style={styles.authErrorButtonText}>Reintentar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => { if (supabase) void supabase.auth.signOut(); }}>
+            <Text style={styles.authErrorSignOut}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // If user is not registered, show Onboarding first
-  if (forceOnboarding) {
+  if ((supabase && session && profileCheck === 'missing') || (!supabase && forceOnboarding)) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
-        <OnboardingScreen onComplete={() => setForceOnboarding(false)} />
+        <OnboardingScreen onComplete={() => { setForceOnboarding(false); setProfileCheck('exists'); }} />
       </SafeAreaView>
     );
   }
@@ -198,6 +313,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  authLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
+  },
+  authError: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    gap: 14,
+    backgroundColor: Colors.background,
+  },
+  authErrorTitle: { color: Colors.secondary, fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  authErrorText: { color: Colors.secondaryMuted, textAlign: 'center' },
+  authErrorButton: { backgroundColor: Colors.primary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 12 },
+  authErrorButtonText: { color: '#fff', fontWeight: '700' },
+  authErrorSignOut: { color: Colors.primaryDark, fontWeight: '700', padding: 8 },
   body: {
     flex: 1,
     backgroundColor: Colors.background,

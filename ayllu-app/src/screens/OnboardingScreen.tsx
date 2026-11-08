@@ -15,6 +15,9 @@ import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
 import { TutorialModal } from '../components/TutorialModal';
+import { INITIAL_NEIGHBORHOODS } from '../storage/mockData';
+import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
+import { supabase } from '../lib/supabase';
 
 interface OnboardingScreenProps {
   onComplete: () => void;
@@ -29,15 +32,47 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   const [showNeighborhoodModal, setShowNeighborhoodModal] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
-  const handleRegister = () => {
-    if (!nickname.trim()) {
-      Alert.alert('Campo Requerido (RF-01)', 'Por favor ingresa cómo te conocen en el barrio.');
+  const handleRegister = async () => {
+    if (!isReasonableText(nickname, 80)) {
+      Alert.alert('Revisa el nombre', 'Ingresa un apodo de entre 1 y 80 caracteres.');
       return;
     }
 
+    const normalizedPhone = normalizePeruMobilePhone(phone);
+    if (!normalizedPhone) {
+      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
+      return;
+    }
+    if (!INITIAL_NEIGHBORHOODS.some(neighborhood => neighborhood.name === user.neighborhood)) {
+      Alert.alert('Barrio requerido', 'Selecciona un barrio o sector válido antes de continuar.');
+      return;
+    }
+
+    let authenticatedUserId: string | undefined;
+    if (supabase) {
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !sessionData.session) {
+          Alert.alert('Sesión requerida', 'Inicia sesión nuevamente para guardar tu perfil en la comunidad.');
+          return;
+        }
+        authenticatedUserId = sessionData.session.user.id;
+        const { error } = await supabase.rpc('complete_community_profile', {
+          p_nickname: nickname.trim(),
+          p_phone: normalizedPhone,
+          p_neighborhood_name: user.neighborhood,
+        });
+        if (error) throw error;
+      } catch (error) {
+        Alert.alert('No se guardó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+        return;
+      }
+    }
+
     updateProfile({
+      ...(authenticatedUserId ? { id: authenticatedUserId, role: 'vecino' as const } : {}),
       nickname: nickname.trim(),
-      phone: phone.trim() || '984 123 456',
+      phone: normalizedPhone,
       gpsEnabled,
       isRegistered: true,
       coords: gpsEnabled ? { latitude: -13.5167, longitude: -71.9781 } : undefined,
@@ -83,7 +118,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             </View>
             <View>
               <Text style={styles.tutorialTitle}>¿Primera vez aquí? Conoce Ayllu</Text>
-              <Text style={styles.tutorialSubtitle}>Ver guía rápida en 3 claves cívicas (RF-04)</Text>
+              <Text style={styles.tutorialSubtitle}>Ver guía rápida en 3 claves cívicas</Text>
             </View>
           </View>
           <View style={styles.tutorialChevron}>
@@ -107,6 +142,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 placeholderTextColor={Colors.slateDim}
                 value={nickname}
                 onChangeText={setNickname}
+                maxLength={80}
               />
             </View>
           </View>
@@ -125,6 +161,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 placeholderTextColor={Colors.slateDim}
                 value={phone}
                 onChangeText={setPhone}
+                maxLength={18}
                 keyboardType="phone-pad"
               />
             </View>
@@ -134,9 +171,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
           <View style={styles.geoHierarchySection}>
             <View style={styles.geoHierarchyHeader}>
               <Text style={styles.geoHierarchyTitle}>Ubicación comunitaria fija</Text>
-              <View style={styles.rfTag}>
-                <Text style={styles.rfTagText}>RF-01</Text>
-              </View>
             </View>
 
             <View style={styles.geoGrid}>

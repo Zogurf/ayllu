@@ -13,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { FavorCategory, FavorMode, ContactChannel } from '../types';
+import { isReasonableText } from '../utils/validation';
 
 interface PublishFavorModalProps {
   visible: boolean;
@@ -50,6 +51,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
   const [durationInfo, setDurationInfo] = useState('Fin de semana');
   const [contactChannel, setContactChannel] = useState<ContactChannel>('ayllu');
   const [isUrgent, setIsUrgent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = () => {
     setCurrentStep(1);
@@ -66,8 +68,12 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
     if (currentStep === 1) {
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      if (!title.trim()) {
-        Alert.alert('Campo requerido', 'Por favor ingresa un título o descripción breve.');
+      if (!isReasonableText(title, 160)) {
+        Alert.alert('Revisa el título', 'Escribe un título de hasta 160 caracteres.');
+        return;
+      }
+      if (description.trim() && !isReasonableText(description, 500)) {
+        Alert.alert('Revisa la descripción', 'La descripción debe tener entre 1 y 500 caracteres.');
         return;
       }
       setCurrentStep(3);
@@ -80,33 +86,41 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     const catObj = CATEGORIES.find(c => c.id === category);
-
-    addFavor({
-      title: title.trim(),
-      description: description.trim() || 'Coordinación vecinal directa solidaria.',
-      category,
-      categoryLabel: catObj ? catObj.label : 'General',
-      mode,
-      authorId: user.id,
-      authorName: user.nickname,
-      authorPhone: user.phone,
-      neighborhood: user.neighborhood,
-      durationInfo,
-      contactChannel,
-      isUrgent,
-      authorAvatar: user.avatarUrl,
-    });
+    try {
+      await addFavor({
+        title: title.trim(),
+        description: description.trim() || 'Coordinación vecinal directa solidaria.',
+        category,
+        categoryLabel: catObj ? catObj.label : 'General',
+        mode,
+        authorId: user.id,
+        authorName: user.nickname,
+        authorPhone: user.phone,
+        neighborhood: user.neighborhood,
+        durationInfo,
+        contactChannel,
+        isUrgent,
+        authorAvatar: user.avatarUrl,
+      });
+    } catch (error) {
+      setIsSubmitting(false);
+      Alert.alert('No se guardó el favor', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+      return;
+    }
 
     const msg = isOnline
-      ? '¡Favor publicado en el muro vecinal con éxito!'
-      : 'Guardado localmente en tu dispositivo. Se sincronizará al volver la conexión (RF-23).';
+      ? 'Favor guardado en este dispositivo. El muro todavía no está conectado a un servidor compartido.'
+      : 'Favor guardado en este dispositivo. Aún no se ha enviado a un servidor compartido.';
 
     Alert.alert('Ayllu Solidario', msg, [
       {
         text: 'Aceptar',
         onPress: () => {
+          setIsSubmitting(false);
           resetForm();
           onClose();
         },
@@ -286,6 +300,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                   placeholderTextColor={Colors.slateDim}
                   value={title}
                   onChangeText={setTitle}
+                  maxLength={160}
                 />
 
                 <Text style={[styles.inputLabel, { marginTop: 14 }]}>
@@ -299,6 +314,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                   onChangeText={setDescription}
                   multiline
                   numberOfLines={3}
+                  maxLength={500}
                 />
 
                 <Text style={[styles.inputLabel, { marginTop: 14 }]}>
@@ -334,7 +350,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 <View style={styles.ayniNotice}>
                   <View style={styles.ayniTopRow}>
                     <MaterialIcons name="verified" size={18} color={Colors.primary} />
-                    <Text style={styles.ayniTitle}>Principio Ayni (RF-11)</Text>
+                    <Text style={styles.ayniTitle}>Principio Ayni</Text>
                   </View>
                   <Text style={styles.ayniText}>
                     Sin intercambio monetario. Economía comunitaria basada en la reciprocidad andina y confianza vecinal.
@@ -342,7 +358,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 </View>
 
                 <Text style={[styles.sectionHeading, { marginTop: 14 }]}>
-                  ¿Cómo prefieres que te contacten? (RF-14)
+                  ¿Cómo prefieres que te contacten?
                 </Text>
 
                 {/* Option 1: Ayllu internal message */}
@@ -391,7 +407,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 <View style={styles.scopeBox}>
                   <MaterialIcons name="near-me" size={16} color={Colors.primary} />
                   <Text style={styles.scopeText}>
-                    Alcance visible: {user.neighborhood} (Aprox. 450m a la redonda - RF-03)
+                    Alcance visible: {user.neighborhood} (aprox. 450 m a la redonda)
                   </Text>
                 </View>
               </View>
@@ -413,9 +429,9 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 <MaterialIcons name="arrow-forward" size={18} color="#ffffff" />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.publishButton} onPress={handleSubmit}>
+              <TouchableOpacity style={styles.publishButton} onPress={handleSubmit} disabled={isSubmitting}>
                 <MaterialIcons name="check" size={18} color="#ffffff" />
-                <Text style={styles.primaryButtonText}>Publicar en el Muro</Text>
+                <Text style={styles.primaryButtonText}>{isSubmitting ? 'Guardando…' : 'Guardar Favor'}</Text>
               </TouchableOpacity>
             )}
           </View>

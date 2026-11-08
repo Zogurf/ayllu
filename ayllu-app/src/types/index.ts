@@ -55,6 +55,7 @@ export interface LocalService {
   avatarUrl: string;
   createdAt: string;
   isHidden?: boolean;
+  isOfflinePending?: boolean;
 }
 
 export interface EmergencyContact {
@@ -165,6 +166,7 @@ export interface CriticalResource {
 
 export interface SyncQueueItem {
   id: string;
+  ownerUserId?: string;
   type: 'favor' | 'emergency_report' | 'service_post' | 'aval';
   payload: any;
   createdAt: string;

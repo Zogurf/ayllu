@@ -13,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { ServiceCategory } from '../types';
+import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
 
 interface PublishServiceModalProps {
   visible: boolean;
@@ -37,30 +38,43 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
   const [description, setDescription] = useState('');
   const [addressApprox, setAddressApprox] = useState('');
   const [phone, setPhone] = useState(user.phone || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    if (!title.trim() || !description.trim()) {
-      Alert.alert('Campos requeridos', 'Por favor ingresa el título del oficio y una descripción.');
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    if (!isReasonableText(title, 160) || !isReasonableText(description, 500)) {
+      Alert.alert('Revisa el servicio', 'El título debe tener hasta 160 caracteres y la descripción hasta 500.');
+      return;
+    }
+    const normalizedPhone = normalizePeruMobilePhone(phone);
+    if (!normalizedPhone) {
+      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
 
     const catObj = SERVICE_CATEGORIES.find(c => c.id === category);
-
-    addService({
-      title: title.trim(),
-      category,
-      categoryLabel: catObj ? catObj.label : 'General',
-      providerName: user.nickname,
-      providerPhone: phone.trim() || user.phone,
-      neighborhood: user.neighborhood,
-      addressApprox: addressApprox.trim() || `Barrio ${user.neighborhood}`,
-      description: description.trim(),
-      avatarUrl: user.avatarUrl,
-    });
+    setIsSubmitting(true);
+    try {
+      await addService({
+        title: title.trim(),
+        category,
+        categoryLabel: catObj ? catObj.label : 'General',
+        providerName: user.nickname,
+        providerPhone: normalizedPhone,
+        neighborhood: user.neighborhood,
+        addressApprox: addressApprox.trim() || `Barrio ${user.neighborhood}`,
+        description: description.trim(),
+        avatarUrl: user.avatarUrl,
+      });
+    } catch (error) {
+      Alert.alert('No se guardó el servicio', error instanceof Error ? error.message : 'No se pudo guardar el servicio en este dispositivo.');
+      setIsSubmitting(false);
+      return;
+    }
 
     const msg = isOnline
-      ? '¡Oficio publicado con éxito en el directorio local!'
-      : 'Guardado localmente. Se sincronizará cuando regrese internet (RF-23).';
+      ? 'Guardado en este dispositivo. Aún no se publicó en el directorio compartido.'
+      : 'Guardado en este dispositivo, sin conexión. Aún no llegó al directorio compartido.';
 
     Alert.alert('Directorio Local', msg, [
       {
@@ -69,6 +83,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
           setTitle('');
           setDescription('');
           setAddressApprox('');
+          setIsSubmitting(false);
           onClose();
         },
       },
@@ -89,7 +104,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               </View>
               <View>
                 <Text style={styles.title}>Ofrecer Oficio o Servicio</Text>
-                <Text style={styles.subtitle}>Directorio Comunitario (RF-07)</Text>
+                <Text style={styles.subtitle}>Directorio comunitario</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -130,6 +145,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               placeholderTextColor={Colors.slateDim}
               value={title}
               onChangeText={setTitle}
+              maxLength={160}
             />
 
             {/* Description */}
@@ -142,11 +158,12 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               onChangeText={setDescription}
               multiline
               numberOfLines={3}
+              maxLength={500}
             />
 
             {/* Zone / Street reference (without exposing exact home) */}
             <Text style={[styles.label, { marginTop: 14 }]}>
-              Zona de Atención en el Barrio (RNF-10)
+              Zona de atención en el barrio
             </Text>
             <TextInput
               style={styles.input}
@@ -154,9 +171,10 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               placeholderTextColor={Colors.slateDim}
               value={addressApprox}
               onChangeText={setAddressApprox}
+              maxLength={120}
             />
             <Text style={styles.helperText}>
-              Por tu privacidad (RNF-10), no pongas número interior ni dirección exacta de tu hogar.
+              Por tu privacidad, no pongas número interior ni dirección exacta de tu hogar.
             </Text>
 
             {/* Phone contact */}
@@ -168,14 +186,15 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
+              maxLength={18}
             />
           </ScrollView>
 
           {/* Action button */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-              <MaterialIcons name="add-circle" size={18} color="#ffffff" />
-              <Text style={styles.submitBtnText}>Publicar en el Directorio</Text>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isSubmitting}>
+              <MaterialIcons name={isSubmitting ? 'hourglass-top' : 'add-circle'} size={18} color="#ffffff" />
+              <Text style={styles.submitBtnText}>{isSubmitting ? 'Guardando…' : 'Guardar servicio'}</Text>
             </TouchableOpacity>
           </View>
         </View>

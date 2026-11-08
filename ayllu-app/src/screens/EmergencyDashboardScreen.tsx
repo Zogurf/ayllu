@@ -13,10 +13,11 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
-import { EmergencyReport, EmergencyStatus, CriticalResource, CriticalResourceType } from '../types';
+import { EmergencyReport, EmergencyStatus, CriticalResourceType } from '../types';
 import { ReportVulnerabilityModal } from '../components/ReportVulnerabilityModal';
 import { ManageEmergencyModal } from '../components/ManageEmergencyModal';
 import { ContentReportModal } from '../components/ContentReportModal';
+import { isPositiveQuantity, isReasonableText } from '../utils/validation';
 
 export const EmergencyDashboardScreen: React.FC = () => {
   const { 
@@ -42,6 +43,8 @@ export const EmergencyDashboardScreen: React.FC = () => {
   const [resType, setResType] = useState<CriticalResourceType>('agua');
   const [resQuantity, setResQuantity] = useState('');
   const [resLocation, setResLocation] = useState('');
+  const [isSavingResource, setIsSavingResource] = useState(false);
+  const [savingReportId, setSavingReportId] = useState<string | null>(null);
 
   const isAuthorized = user.role === 'coordinador' || user.role === 'admin';
 
@@ -61,39 +64,60 @@ export const EmergencyDashboardScreen: React.FC = () => {
     Linking.openURL(`tel:${phone}`);
   };
 
-  const handleStatusChange = (report: EmergencyReport, newStatus: EmergencyStatus) => {
+  const handleStatusChange = async (report: EmergencyReport, newStatus: EmergencyStatus) => {
+    if (savingReportId) return;
     if (!isAuthorized) {
       Alert.alert('Acceso Restringido', 'Solo los coordinadores comunitarios o brigadas autorizadas pueden actualizar el estado de atención.');
       return;
     }
-    updateEmergencyReportStatus(report.id, newStatus);
-    Alert.alert('Tablero Actualizado', `Reporte ${report.code} marcado como: "${newStatus.toUpperCase()}".`);
+    setSavingReportId(report.id);
+    try {
+      await updateEmergencyReportStatus(report.id, newStatus);
+      Alert.alert('Tablero Actualizado', `Estado del reporte ${report.code} guardado como "${newStatus.toUpperCase()}" en este dispositivo.`);
+    } catch (error) {
+      Alert.alert('No se actualizó el reporte', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+    } finally {
+      setSavingReportId(null);
+    }
   };
 
-  const handleCreateResource = () => {
-    if (!resName.trim() || !resQuantity.trim()) {
-      Alert.alert('Campos requeridos', 'Ingresa el nombre del recurso y la cantidad disponible.');
+  const handleCreateResource = async () => {
+    if (isSavingResource) return;
+    if (!isReasonableText(resName, 160) || !isPositiveQuantity(resQuantity)) {
+      Alert.alert('Revisa el recurso', 'Ingresa un nombre de hasta 160 caracteres y una cantidad mayor que cero (por ejemplo: 500 litros).');
+      return;
+    }
+    if (resLocation.trim() && !isReasonableText(resLocation, 120)) {
+      Alert.alert('Ubicación no válida', 'La ubicación debe tener hasta 120 caracteres.');
       return;
     }
 
-    addCriticalResource({
-      name: resName.trim(),
-      type: resType,
-      typeLabel: resType.charAt(0).toUpperCase() + resType.slice(1),
-      mode: 'disponible',
-      quantity: resQuantity.trim(),
-      neighborhood: user.neighborhood,
-      locationDetails: resLocation.trim() || `Sector ${user.neighborhood}`,
-      contactName: user.nickname,
-      contactPhone: user.phone,
-      validatedBy: isAuthorized ? `Validado: ${user.nickname}` : 'Registrado por vecino',
-    });
+    setIsSavingResource(true);
+    try {
+      await addCriticalResource({
+        name: resName.trim(),
+        type: resType,
+        typeLabel: resType.charAt(0).toUpperCase() + resType.slice(1),
+        mode: 'disponible',
+        quantity: resQuantity.trim(),
+        neighborhood: user.neighborhood,
+        locationDetails: resLocation.trim() || `Sector ${user.neighborhood}`,
+        contactName: user.nickname,
+        contactPhone: user.phone,
+        validatedBy: isAuthorized ? `Validado: ${user.nickname}` : 'Registrado por vecino',
+      });
+    } catch (error) {
+      setIsSavingResource(false);
+      Alert.alert('No se guardó el recurso', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+      return;
+    }
 
     setResName('');
     setResQuantity('');
     setResLocation('');
     setShowAddResourceModal(false);
-    Alert.alert('Recurso Registrado (RF-20)', '¡Recurso crítico disponible para la comunidad!');
+    Alert.alert('Recurso guardado', 'El recurso quedó guardado en este dispositivo. Aún no está publicado en un servidor compartido.');
+    setIsSavingResource(false);
   };
 
   return (
@@ -126,8 +150,8 @@ export const EmergencyDashboardScreen: React.FC = () => {
             <MaterialIcons name="verified-user" size={15} color={Colors.primary} />
             <Text style={styles.privacyNoticeText} numberOfLines={1}>
               {isAuthorized 
-                ? 'Acceso a Datos Sensibles y Dirección Exacta Habilitado (RF-18)'
-                : 'Direcciones exactas y teléfonos protegidos por privacidad (RF-18)'}
+                ? 'Acceso a datos sensibles y dirección exacta habilitado'
+                : 'Direcciones exactas y teléfonos protegidos por privacidad'}
             </Text>
           </View>
 
@@ -208,7 +232,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
               color={activeTab === 'recursos' ? Colors.primary : Colors.secondaryMuted}
             />
             <Text style={[styles.subTabText, activeTab === 'recursos' && styles.subTabTextActive]}>
-              Recursos Críticos (RF-20)
+              Recursos críticos
             </Text>
           </TouchableOpacity>
         </View>
@@ -225,7 +249,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
               activeOpacity={0.85}
             >
               <MaterialIcons name="add-alert" size={20} color="#ffffff" />
-              <Text style={styles.newReportBtnText}>Reportar Persona que Necesita Ayuda (RF-17)</Text>
+              <Text style={styles.newReportBtnText}>Reportar a una persona que necesita ayuda</Text>
             </TouchableOpacity>
 
             {/* Filter Chips by Status */}
@@ -272,7 +296,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                         <View style={styles.offlineAlertRow}>
                           <MaterialIcons name="cloud-queue" size={14} color={Colors.warningText} />
                           <Text style={styles.offlineAlertText}>
-                            Guardado sin conexión en dispositivo (RF-25: No llega a coordinadores hasta sincronizar).
+                            Guardado sin conexión en este dispositivo. Aún no ha llegado a los coordinadores.
                           </Text>
                         </View>
                       )}
@@ -319,7 +343,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                       {/* SENSITIVE DATA CONTAINER (RF-18 / RNF-12) */}
                       {/* ======================================================== */}
                       <View style={[styles.sensitiveBox, isAuthorized ? styles.sensitiveBoxAuth : styles.sensitiveBoxMasked]}>
-                        {isAuthorized ? (
+                        {isAuthorized && report.beneficiaryName && report.exactAddress ? (
                           // COORDINATOR / ADMIN VIEW (FULL DATA)
                           <View style={styles.sensitiveFull}>
                             <View style={styles.sensitiveTopRow}>
@@ -354,14 +378,18 @@ export const EmergencyDashboardScreen: React.FC = () => {
                           <View style={styles.sensitiveMasked}>
                             <View style={styles.maskedTopRow}>
                               <MaterialIcons name="lock" size={16} color={Colors.slateDim} />
-                              <Text style={styles.maskedTitle}>Ubicación General Protegida (RF-18)</Text>
+                              <Text style={styles.maskedTitle}>
+                                {isAuthorized ? 'Datos privados no cargados en esta demo' : 'Ubicación general protegida'}
+                              </Text>
                             </View>
                             <Text style={styles.maskedAddress}>
                               📍 {report.neighborhood} (Sector aprox. 350m a la redonda)
                             </Text>
-                            <Text style={styles.maskedNote}>
-                              Por seguridad y privacidad (RNF-12), el nombre completo y dirección exacta solo son accesibles para las brigadas de auxilio barrial.
-                            </Text>
+                              <Text style={styles.maskedNote}>
+                                {isAuthorized
+                                  ? 'Los datos identificables se consultan únicamente con una sesión autorizada en el servidor.'
+                                  : 'Por seguridad y privacidad, el nombre completo y la dirección exacta solo son accesibles para las brigadas de auxilio barrial.'}
+                              </Text>
                           </View>
                         )}
                       </View>
@@ -421,7 +449,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                         onPress={() => setReportItemForModeration(report)}
                       >
                         <MaterialIcons name="flag" size={13} color={Colors.slateDim} />
-                        <Text style={styles.flagText}>Reportar error o abuso (RF-21)</Text>
+                        <Text style={styles.flagText}>Reportar error o abuso</Text>
                       </TouchableOpacity>
                     </View>
                   );
@@ -528,7 +556,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
           <View style={styles.modalSheet}>
             <View style={styles.dragHandle} />
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalSheetTitle}>Registrar Recurso Crítico (RF-20)</Text>
+              <Text style={styles.modalSheetTitle}>Registrar recurso crítico</Text>
               <TouchableOpacity onPress={() => setShowAddResourceModal(false)}>
                 <MaterialIcons name="close" size={20} color={Colors.slateDim} />
               </TouchableOpacity>
@@ -541,6 +569,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
               placeholderTextColor={Colors.slateDim}
               value={resName}
               onChangeText={setResName}
+              maxLength={160}
             />
 
             <Text style={[styles.inputLbl, { marginTop: 10 }]}>Tipo de Recurso</Text>
@@ -565,6 +594,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
               placeholderTextColor={Colors.slateDim}
               value={resQuantity}
               onChangeText={setResQuantity}
+              maxLength={80}
             />
 
             <Text style={[styles.inputLbl, { marginTop: 10 }]}>Ubicación de Retiro en el Barrio</Text>
@@ -574,10 +604,11 @@ export const EmergencyDashboardScreen: React.FC = () => {
               placeholderTextColor={Colors.slateDim}
               value={resLocation}
               onChangeText={setResLocation}
+              maxLength={120}
             />
 
-            <TouchableOpacity style={styles.createResBtn} onPress={handleCreateResource}>
-              <Text style={styles.createResBtnText}>Guardar Recurso</Text>
+            <TouchableOpacity style={styles.createResBtn} onPress={handleCreateResource} disabled={isSavingResource}>
+              <Text style={styles.createResBtnText}>{isSavingResource ? 'Guardando…' : 'Guardar Recurso'}</Text>
             </TouchableOpacity>
           </View>
         </View>
