@@ -210,9 +210,6 @@ export const DirectoryScreen: React.FC = () => {
                         <View style={styles.providerInfo}>
                           <View style={styles.nameRow}>
                             <Text style={styles.providerName}>{service.providerName}</Text>
-                            {service.isVerified && (
-                              <MaterialIcons name="verified" size={16} color={Colors.primary} />
-                            )}
                           </View>
                           <Text style={styles.serviceTitle}>{service.title}</Text>
                           <View style={styles.locationRow}>

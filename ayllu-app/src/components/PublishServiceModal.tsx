@@ -7,7 +7,6 @@ import {
   TouchableOpacity, 
   TextInput, 
   ScrollView, 
-  Alert 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -45,12 +44,12 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
   const handleSubmit = async () => {
     if (isSubmitting) return;
     if (!isReasonableText(title, 160) || !isReasonableText(description, 500)) {
-      Alert.alert('Revisa el servicio', 'El título debe tener hasta 160 caracteres y la descripción hasta 500.');
+      setSubmitError('El título debe tener hasta 160 caracteres y la descripción hasta 500.');
       return;
     }
     const normalizedPhone = normalizePeruMobilePhone(phone);
     if (sharePhone && !normalizedPhone) {
-      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
+      setSubmitError('Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
 

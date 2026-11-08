@@ -137,6 +137,7 @@ export type EmergencyPriority = 'media' | 'alta' | 'urgente';
 export type EmergencyStatus = 'pendiente' | 'atencion' | 'resuelto' | 'cerrado';
 
 export interface EmergencyReport {
+  isHidden?: boolean;
   id: string;
   code: string; // e.g. #AY-801
   category: EmergencyCategory;

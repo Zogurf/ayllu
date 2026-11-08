@@ -582,7 +582,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isNeighborhoodMatch = (item: { neighborhood: string; districtUbigeo?: string }) => locationMatchesScope(user, item, adjacentNames);
   const filteredServices = services.filter(s => !s.isHidden && (!s.isOfflinePending || s.authorId===user.id) && isNeighborhoodMatch(s));
   const filteredFavors = favors.filter(f => !f.isHidden && (!f.isOfflinePending || f.authorId === user.id) && isNeighborhoodMatch(f));
-  const filteredEmergencyReports = emergencyReports.filter(r => isNeighborhoodMatch(r));
+  const filteredEmergencyReports = emergencyReports.filter(r => !r.isHidden && isNeighborhoodMatch(r));
   const filteredCriticalResources = criticalResources.filter(r => isNeighborhoodMatch(r));
 
   return (

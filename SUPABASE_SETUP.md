@@ -1,6 +1,6 @@
 # Conectar Ayllu con Supabase
 
-El proyecto tiene preparado un primer flujo remoto: registro e inicio de sesión con correo y contraseña, creación del perfil y pertenencia al barrio, y envío idempotente de reportes de emergencia. Hace falta crear un proyecto Supabase y poner sus credenciales locales; todavía no hay conexión a un backend de producción.
+El código incluye flujos remotos para registro e inicio de sesión, perfil y pertenencia al barrio, favores, servicios y avales, mensajería, reportes de emergencia, recursos y moderación. Hace falta crear un proyecto Supabase, aplicar las migraciones y configurar credenciales; aquí no se ha validado contra tu proyecto.
 
 ## 1. Crear el proyecto
 
@@ -17,7 +17,7 @@ npx supabase db push --dry-run --remote
 npx supabase db push --remote
 ```
 
-El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es importante: sin esa opción, el CLI puede apuntar al stack local de Docker. `db push` aplica en orden las migraciones de `supabase/migrations/`: permisos y políticas RLS, RPC idempotente de reportes, perfil de usuario y barrios iniciales. Revisa el `dry-run` antes de aplicar. Evita crear o modificar estas tablas manualmente en el Dashboard; conserva los cambios en migraciones.
+El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es importante: sin esa opción, el CLI puede apuntar al stack local de Docker. `db push` aplica en orden las migraciones de `supabase/migrations/`: perfiles, ubigeos, favores y la migración `202611080004_shared_services_moderation_resources.sql` para directorio, avales, recursos, moderación, emergencias y chat. Revisa el `dry-run` antes de aplicar. Evita crear o modificar estas tablas manualmente en el Dashboard; conserva los cambios en migraciones.
 
 ## 3. Configurar Auth
 
@@ -81,14 +81,13 @@ Revisa el archivo generado antes de incorporarlo a imports; hoy el cliente usa t
 
 ## Muro de favores compartido
 
-Aplica `202611080003_community_favors.sql` con `npx supabase db push --remote`.
-Crea `community_favors` y el RPC `sync_community_favor`. Requiere las cinco migraciones anteriores.
+`202611080003_community_favors.sql` crea `community_favors` y el RPC `sync_community_favor`; `202611080004_shared_services_moderation_resources.sql` agrega los demás flujos compartidos. Requieren todas las migraciones anteriores y se aplican juntas con `npx supabase db push --remote`.
 
-Los usuarios autenticados pueden leer publicaciones de su distrito; el filtro de la app mantiene el alcance de barrio seleccionado. Solo el autor puede marcar resuelto, reabrir o retirar. La identidad y el barrio se obtienen del perfil del servidor. El teléfono solo se comparte cuando el autor selecciona WhatsApp; el canal interno no publica el teléfono.
+Los usuarios autenticados pueden leer publicaciones de su distrito; el filtro de la app mantiene el alcance de barrio seleccionado. Solo el autor puede editar, cambiar estado o retirar. La identidad y el barrio se obtienen del perfil del servidor. El teléfono solo se comparte con autorización explícita al elegir WhatsApp; el canal interno no publica el teléfono.
 
 Las publicaciones nuevas y los cambios se guardan en la cola incluso con conexión. Permanecen pendientes hasta recibir confirmación, y los reintentos no duplican publicaciones ni revierten cambios ya confirmados. El muro se actualiza cada 30 segundos y con el botón Actualizar muro. Los favores antiguos con identificador `fav-` conservan su carácter local: el autor puede pulsar Compartir para publicar una copia en su barrio actual. Retirar requiere dos pulsaciones en la tarjeta para confirmar también en web.
 
-WhatsApp abre una conversación con un mensaje preparado; el usuario decide enviarlo. La mensajería interna y la moderación compartida todavía no están implementadas. El muro muestra esa limitación en lugar de simular un envío.
+WhatsApp abre una conversación con un mensaje preparado; el usuario decide enviarlo. El canal interno guarda conversaciones y mensajes en Supabase y muestra confirmaciones de entrega/lectura. La bandeja y el chat requieren la migración `202611080004` aplicada.
 
 Prueba manual: inicia sesión con dos cuentas del mismo barrio, publica desde una, actualiza el muro en la otra, marca resuelto y retira desde la cuenta autora. Una cuenta de otro distrito no debe poder leer la publicación. Prueba además crear sin conexión y reconectar; el aviso pendiente debe desaparecer después de sincronizar.
 

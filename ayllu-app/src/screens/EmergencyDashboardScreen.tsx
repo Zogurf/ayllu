@@ -354,7 +354,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                               <View style={{ flex: 1 }}>
                                 <Text style={styles.beneficiaryLabel}>Beneficiario(a) Protegido(a):</Text>
                                 <Text style={styles.beneficiaryName}>
-                                  {privateData[report.id]?.beneficiary_name ?? 'Datos privados no consultados'} {report.beneficiaryAge ? `(${report.beneficiaryAge} años)` : ''}
+                                  {privateData[report.id]?.beneficiary_name ?? 'Datos privados no consultados'} {privateData[report.id]?.beneficiary_age ? `(${privateData[report.id].beneficiary_age} años)` : ''}
                                 </Text>
                                 <Text style={styles.beneficiaryAddress}>
                                   📍 {privateData[report.id]?.exact_address ?? ''}

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -71,11 +70,11 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
       setCurrentStep(2);
     } else if (currentStep === 2) {
       if (!isReasonableText(title, 160)) {
-        Alert.alert('Revisa el título', 'Escribe un título de hasta 160 caracteres.');
+          setSubmitError('Escribe un título de hasta 160 caracteres.');
         return;
       }
       if (description.trim() && !isReasonableText(description, 500)) {
-        Alert.alert('Revisa la descripción', 'La descripción debe tener entre 1 y 500 caracteres.');
+          setSubmitError('La descripción debe tener entre 1 y 500 caracteres.');
         return;
       }
       setCurrentStep(3);
@@ -389,7 +388,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     color={contactChannel === 'whatsapp' ? Colors.primary : Colors.slateDim}
                   />
                   <View style={styles.channelInfo}>
-                    <Text style={styles.channelTitle}>WhatsApp vecinal</Text>
+                    <Text style={styles.channelTitle}>WhatsApp vecinal (sin verificar)</Text>
                     <Text style={styles.channelDesc}>
                       Tu teléfono será visible para cuentas autenticadas de tu distrito.
                     </Text>
