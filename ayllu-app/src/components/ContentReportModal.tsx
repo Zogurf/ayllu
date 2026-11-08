@@ -76,7 +76,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
                 <Text style={styles.subtitle} numberOfLines={1}>{itemTitle}</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar denuncia" style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
@@ -86,7 +86,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
             {REPORT_REASONS.map(r => {
               const isSel = selectedReason === r;
               return (
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   key={r}
                   style={[styles.reasonItem, isSel && styles.reasonItemActive]}
                   onPress={() => setSelectedReason(r)}
@@ -116,7 +116,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
           />
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={saving}>
+            <TouchableOpacity accessibilityRole="button" style={styles.submitBtn} onPress={handleSubmit} disabled={saving}>
               <MaterialIcons name="check" size={18} color="#ffffff" />
               <Text style={styles.submitBtnText}>Enviar Reporte a Moderación</Text>
             </TouchableOpacity>

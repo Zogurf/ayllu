@@ -1,6 +1,6 @@
 # Conectar Ayllu con Supabase
 
-El proyecto tiene preparado un primer flujo remoto: registro e inicio de sesión con correo y contraseña, creación del perfil y pertenencia al barrio, y envío idempotente de reportes de emergencia. Hace falta crear un proyecto Supabase y poner sus credenciales locales; todavía no hay conexión a un backend de producción.
+El código incluye flujos remotos para registro e inicio de sesión, perfil y pertenencia al barrio, favores, servicios y avales, mensajería, reportes de emergencia, recursos y moderación. Hace falta crear un proyecto Supabase, aplicar las migraciones y configurar credenciales; aquí no se ha validado contra tu proyecto.
 
 ## 1. Crear el proyecto
 
@@ -17,11 +17,18 @@ npx supabase db push --dry-run --remote
 npx supabase db push --remote
 ```
 
-El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es importante: sin esa opción, el CLI puede apuntar al stack local de Docker. `db push` aplica en orden las migraciones de `supabase/migrations/`: permisos y políticas RLS, RPC idempotente de reportes, perfil de usuario y barrios iniciales. Revisa el `dry-run` antes de aplicar. Evita crear o modificar estas tablas manualmente en el Dashboard; conserva los cambios en migraciones.
+El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es importante: sin esa opción, el CLI puede apuntar al stack local de Docker. `db push` aplica en orden las migraciones de `supabase/migrations/`: perfiles, ubigeos, favores, `202611080004_shared_services_moderation_resources.sql` para directorio, recursos, moderación, emergencias y chat, `202611080005_emergency_audit_trail.sql` para la bitácora, `202611080006_rate_limits.sql` para límites anti-spam y `202611080007_realtime_favors.sql` para la suscripción del muro. Revisa el `dry-run` antes de aplicar. Evita crear o modificar estas tablas manualmente en el Dashboard; conserva los cambios en migraciones.
 
 ## 3. Configurar Auth
 
-En el Dashboard abre **Authentication → Providers** y habilita **Email**. Para la primera prueba, deja la confirmación de correo activada: crea la cuenta en la app, abre el correo de verificación y luego inicia sesión con ese correo y contraseña. El proyecto todavía no configura enlaces profundos de Ayllu para completar la sesión desde el correo.
+En el Dashboard abre **Authentication → Providers** y habilita **Email**. Conserva la confirmación de correo activada. La app puede reenviar la confirmación y enviar enlaces de recuperación; al abrir un enlace válido, la app recibe la sesión PKCE y muestra el formulario para guardar una contraseña nueva. Supabase debe poder enviar los correos; para producción configura un proveedor SMTP con límites adecuados.
+
+En **Authentication → URL Configuration**, agrega a **Redirect URLs**:
+
+- `ayllu://auth/callback` para Android/iOS.
+- El origen y la ruta exacta de la web local y publicada, por ejemplo `http://localhost:8081/` y `https://tu-dominio/`.
+
+El enlace de confirmación del registro, el reenvío de confirmación y la recuperación usan el mismo retorno configurado por plataforma. Con PKCE, abre el enlace en el mismo navegador/dispositivo donde solicitaste el correo para que esté disponible el verificador de sesión. Un enlace expirado o ya utilizado muestra un aviso para solicitar otro.
 
 ## 4. Poner las credenciales en la app
 
@@ -81,14 +88,13 @@ Revisa el archivo generado antes de incorporarlo a imports; hoy el cliente usa t
 
 ## Muro de favores compartido
 
-Aplica `202611080003_community_favors.sql` con `npx supabase db push --remote`.
-Crea `community_favors` y el RPC `sync_community_favor`. Requiere las cinco migraciones anteriores.
+`202611080003_community_favors.sql` crea `community_favors` y el RPC `sync_community_favor`; las migraciones `202611080004` y `202611080005` agregan flujos compartidos y trazabilidad de emergencias; `202611080006` limita publicaciones por usuario; y `202611080007` habilita Realtime para favores. Se aplican en orden con `npx supabase db push --remote`. Revisa primero `npx supabase db push --dry-run --remote`. Realtime requiere que Supabase habilite la publicación `supabase_realtime`; si no está disponible, el sondeo de 30 segundos sigue actualizando el muro. Los límites se prueban localmente en PGlite, pero estas migraciones todavía no se han aplicado al proyecto remoto. La bitácora no almacena nombres, edades, teléfonos ni direcciones y solo coordinadores/administradores del barrio pueden consultarla. La política de conservación debe definirse para el despliegue.
 
-Los usuarios autenticados pueden leer publicaciones de su distrito; el filtro de la app mantiene el alcance de barrio seleccionado. Solo el autor puede marcar resuelto, reabrir o retirar. La identidad y el barrio se obtienen del perfil del servidor. El teléfono solo se comparte cuando el autor selecciona WhatsApp; el canal interno no publica el teléfono.
+Los usuarios autenticados pueden leer publicaciones de su distrito; el filtro de la app mantiene el alcance de barrio seleccionado. Solo el autor puede editar, cambiar estado o retirar. La identidad y el barrio se obtienen del perfil del servidor. El teléfono solo se comparte con autorización explícita al elegir WhatsApp; el canal interno no publica el teléfono.
 
-Las publicaciones nuevas y los cambios se guardan en la cola incluso con conexión. Permanecen pendientes hasta recibir confirmación, y los reintentos no duplican publicaciones ni revierten cambios ya confirmados. El muro se actualiza cada 30 segundos y con el botón Actualizar muro. Los favores antiguos con identificador `fav-` conservan su carácter local: el autor puede pulsar Compartir para publicar una copia en su barrio actual. Retirar requiere dos pulsaciones en la tarjeta para confirmar también en web.
+Las publicaciones nuevas y los cambios se guardan en la cola incluso con conexión. Permanecen pendientes hasta recibir confirmación, y los reintentos no duplican publicaciones ni revierten cambios ya confirmados. El muro recibe cambios por Realtime cuando está habilitado; la consulta cada 30 segundos y el botón Actualizar muro sirven de respaldo. Realtime requiere aplicar `202611080007_realtime_favors.sql`. Los favores antiguos con identificador `fav-` conservan su carácter local: el autor puede pulsar Compartir para publicar una copia en su barrio actual. Retirar requiere dos pulsaciones en la tarjeta para confirmar también en web.
 
-WhatsApp abre una conversación con un mensaje preparado; el usuario decide enviarlo. La mensajería interna y la moderación compartida todavía no están implementadas. El muro muestra esa limitación en lugar de simular un envío.
+WhatsApp abre una conversación con un mensaje preparado; el usuario decide enviarlo. El canal interno guarda conversaciones y mensajes en Supabase y muestra confirmaciones de entrega/lectura. La bandeja y el chat requieren la migración `202611080004` aplicada.
 
 Prueba manual: inicia sesión con dos cuentas del mismo barrio, publica desde una, actualiza el muro en la otra, marca resuelto y retira desde la cuenta autora. Una cuenta de otro distrito no debe poder leer la publicación. Prueba además crear sin conexión y reconectar; el aviso pendiente debe desaparecer después de sincronizar.
 

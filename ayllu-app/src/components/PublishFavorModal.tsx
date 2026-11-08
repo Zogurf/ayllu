@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -71,11 +70,11 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
       setCurrentStep(2);
     } else if (currentStep === 2) {
       if (!isReasonableText(title, 160)) {
-        Alert.alert('Revisa el título', 'Escribe un título de hasta 160 caracteres.');
+          setSubmitError('Escribe un título de hasta 160 caracteres.');
         return;
       }
       if (description.trim() && !isReasonableText(description, 500)) {
-        Alert.alert('Revisa la descripción', 'La descripción debe tener entre 1 y 500 caracteres.');
+          setSubmitError('La descripción debe tener entre 1 y 500 caracteres.');
         return;
       }
       setCurrentStep(3);
@@ -135,7 +134,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
               </View>
               <Text style={styles.title}>Publicar Favor Vecinal</Text>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar publicación de favor" style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
@@ -202,7 +201,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
               <View style={styles.stepContent}>
                 <Text style={styles.sectionHeading}>Modalidad de colaboración</Text>
                 <View style={styles.modeToggle}>
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     style={[styles.modeButton, mode === 'ofrezco' && styles.modeButtonActive]}
                     onPress={() => setMode('ofrezco')}
                   >
@@ -216,7 +215,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     style={[styles.modeButton, mode === 'solicito' && styles.modeButtonActive]}
                     onPress={() => setMode('solicito')}
                   >
@@ -236,7 +235,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                   {CATEGORIES.map(cat => {
                     const isSelected = category === cat.id;
                     return (
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button"
                         key={cat.id}
                         style={[styles.categoryTile, isSelected && styles.categoryTileActive]}
                         onPress={() => setCategory(cat.id)}
@@ -259,7 +258,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 </View>
 
                 {/* Urgency toggle */}
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   style={[styles.urgencyToggle, isUrgent && styles.urgencyToggleActive]}
                   onPress={() => setIsUrgent(!isUrgent)}
                 >
@@ -317,7 +316,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                   {DURATION_CHIPS.map(chip => {
                     const isSelected = durationInfo === chip;
                     return (
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button"
                         key={chip}
                         style={[styles.durationChip, isSelected && styles.durationChipActive]}
                         onPress={() => setDurationInfo(chip)}
@@ -355,7 +354,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 </Text>
 
                 {/* Option 1: Ayllu internal message */}
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   style={[
                     styles.channelCard,
                     contactChannel === 'ayllu' && styles.channelCardActive,
@@ -368,15 +367,15 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     color={contactChannel === 'ayllu' ? Colors.primary : Colors.slateDim}
                   />
                   <View style={styles.channelInfo}>
-                    <Text style={styles.channelTitle}>Sin teléfono público (chat no disponible)</Text>
+                    <Text style={styles.channelTitle}>Chat interno de Ayllu (sin teléfono público)</Text>
                     <Text style={styles.channelDesc}>
-                      Puedes publicar sin teléfono. La mensajería interna todavía no permite contactar.
+                      Tu teléfono no se publica. Los vecinos te escriben por la mensajería interna; requiere conexión y sesión iniciada.
                     </Text>
                   </View>
                 </TouchableOpacity>
 
                 {/* Option 2: WhatsApp verificado */}
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   style={[
                     styles.channelCard,
                     contactChannel === 'whatsapp' && styles.channelCardActive,
@@ -389,7 +388,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     color={contactChannel === 'whatsapp' ? Colors.primary : Colors.slateDim}
                   />
                   <View style={styles.channelInfo}>
-                    <Text style={styles.channelTitle}>WhatsApp vecinal</Text>
+                    <Text style={styles.channelTitle}>WhatsApp vecinal (sin verificar)</Text>
                     <Text style={styles.channelDesc}>
                       Tu teléfono será visible para cuentas autenticadas de tu distrito.
                     </Text>
@@ -411,19 +410,19 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
           {/* Footer Actions */}
           <View style={styles.footer}>
             {currentStep > 1 && (
-              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <TouchableOpacity accessibilityRole="button" style={styles.backButton} onPress={handleBack}>
                 <MaterialIcons name="arrow-back" size={18} color={Colors.secondary} />
                 <Text style={styles.backButtonText}>Atrás</Text>
               </TouchableOpacity>
             )}
 
             {currentStep < 3 ? (
-              <TouchableOpacity style={styles.primaryButton} onPress={handleNext}>
+              <TouchableOpacity accessibilityRole="button" style={styles.primaryButton} onPress={handleNext}>
                 <Text style={styles.primaryButtonText}>Siguiente paso</Text>
                 <MaterialIcons name="arrow-forward" size={18} color="#ffffff" />
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={styles.publishButton} onPress={handleSubmit} disabled={isSubmitting}>
+              <TouchableOpacity accessibilityRole="button" style={styles.publishButton} onPress={handleSubmit} disabled={isSubmitting}>
                 <MaterialIcons name="check" size={18} color="#ffffff" />
                 <Text style={styles.primaryButtonText}>{isSubmitting ? 'Guardando…' : 'Guardar Favor'}</Text>
               </TouchableOpacity>

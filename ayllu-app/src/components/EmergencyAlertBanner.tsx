@@ -44,8 +44,8 @@ export const EmergencyAlertBanner: React.FC<EmergencyAlertBannerProps> = ({
 
         <View style={styles.actionsRow}>
           {isAuthorized && (
-            <TouchableOpacity 
-              style={styles.manageButton} 
+            <TouchableOpacity accessibilityRole="button"
+              style={styles.manageButton}
               onPress={onPressManage}
               activeOpacity={0.8}
             >
@@ -53,8 +53,8 @@ export const EmergencyAlertBanner: React.FC<EmergencyAlertBannerProps> = ({
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity 
-            style={styles.dashboardButton} 
+          <TouchableOpacity accessibilityRole="button"
+            style={styles.dashboardButton}
             onPress={onPressViewDashboard}
             activeOpacity={0.8}
           >

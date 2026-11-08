@@ -43,5 +43,10 @@ export function locationMatchesScope(
   if (!ubigeo || (item.districtUbigeo ?? LEGACY_CUSCO_UBIGEO) !== ubigeo) return false;
   if (user.coverageScope === 3) return true;
   if (normalizeSearch(item.neighborhood) === normalizeSearch(user.neighborhood)) return true;
+  // Barrios colindantes: solo existen datos para la demostración de Cusco.
+  if (user.coverageScope === 2 && ubigeo === LEGACY_CUSCO_UBIGEO) {
+    const target = normalizeSearch(item.neighborhood);
+    if (adjacentNames.some(name => normalizeSearch(name) === target)) return true;
+  }
   return false;
 }

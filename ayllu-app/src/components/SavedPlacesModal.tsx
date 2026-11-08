@@ -39,15 +39,15 @@ export const SavedPlacesModal: React.FC<Props> = ({visible,places,activePlaceId,
   return <>
     <Modal visible={visible && !adding} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}><View style={styles.sheet}>
-        <View style={styles.header}><Text style={styles.title}>Mis direcciones</Text><TouchableOpacity accessibilityLabel="Cerrar" onPress={onClose}><MaterialIcons name="close" size={22} color={Colors.slateDim}/></TouchableOpacity></View>
+        <View style={styles.header}><Text style={styles.title}>Mis direcciones</Text><TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar" onPress={onClose}><MaterialIcons name="close" size={22} color={Colors.slateDim}/></TouchableOpacity></View>
         <Text style={styles.subtitle}>Guarda lugares como Casa, Trabajo o Universidad y elige cuál usar.</Text>
         <ScrollView style={{maxHeight:320}}>{places.map(place=><View key={place.id} style={styles.row}>
-          <TouchableOpacity style={{flex:1}} onPress={()=>onSelect(place)}><Text style={styles.placeTitle}>{place.label} {place.id===activePlaceId?'· Actual':''}</Text><Text style={styles.placeSubtitle}>{place.addressLine ? `${place.addressLine} · ` : ''}{place.neighborhood} · {place.district}</Text></TouchableOpacity>
-          <TouchableOpacity accessibilityLabel={`Eliminar ${place.label}`} onPress={()=>onDelete(place.id)}><MaterialIcons name="delete-outline" size={20} color={Colors.emergencyDark}/></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={{flex:1}} onPress={()=>onSelect(place)}><Text style={styles.placeTitle}>{place.label} {place.id===activePlaceId?'· Actual':''}</Text><Text style={styles.placeSubtitle}>{place.addressLine ? `${place.addressLine} · ` : ''}{place.neighborhood} · {place.district}</Text></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Eliminar ${place.label}`} onPress={()=>onDelete(place.id)}><MaterialIcons name="delete-outline" size={20} color={Colors.emergencyDark}/></TouchableOpacity>
         </View>)}</ScrollView>
         <TextInput value={label} onChangeText={setLabel} placeholder="Nombre: Casa, Trabajo..." maxLength={40} style={styles.input}/>
-        {!!location && <><Text style={styles.subtitle}>Nueva dirección: {location.neighborhood} · {location.district}</Text><TextInput value={addressLine} onChangeText={setAddressLine} placeholder="Dirección exacta: avenida, número, referencia" maxLength={160} style={styles.input}/><TouchableOpacity style={styles.gpsButton} onPress={()=>{void captureGps();}}><MaterialIcons name="my-location" size={17} color={Colors.primary}/><Text style={styles.gpsText}>{location.coords?'Actualizar punto GPS':'Guardar punto GPS para distancias'}</Text></TouchableOpacity>{!!gpsMessage&&<Text style={styles.subtitle}>{gpsMessage}</Text>}</>}
-        <TouchableOpacity style={styles.button} onPress={()=>location ? add() : setAdding(true)}><Text style={styles.buttonText}>{location?'Guardar dirección':'Agregar dirección'}</Text></TouchableOpacity>
+        {!!location && <><Text style={styles.subtitle}>Nueva dirección: {location.neighborhood} · {location.district}</Text><TextInput value={addressLine} onChangeText={setAddressLine} placeholder="Dirección exacta: avenida, número, referencia" maxLength={160} style={styles.input}/><TouchableOpacity accessibilityRole="button" style={styles.gpsButton} onPress={()=>{void captureGps();}}><MaterialIcons name="my-location" size={17} color={Colors.primary}/><Text style={styles.gpsText}>{location.coords?'Actualizar punto GPS':'Guardar punto GPS para distancias'}</Text></TouchableOpacity>{!!gpsMessage&&<Text style={styles.subtitle}>{gpsMessage}</Text>}</>}
+        <TouchableOpacity accessibilityRole="button" style={styles.button} onPress={()=>location ? add() : setAdding(true)}><Text style={styles.buttonText}>{location?'Guardar dirección':'Agregar dirección'}</Text></TouchableOpacity>
       </View></View>
     </Modal>
     <NeighborhoodModal visible={visible && adding} onClose={()=>setAdding(false)} onSelect={add}/>

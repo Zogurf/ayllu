@@ -6,11 +6,11 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Linking, 
-  Alert,
   Modal,
   TextInput 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { notify } from '../utils/dialog';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { EmergencyReport, EmergencyStatus, CriticalResourceType } from '../types';
@@ -26,12 +26,12 @@ export const EmergencyDashboardScreen: React.FC = () => {
     filteredCriticalResources,
     addCriticalResource,
     emergencyMode,
-    user, canCoordinate, sharedError, readPrivateReport
+    user, canCoordinate, sharedError, readPrivateReport, emergencyAuditEvents
   } = useApp();
 
   const [privateData,setPrivateData]=useState<Record<string,Record<string,string>>>({});
   const [notice,setNotice]=useState('');
-  const [activeTab, setActiveTab] = useState<'reportes' | 'recursos'>('reportes');
+  const [activeTab, setActiveTab] = useState<'reportes' | 'recursos' | 'trazabilidad'>('reportes');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   
   // Modals
@@ -69,15 +69,15 @@ export const EmergencyDashboardScreen: React.FC = () => {
   const handleStatusChange = async (report: EmergencyReport, newStatus: EmergencyStatus) => {
     if (savingReportId) return;
     if (!isAuthorized) {
-      Alert.alert('Acceso Restringido', 'Solo los coordinadores comunitarios o brigadas autorizadas pueden actualizar el estado de atención.');
+      void notify('Acceso Restringido', 'Solo los coordinadores comunitarios o brigadas autorizadas pueden actualizar el estado de atención.');
       return;
     }
     setSavingReportId(report.id);
     try {
       await updateEmergencyReportStatus(report.id, newStatus);
-      Alert.alert('Tablero Actualizado', `Estado del reporte ${report.code} guardado como "${newStatus.toUpperCase()}" en el servidor.`);
+      void notify('Tablero Actualizado', `Estado del reporte ${report.code} guardado como "${newStatus.toUpperCase()}" en el servidor.`);
     } catch (error) {
-      Alert.alert('No se actualizó el reporte', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+      void notify('No se actualizó el reporte', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
     } finally {
       setSavingReportId(null);
     }
@@ -86,11 +86,11 @@ export const EmergencyDashboardScreen: React.FC = () => {
   const handleCreateResource = async () => {
     if (isSavingResource) return;
     if (!isReasonableText(resName, 160) || !isPositiveQuantity(resQuantity)) {
-      Alert.alert('Revisa el recurso', 'Ingresa un nombre de hasta 160 caracteres y una cantidad mayor que cero (por ejemplo: 500 litros).');
+      void notify('Revisa el recurso', 'Ingresa un nombre de hasta 160 caracteres y una cantidad mayor que cero (por ejemplo: 500 litros).');
       return;
     }
     if (resLocation.trim() && !isReasonableText(resLocation, 120)) {
-      Alert.alert('Ubicación no válida', 'La ubicación debe tener hasta 120 caracteres.');
+      void notify('Ubicación no válida', 'La ubicación debe tener hasta 120 caracteres.');
       return;
     }
 
@@ -110,7 +110,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
       });
     } catch (error) {
       setIsSavingResource(false);
-      Alert.alert('No se guardó el recurso', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+      void notify('No se guardó el recurso', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
       return;
     }
 
@@ -118,7 +118,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
     setResQuantity('');
     setResLocation('');
     setShowAddResourceModal(false);
-    Alert.alert('Recurso guardado', 'El recurso quedó guardado en el servidor. Aún no está publicado en un servidor compartido.');
+    void notify('Recurso guardado', 'El recurso quedó guardado en el servidor. Aún no está publicado en un servidor compartido.');
     setIsSavingResource(false);
   };
 
@@ -175,7 +175,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                 {emergencyMode.isActive ? `Iniciado: ${emergencyMode.activatedAt}` : 'Comunidad en calma'}
               </Text>
               {isAuthorized && (
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   style={styles.manageEmergencyBtn}
                   onPress={() => setShowManageModal(true)}
                   activeOpacity={0.8}
@@ -211,7 +211,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
 
         {/* Tabs: Reportes vs Recursos Críticos */}
         <View style={styles.subTabsContainer}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.subTab, activeTab === 'reportes' && styles.subTabActive]}
             onPress={() => setActiveTab('reportes')}
           >
@@ -225,7 +225,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.subTab, activeTab === 'recursos' && styles.subTabActive]}
             onPress={() => setActiveTab('recursos')}
           >
@@ -238,6 +238,13 @@ export const EmergencyDashboardScreen: React.FC = () => {
               Recursos críticos
             </Text>
           </TouchableOpacity>
+          {canCoordinate && <TouchableOpacity accessibilityRole="button"
+            style={[styles.subTab, activeTab === 'trazabilidad' && styles.subTabActive]}
+            onPress={() => setActiveTab('trazabilidad')}
+          >
+            <MaterialIcons name="history" size={16} color={activeTab === 'trazabilidad' ? Colors.primary : Colors.secondaryMuted} />
+            <Text style={[styles.subTabText, activeTab === 'trazabilidad' && styles.subTabTextActive]}>Trazabilidad</Text>
+          </TouchableOpacity>}
         </View>
 
         {/* ======================================================== */}
@@ -246,7 +253,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
         {activeTab === 'reportes' && (
           <View style={styles.tabContent}>
             {/* Create Report Button */}
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={styles.newReportBtn}
               onPress={() => setShowVulnerabilityModal(true)}
               activeOpacity={0.85}
@@ -265,7 +272,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
               ].map(item => {
                 const isSel = statusFilter === item.id;
                 return (
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     key={item.id}
                     style={[styles.statusChip, isSel && styles.statusChipActive]}
                     onPress={() => setStatusFilter(item.id)}
@@ -349,18 +356,18 @@ export const EmergencyDashboardScreen: React.FC = () => {
                         {isAuthorized ? (
                           // COORDINATOR / ADMIN VIEW (FULL DATA)
                           <View style={styles.sensitiveFull}>
-                          <TouchableOpacity onPress={()=>{void readPrivateReport(report.id).then(data=>setPrivateData(current=>({...current,[report.id]:data}))).catch(e=>setNotice(e.message));}}><Text>Consultar datos privados (acceso registrado)</Text></TouchableOpacity>
+                          <TouchableOpacity accessibilityRole="button" onPress={()=>{void readPrivateReport(report.id).then(data=>setPrivateData(current=>({...current,[report.id]:data}))).catch(e=>setNotice(e.message));}}><Text>Consultar datos privados (acceso registrado)</Text></TouchableOpacity>
                             <View style={styles.sensitiveTopRow}>
                               <View style={{ flex: 1 }}>
                                 <Text style={styles.beneficiaryLabel}>Beneficiario(a) Protegido(a):</Text>
                                 <Text style={styles.beneficiaryName}>
-                                  {privateData[report.id]?.beneficiary_name ?? 'Datos privados no consultados'} {report.beneficiaryAge ? `(${report.beneficiaryAge} años)` : ''}
+                                  {privateData[report.id]?.beneficiary_name ?? 'Datos privados no consultados'} {privateData[report.id]?.beneficiary_age ? `(${privateData[report.id].beneficiary_age} años)` : ''}
                                 </Text>
                                 <Text style={styles.beneficiaryAddress}>
                                   📍 {privateData[report.id]?.exact_address ?? ''}
                                 </Text>
                               </View>
-                              <TouchableOpacity
+                              <TouchableOpacity accessibilityRole="button"
                                 style={styles.callBeneficiaryBtn}
                                 onPress={() => handleCall(privateData[report.id]?.contact_phone ?? '')}
                               >
@@ -416,7 +423,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                       {isAuthorized && (
                         <View style={styles.statusActionRow}>
                           {isPending && (
-                            <TouchableOpacity
+                            <TouchableOpacity accessibilityRole="button"
                               style={styles.attendBtn}
                               onPress={() => handleStatusChange(report, 'atencion')}
                             >
@@ -426,7 +433,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                           )}
 
                           {isAtencion && (
-                            <TouchableOpacity
+                            <TouchableOpacity accessibilityRole="button"
                               style={styles.resolveBtn}
                               onPress={() => handleStatusChange(report, 'resuelto')}
                             >
@@ -436,7 +443,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                           )}
 
                           {isResuelto && (
-                            <TouchableOpacity
+                            <TouchableOpacity accessibilityRole="button"
                               style={styles.reopenBtn}
                               onPress={() => handleStatusChange(report, 'atencion')}
                             >
@@ -448,7 +455,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                       )}
 
                       {/* Report button */}
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button"
                         style={styles.flagBtn}
                         onPress={() => setReportItemForModeration(report)}
                       >
@@ -468,7 +475,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'recursos' && (
           <View style={styles.tabContent}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.newReportBtn, { backgroundColor: Colors.primary }]}
               onPress={() => setShowAddResourceModal(true)}
               activeOpacity={0.85}
@@ -516,7 +523,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
 
                   <View style={styles.resourceFooter}>
                     <Text style={styles.resourceValid}>{res.validatedBy}</Text>
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button"
                       style={styles.resCallBtn}
                       onPress={() => handleCall(res.contactPhone)}
                     >
@@ -527,6 +534,25 @@ export const EmergencyDashboardScreen: React.FC = () => {
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        {activeTab === 'trazabilidad' && canCoordinate && (
+          <View style={styles.tabContent}>
+            <Text style={styles.auditIntro}>Registro de acciones de emergencia. No incluye nombres, teléfonos ni direcciones privadas.</Text>
+            {emergencyAuditEvents.length === 0 ? <Text style={styles.auditEmpty}>Aún no hay acciones registradas.</Text> : emergencyAuditEvents.map(event => {
+              const labels: Record<string,string> = {
+                report_status_changed: `Estado: ${event.details.from ?? 'nuevo'} → ${event.details.to ?? ''}`,
+                brigade_assigned: `Brigada: ${event.details.to || 'sin asignación'}`,
+                private_report_viewed: 'Consulta de información privada',
+                emergency_mode_activated: `Modo de emergencia activado${event.details.emergency_type ? `: ${event.details.emergency_type}` : ''}`,
+                emergency_mode_closed: 'Modo de emergencia cerrado',
+              };
+              return <View key={event.id} style={styles.auditCard}>
+                <Text style={styles.auditTitle}>{labels[event.eventType] ?? 'Acción de emergencia'}</Text>
+                <Text style={styles.auditMeta}>{event.reportId ? `Reporte ${event.reportId.slice(0,8)} · ` : ''}{new Date(event.createdAt).toLocaleString()} · Usuario {event.actorId.slice(0,8)}</Text>
+              </View>;
+            })}
           </View>
         )}
       </ScrollView>
@@ -561,7 +587,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
             <View style={styles.dragHandle} />
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalSheetTitle}>Registrar recurso crítico</Text>
-              <TouchableOpacity onPress={() => setShowAddResourceModal(false)}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar formulario de recurso" onPress={() => setShowAddResourceModal(false)}>
                 <MaterialIcons name="close" size={20} color={Colors.slateDim} />
               </TouchableOpacity>
             </View>
@@ -579,7 +605,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
             <Text style={[styles.inputLbl, { marginTop: 10 }]}>Tipo de Recurso</Text>
             <View style={styles.resTypeRow}>
               {(['agua', 'generador', 'alimentos', 'refugio', 'botiquin'] as CriticalResourceType[]).map(t => (
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   key={t}
                   style={[styles.resTypeChip, resType === t && styles.resTypeChipActive]}
                   onPress={() => setResType(t)}
@@ -611,7 +637,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
               maxLength={120}
             />
 
-            <TouchableOpacity style={styles.createResBtn} onPress={handleCreateResource} disabled={isSavingResource}>
+            <TouchableOpacity accessibilityRole="button" style={styles.createResBtn} onPress={handleCreateResource} disabled={isSavingResource}>
               <Text style={styles.createResBtnText}>{isSavingResource ? 'Guardando…' : 'Guardar Recurso'}</Text>
             </TouchableOpacity>
           </View>
@@ -837,6 +863,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 28,
   },
+  auditIntro: { fontSize: 12, color: Colors.secondaryMuted, marginBottom: 10 },
+  auditEmpty: { fontSize: 13, color: Colors.secondaryMuted, paddingVertical: 18, textAlign: 'center' },
+  auditCard: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, marginBottom: 8 },
+  auditTitle: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  auditMeta: { fontSize: 10.5, color: Colors.secondaryMuted, marginTop: 5 },
   newReportBtn: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,6 +1,6 @@
 # Ayllu - Resiliencia Comunitaria Local en React Native 🏔️🤝
 
-Prototipo móvil desarrollado en **React Native con Expo y TypeScript**, basado en las plantillas **Stitch ("Civic Horizon")**. Presenta flujos de apoyo vecinal, servicios locales y emergencias. Los datos operativos se guardan localmente en SQLite en Android/iOS y en AsyncStorage en Web. El código incluye una primera integración con Supabase para Auth, perfiles vecinales y sincronización de reportes de emergencia; requiere configurar un proyecto y sus credenciales antes de activarse.
+Prototipo móvil desarrollado en **React Native con Expo y TypeScript**, basado en las plantillas **Stitch ("Civic Horizon")**. Presenta flujos de apoyo vecinal, servicios locales y emergencias. Los datos operativos se guardan localmente en SQLite en Android/iOS y en AsyncStorage en Web. El código incluye integración con Supabase para Auth, perfiles, favores, servicios, mensajería y coordinación; se requiere configurar un proyecto, aplicar migraciones y credenciales antes de activar los flujos compartidos.
 
 > **Estado:** prototipo funcional para demostración. No usar para coordinar emergencias reales ni ingresar datos personales reales. Los roles se pueden cambiar localmente y no autorizan ni protegen información.
 
@@ -32,14 +32,15 @@ Las pantallas y los flujos visuales de los módulos están implementados en dist
 
 | Área | Estado actual | Pendiente para cumplir el README |
 |---|---|---|
-| Registro y perfil | Perfil local persistido; Auth por correo/contraseña y perfil remoto opcionales al configurar Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo |
-| Directorio y contactos | Datos semilla locales | Fuente administrable y sincronizada; verificación real de proveedores y vigencia de contactos |
-| Servicios y avales | Flujos locales; avales guardados en el dispositivo | API compartida y reglas transaccionales contra duplicados |
-| Favores | Muro Supabase por distrito, publicación y cambios con cola offline, permisos por autor | Aplicar migración `202611080003`; mensajería interna y moderación compartida pendientes |
-| Emergencias y recursos | Reportes pueden sincronizarse por RPC autenticado con RLS; el tablero y recursos siguen locales | Completar sincronización de estados/recursos y auditoría antes de uso real |
-| Mensajería | Confirmación simulada en la interfaz | Canal de mensajería real o apertura de WhatsApp con consentimiento |
-| Moderación | Denuncias y ocultamiento local | Cola compartida, persistencia y permisos administrativos en servidor |
-| Offline y sincronización | Expo detecta conectividad; la cola persiste errores; los reportes sensibles se guardan en SecureStore móvil y usan RPC idempotente al iniciar sesión | Configurar proyecto/credenciales; completar sincronización para servicios, favores, avales, recursos y moderación |
+| Registro y perfil | Perfil local persistido; Auth por correo/contraseña, recuperación de contraseña y reenvío de confirmación con Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo; los retornos de correo requieren configurar Supabase |
+| Directorio y contactos | Contactos de emergencia semilla; servicios autenticados consultados por distrito | Fuente administrable para contactos y validación real de proveedores y vigencia |
+| Servicios y avales | RPC autenticados, RLS por distrito, aval único por usuario y cola persistente; requiere migración `202611080004` | Aplicar migración y validar con dos cuentas en Supabase |
+| Favores | Muro compartido por distrito, cola offline, edición/estados/retiro, paginación por bloques y actualización Realtime con sondeo de respaldo | Aplicar migraciones pendientes `202611080006` y `202611080007`; comprobar en dos dispositivos |
+| Emergencias y recursos | Reportes/estados compartidos; consulta privada autorizada; modo, recursos, denuncias y bitácora de acciones | Aplicar migraciones `202611080004` y `202611080005`; validar operativamente |
+| Mensajería | Conversaciones persistentes, RLS por participante y recibos de entrega/lectura; requiere migración `202611080004` | Aplicar migración y probar con dos cuentas |
+| Moderación | Denuncias y ocultamiento/restauración compartidos; decisiones registran autor, motivo y fecha | Aplicar migración y validar roles |
+| Protección anti-spam | Límites por cuenta para favores, servicios, denuncias, mensajes y reportes de emergencia | Aplicar migración `202611080006` al proyecto Supabase |
+| Offline y sincronización | Cola persistente con reintentos y aislamiento por cuenta para reportes, favores, servicios y avales | Configurar proyecto/credenciales y validar reinicio/reconexión en dispositivos reales |
 
 Los formularios limitan longitudes, validan celulares peruanos, comprueban edades entre 0 y 125 y requieren cantidades positivas para recursos. Los mensajes de confirmación indican cuándo el registro solo quedó guardado en el dispositivo.
 
@@ -49,11 +50,11 @@ En Android e iOS la app usa `expo-sqlite` (`ayllu-local.db`) con tablas separada
 
 ### Identidad y permisos
 
-Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proyecto configurado, aparece el inicio de sesión por correo/contraseña, el alta guarda un perfil y rol inicial de vecino, y la aplicación obtiene el rol desde `community_memberships`. Los roles privilegiados nunca se asignan desde el cliente. Las migraciones en `supabase/migrations/` preparan RLS y un RPC idempotente para reportes de emergencia.
+Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proyecto configurado, aparece el inicio de sesión por correo/contraseña, el alta guarda un perfil y rol inicial de vecino, y la aplicación obtiene el rol desde `community_memberships`. Los roles privilegiados nunca se asignan desde el cliente. Las migraciones en `supabase/migrations/` preparan RLS y RPC para los flujos compartidos.
 
 ### Base de datos y backend (siguiente etapa)
 
-La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. La integración actual cubre Auth, perfiles, barrios y reportes de emergencia. Los campos privados de reportes se separan de la información comunitaria. El muro de favores tiene transporte Supabase y requiere aplicar la migración `202611080003`. El directorio, avales, recursos y moderación aún son locales; se incorporarán con sus propias migraciones, políticas y adaptadores de sincronización.
+La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. El código incluye Auth, perfiles, barrios y RPC para reportes, favores, servicios, avales, recursos, emergencias, conversaciones y moderación. Las migraciones `202611080004` a `202611080007` agregan flujos compartidos, trazabilidad, límites anti-spam y Realtime. Aún deben aplicarse y validarse en un proyecto de pruebas antes de usarlos con datos reales.
 
 Sigue [SUPABASE_SETUP.md](SUPABASE_SETUP.md) para crear el proyecto, aplicar migraciones, configurar Auth, guardar las variables y probar el flujo. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
 
@@ -113,7 +114,7 @@ Esta sección conserva los requisitos acordados para el producto. Su presencia a
 ### Módulo 5: Funcionamiento Sin Conexión (Offline First)
 - **RF-22 (Consulta offline):** Los datos operativos guardados se leen localmente desde SQLite en Android/iOS y AsyncStorage en Web; contactos de apoyo siguen siendo datos semilla y no hay sincronización real.
 - **RF-23 (Guardado local de reportes):** El reporte de emergencia se guarda localmente y se encola con estado `PENDIENTE`. Los favores y sus cambios se guardan en una cola persistente y se envían mediante un RPC autenticado. Los servicios siguen siendo locales, sin transporte compartido.
-- **RF-24 (Sincronización y prevención de duplicados):** La cola no elimina elementos hasta recibir confirmación. Reportes de emergencia usan un RPC idempotente; requiere proyecto Supabase, barrio sembrado y sesión válida. Otros tipos aún no tienen transporte backend.
+- **RF-24 (Sincronización y prevención de duplicados):** La cola no elimina elementos hasta recibir confirmación. Reportes, favores, servicios y avales usan RPC autenticados; requieren migraciones aplicadas, perfil válido y sesión activa.
 - **RF-25 (Límite de la coordinación offline):** Objetivo de producto. La advertencia se muestra en algunos flujos de demo, pero la cola aún no se entrega a coordinadores.
 
 ---
@@ -128,9 +129,9 @@ Esta sección conserva los requisitos acordados para el producto. Su presencia a
 - **RNF-07 (Tolerancia a errores):** Confirmaciones antes de enviar reportes críticos y validación de campos obligatorios.
 - **RNF-08 (Rendimiento):** Renderizado en memoria local sin esperas de red (< 200 ms).
 - **RNF-09 (Disponibilidad offline):** Objetivo de producto; no se garantiza disponibilidad ni vigencia de datos en cualquier circunstancia.
-- **RNF-10 / RNF-11 / RNF-12 (Privacidad y consentimientos):** Los identificadores del reporte se separan en el esquema servidor y los datos locales se guardan en SecureStore móvil. Falta autenticar usuarios y verificar RLS en un proyecto real; la demo no debe contener datos personales reales.
-- **RNF-13 (Seguridad de roles):** El conmutador en *"Mi Barrio"* solo cambia el rol local para la demo. La autorización de producción está pendiente y debe ser aplicada en el backend.
-- **RNF-14 (Integridad de avales):** La demo evita repetir un aval en el estado local; falta una restricción transaccional compartida en servidor.
+- **RNF-10 / RNF-11 / RNF-12 (Privacidad y consentimientos):** Los identificadores del reporte se separan en el esquema servidor y los datos locales se guardan en SecureStore móvil. Auth, RLS y RPC están implementados en el código; falta aplicarlos y validarlos en un proyecto Supabase real. La demo no debe contener datos personales reales.
+- **RNF-13 (Seguridad de roles):** El conmutador en *"Mi Barrio"* solo cambia el rol local para la demo. Las operaciones compartidas verifican roles en el backend; faltan aplicar las migraciones y validar permisos en Supabase.
+- **RNF-14 (Integridad de avales):** El servidor aplica unicidad por cuenta y servicio; falta probar concurrencia en el proyecto Supabase.
 
 ---
 

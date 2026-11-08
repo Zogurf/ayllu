@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
           <View style={styles.titleColumn}>
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>AYLLU</Text>
-              
+
               {/* Actual device network state */}
               <View
                 style={[styles.statusPill, isOnline ? styles.onlinePill : styles.offlinePill]}
@@ -59,8 +59,8 @@ export const Header: React.FC<HeaderProps> = ({
             </View>
 
             {/* Neighborhood selector button */}
-            <TouchableOpacity 
-              style={styles.locationSelector} 
+            <TouchableOpacity accessibilityRole="button"
+              style={styles.locationSelector}
               onPress={onOpenNeighborhoodModal}
               activeOpacity={0.7}
             >
@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right action icons & user profile */}
         <View style={styles.rightSection}>
           {/* Tutorial Quick Button */}
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button"
             style={styles.iconButton}
             onPress={onOpenTutorial}
             accessibilityLabel="Abrir tutorial de Ayllu"
@@ -84,15 +84,15 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
 
           {/* Profile Avatar with Role Indicator */}
-          <TouchableOpacity 
+          <TouchableOpacity accessibilityRole="button"
             style={styles.avatarButton}
             onPress={onNavigateProfile}
             activeOpacity={0.8}
             accessibilityLabel="Ver perfil y configuración"
           >
-            <Image 
-              source={{ uri: user.avatarUrl }} 
-              style={styles.avatar} 
+            <Image
+              source={{ uri: user.avatarUrl }}
+              style={styles.avatar}
             />
             <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>
               <Text style={styles.roleBadgeText}>

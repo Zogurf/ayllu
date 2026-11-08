@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  TextInput, 
-  Switch, 
-  Alert, 
-  Image 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Switch,
+  Image
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { notify, confirmAction } from '../utils/dialog';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { SavedPlace, UserRole } from '../types';
@@ -27,19 +27,19 @@ interface ProfileScreenProps {
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) => {
-  const { 
-    user, 
-    updateProfile, 
-    setUserRole, 
+  const {
+    user,
+    updateProfile,
+    setUserRole,
     setCoverageScope,
-    isOnline, 
-    syncQueue, 
-    synchronizeQueue, 
+    isOnline,
+    syncQueue,
+    synchronizeQueue,
     removeSyncQueueItem,
     canCoordinate,
     contentReports,
     hideContentItem,
-    resetDemoData 
+    resetDemoData
   } = useApp();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -52,12 +52,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
 
   const handleSaveName = () => {
     if (!isReasonableText(nickname, 80)) {
-      Alert.alert('Revisa el apodo', 'Ingresa entre 1 y 80 caracteres.');
+      void notify('Revisa el apodo', 'Ingresa entre 1 y 80 caracteres.');
       return;
     }
     const normalizedPhone = normalizePeruMobilePhone(phone);
     if (!normalizedPhone) {
-      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
+      void notify('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
     if (supabase) {
@@ -66,36 +66,39 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           const savedLocation = await saveCommunityProfile({ ...user, nickname: nickname.trim(), phone: normalizedPhone });
           updateProfile({ ...savedLocation, nickname: nickname.trim(), phone: normalizedPhone });
           setIsEditingName(false);
-          Alert.alert('Perfil actualizado', 'Tus datos vecinales se guardaron en la comunidad.');
+          void notify('Perfil actualizado', 'Tus datos vecinales se guardaron en la comunidad.');
         } catch (error) {
-          Alert.alert('No se actualizó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+          void notify('No se actualizó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
         }
       })();
       return;
     }
     updateProfile({ nickname: nickname.trim(), phone: normalizedPhone });
     setIsEditingName(false);
-    Alert.alert('Perfil Actualizado', 'Tus datos vecinales han sido guardados.');
+    void notify('Perfil Actualizado', 'Tus datos vecinales han sido guardados.');
   };
 
-  const handleGpsToggle = (enabled: boolean) => {
+  const handleGpsToggle = async (enabled: boolean) => {
     setGpsError('');
     if (!enabled) { updateProfile({ gpsEnabled: false, coords: undefined }); return; }
-    Alert.alert('Ubicación GPS', 'Ayllu usará la ubicación mientras utilizas la app para calcular distancias aproximadas. Las coordenadas se guardan en este dispositivo y no se publican.', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Permitir', onPress: () => { void (async () => {
-        try {
-          const permission = await Location.requestForegroundPermissionsAsync();
-          if (!permission.granted) throw new Error('Permite el acceso a la ubicación mientras usas Ayllu.');
-          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-          updateProfile({ gpsEnabled: true, coords });
-        } catch (error) {
-          setGpsError(error instanceof Error ? error.message : 'No se pudo obtener la ubicación.');
-          updateProfile({ gpsEnabled: false, coords: undefined });
-        }
-      })(); } },
-    ]);
+    const accepted = await confirmAction(
+      'Ubicación GPS',
+      'Ayllu usará la ubicación mientras utilizas la app para calcular distancias aproximadas. Las coordenadas se guardan en este dispositivo y no se publican.',
+      'Permitir',
+    );
+    if (!accepted) return;
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) throw new Error('Permite el acceso a la ubicación mientras usas Ayllu.');
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      updateProfile({
+        gpsEnabled: true,
+        coords: { latitude: position.coords.latitude, longitude: position.coords.longitude },
+      });
+    } catch (error) {
+      setGpsError(error instanceof Error ? error.message : 'No se pudo obtener la ubicación.');
+      updateProfile({ gpsEnabled: false, coords: undefined });
+    }
   };
   const distanceFromCurrent = (place: SavedPlace) => {
     if (!user.coords || !place.coords) return undefined;
@@ -107,7 +110,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
 
   const handleManualSync = async () => {
     const res = await synchronizeQueue();
-    Alert.alert(
+    void notify(
       'Sincronización',
       res.success
         ? `El servidor confirmó ${res.count} elemento(s).`
@@ -136,7 +139,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             <View style={styles.profileInfo}>
               <View style={styles.nicknameRow}>
                 <Text style={styles.nickname}>{user.nickname}</Text>
-                <TouchableOpacity onPress={() => setIsEditingName(!isEditingName)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Editar apodo" onPress={() => setIsEditingName(!isEditingName)}>
                   <MaterialIcons name="edit" size={16} color={Colors.primary} />
                 </TouchableOpacity>
               </View>
@@ -164,7 +167,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                 placeholder="Teléfono..."
                 keyboardType="phone-pad"
               />
-              <TouchableOpacity style={styles.saveEditBtn} onPress={handleSaveName}>
+              <TouchableOpacity accessibilityRole="button" style={styles.saveEditBtn} onPress={handleSaveName}>
                 <Text style={styles.saveEditText}>Guardar Cambios</Text>
               </TouchableOpacity>
             </View>
@@ -187,8 +190,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={styles.editGeoBtn} 
+            <TouchableOpacity accessibilityRole="button"
+              style={styles.editGeoBtn}
               onPress={() => setShowNeighborhoodModal(true)}
             >
               <MaterialIcons name="edit-location-alt" size={16} color={Colors.secondary} />
@@ -216,14 +219,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           </Text>
 
           {/* Scope 1 */}
-          {supabase && <TouchableOpacity
+          {supabase && <TouchableOpacity accessibilityRole="button"
             style={styles.signOutBtn}
             onPress={() => setShowInbox(true)}
           >
             <MaterialIcons name="chat" size={18} color={Colors.primary} />
             <Text style={styles.signOutBtnText}>Mensajes</Text>
           </TouchableOpacity>}
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.scopeOption, user.coverageScope === 1 && styles.scopeOptionActive]}
             onPress={() => setCoverageScope(1)}
           >
@@ -244,13 +247,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           </TouchableOpacity>
 
           {/* Saved addresses replace adjacent-neighborhood expansion. */}
-          <TouchableOpacity style={[styles.scopeOption, showSavedPlaces && styles.scopeOptionActive]} onPress={() => setShowSavedPlaces(true)}>
+          <TouchableOpacity accessibilityRole="button" style={[styles.scopeOption, showSavedPlaces && styles.scopeOptionActive]} onPress={() => setShowSavedPlaces(true)}>
             <View style={styles.scopeLeft}><View style={[styles.scopeIcon, { backgroundColor: Colors.primaryContainer }]}><MaterialIcons name="bookmark" size={18} color={Colors.primary}/></View><View><Text style={styles.scopeTitle}>Mis direcciones</Text><Text style={styles.scopeDesc}>{user.savedPlaces?.length ?? 0} guardadas · {user.activePlaceId ? user.savedPlaces?.find(place=>place.id===user.activePlaceId)?.label ?? user.neighborhood : user.neighborhood}</Text></View></View>
             <MaterialIcons name="chevron-right" size={20} color={Colors.primary}/>
           </TouchableOpacity>
 
           {/* Scope 3 */}
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.scopeOption, user.coverageScope === 3 && styles.scopeOptionActive]}
             onPress={() => setCoverageScope(3)}
           >
@@ -315,7 +318,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             ).map(r => {
               const isSel = user.role === r.id;
               return (
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   key={r.id}
                   style={[styles.roleTile, isSel && styles.roleTileActive]}
                   onPress={() => setUserRole(r.id)}
@@ -365,7 +368,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                         : 'Pendiente de confirmación del servidor (solo en este dispositivo)'}
                     </Text>
                   </View>
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button" accessibilityLabel="Quitar de la cola pendiente"
                     style={styles.removeQueueBtn}
                     onPress={() => removeSyncQueueItem(item.id)}
                   >
@@ -375,7 +378,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               ))}
 
               {isOnline && (
-                <TouchableOpacity style={styles.syncAllBtn} onPress={handleManualSync}>
+                <TouchableOpacity accessibilityRole="button" style={styles.syncAllBtn} onPress={handleManualSync}>
                   <MaterialIcons name="sync" size={16} color="#ffffff" />
                   <Text style={styles.syncAllBtnText}>Sincronizar ahora</Text>
                 </TouchableOpacity>
@@ -411,10 +414,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                   <Text style={styles.modDetails}>{rep.details}</Text>
 
                   {rep.itemType !== 'emergency_report' && (
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button"
                       style={styles.hideContentBtn}
                       onPress={() => {
-                        void hideContentItem(rep.itemId, rep.itemType, rep.status!=='hidden', rep.reason).then(()=>Alert.alert('Moderación','Decisión confirmada por el servidor.')).catch(e=>Alert.alert('No se pudo moderar',e.message));
+                        void hideContentItem(rep.itemId, rep.itemType, rep.status!=='hidden', rep.reason).then(()=>void notify('Moderación','Decisión confirmada por el servidor.')).catch(e=>void notify('No se pudo moderar',e.message));
                       }}
                     >
                       <MaterialIcons name="visibility-off" size={14} color="#ffffff" />
@@ -429,29 +432,26 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
 
         {/* Tutorial & Demo Actions */}
         <View style={styles.bottomActions}>
-          <TouchableOpacity style={styles.tutorialBtn} onPress={onOpenTutorial}>
+          <TouchableOpacity accessibilityRole="button" style={styles.tutorialBtn} onPress={onOpenTutorial}>
             <MaterialIcons name="school" size={18} color={Colors.primary} />
             <Text style={styles.tutorialBtnText}>Volver a ver el tutorial inicial</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={styles.resetBtn}
             onPress={() => {
-              Alert.alert(
+              void confirmAction(
                 'Restablecer Datos de Demostración',
                 '¿Deseas reiniciar la aplicación al estado inicial del prototipo?',
-                [
-                  { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Restablecer', style: 'destructive', onPress: resetDemoData },
-                ]
-              );
+                'Restablecer',
+              ).then(ok => { if (ok) void resetDemoData(); });
             }}
           >
             <MaterialIcons name="restart-alt" size={18} color={Colors.emergencyDark} />
             <Text style={styles.resetBtnText}>Restablecer Datos Demo</Text>
           </TouchableOpacity>
           {supabase && (
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={styles.signOutBtn}
               onPress={async () => {
                 if (!supabase) return;
@@ -459,7 +459,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                   const { error } = await supabase.auth.signOut();
                   if (error) throw error;
                 } catch (error) {
-                  Alert.alert('No se pudo cerrar sesión', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+                  void notify('No se pudo cerrar sesión', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
                 }
               }}
             >

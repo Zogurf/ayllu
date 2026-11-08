@@ -20,6 +20,7 @@ import { NeighborhoodModal } from './components/NeighborhoodModal';
 import { TutorialModal } from './components/TutorialModal';
 import { ManageEmergencyModal } from './components/ManageEmergencyModal';
 import { SupabaseAuthScreen } from './components/SupabaseAuthScreen';
+import { PasswordRecoveryScreen } from './components/PasswordRecoveryScreen';
 import { getLocation } from './lib/ubigeo';
 import { completeAuthCallback } from './lib/socialAuth';
 import { supabase } from './lib/supabase';
@@ -44,6 +45,7 @@ export const AppNavigator: React.FC = () => {
   const [showManageEmergencyModal, setShowManageEmergencyModal] = useState(false);
   const [forceOnboarding, setForceOnboarding] = useState(!user.isRegistered);
   const [session, setSession] = useState<Session | null>(null);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [profileCheck, setProfileCheck] = useState<'loading' | 'missing' | 'exists' | 'error'>(supabase ? 'loading' : 'missing');
   const [profileError, setProfileError] = useState('');
@@ -57,8 +59,10 @@ export const AppNavigator: React.FC = () => {
   useEffect(() => {
     if (!supabase) return;
     let mounted = true;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
+      if (event === 'SIGNED_OUT') setPasswordRecovery(false);
       setSession(nextSession);
       setProfileError('');
       setProfileCheck(nextSession ? 'loading' : 'missing');
@@ -66,7 +70,8 @@ export const AppNavigator: React.FC = () => {
     const handleCallback = async (url: string | null | undefined) => {
       if (!url) return;
       try {
-        await completeAuthCallback(url);
+        const flow = await completeAuthCallback(url);
+        if (flow === 'recovery' && mounted) setPasswordRecovery(true);
       } catch (error) {
         if (mounted) setAuthCallbackError(error instanceof Error ? error.message : 'Inténtalo nuevamente.');
       }
@@ -159,6 +164,7 @@ export const AppNavigator: React.FC = () => {
   if (supabase && authLoading) {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   }
+  if (supabase && passwordRecovery && session) return <PasswordRecoveryScreen onComplete={() => setPasswordRecovery(false)} onCancel={() => { setPasswordRecovery(false); void supabase?.auth.signOut(); }} />;
   if (supabase && !session) return <SupabaseAuthScreen callbackError={authCallbackError} />;
   if (supabase && profileCheck === 'loading') {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;

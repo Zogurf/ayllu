@@ -7,7 +7,6 @@ import {
   TouchableOpacity, 
   TextInput, 
   ScrollView, 
-  Alert 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -45,12 +44,12 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
   const handleSubmit = async () => {
     if (isSubmitting) return;
     if (!isReasonableText(title, 160) || !isReasonableText(description, 500)) {
-      Alert.alert('Revisa el servicio', 'El título debe tener hasta 160 caracteres y la descripción hasta 500.');
+      setSubmitError('El título debe tener hasta 160 caracteres y la descripción hasta 500.');
       return;
     }
     const normalizedPhone = normalizePeruMobilePhone(phone);
     if (sharePhone && !normalizedPhone) {
-      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
+      setSubmitError('Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
 
@@ -98,7 +97,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
                 <Text style={styles.subtitle}>Directorio comunitario</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar publicación de servicio" style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
@@ -110,7 +109,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               {SERVICE_CATEGORIES.map(cat => {
                 const isSelected = category === cat.id;
                 return (
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     key={cat.id}
                     style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
                     onPress={() => setCategory(cat.id)}
@@ -183,7 +182,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
 
           {/* Action button */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isSubmitting}>
+            <TouchableOpacity accessibilityRole="button" style={styles.submitBtn} onPress={handleSubmit} disabled={isSubmitting}>
               <MaterialIcons name={isSubmitting ? 'hourglass-top' : 'add-circle'} size={18} color="#ffffff" />
               <Text style={styles.submitBtnText}>{isSubmitting ? 'Guardando…' : 'Guardar servicio'}</Text>
             </TouchableOpacity>

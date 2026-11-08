@@ -11,6 +11,10 @@ Este documento recoge el trabajo pendiente según el código y las comprobacione
 - Favores: publicación, lectura por distrito, resolver/reabrir y retiro mediante Supabase, con cola persistente e idempotencia. La migración `202611080003_community_favors.sql` ya se aplicó al proyecto Ayllu durante esta sesión.
 - Corrección implementada para que los pendientes de otra cuenta no oculten publicaciones compartidas. Falta confirmar el resultado en la versión actualizada de la app del usuario.
 - Envío de reportes de emergencia mediante RPC autenticado, con datos privados separados y almacenamiento protegido en móvil.
+- La migración `202611080004_shared_services_moderation_resources.sql` agrega RPC/RLS de servicios, avales, recursos, emergencias, acceso privado, denuncias, moderación y mensajería. Está en el repositorio; falta aplicarla y validarla en Supabase.
+- Las migraciones `202611080005`–`202611080007` agregan auditoría de emergencias, límites anti-spam y Realtime para favores. Se verificaron localmente; falta aplicarlas al proyecto remoto.
+- Verificación local del paquete más reciente: `npm run typecheck`, `npm run lint`, 23 pruebas y `scripts/check-favor-migrations.cjs` pasaron. La primera ejecución de CI en GitHub no se ha confirmado.
+- Se retiró la insignia de verificación de los proveedores de demostración. Ayllu no verifica identidad ni teléfono.
 - Botón para mostrar u ocultar contraseña en inicio de sesión y registro.
 
 ## Prioridad 1: completar y comprobar los flujos compartidos
@@ -21,29 +25,30 @@ Este documento recoge el trabajo pendiente según el código y las comprobacione
 - [ ] Comprobar los alcances de barrio y distrito y la exclusión de usuarios de otros distritos. Las pruebas SQL existentes cubren permisos, pero falta la comprobación completa desde las pantallas.
 - [ ] Probar crear y modificar sin conexión, reiniciar la app y reconectar. Comprobar orden de operaciones, ausencia de duplicados y desaparición del aviso pendiente tras la confirmación.
 - [ ] Probar cambios de cuenta con operaciones pendientes: conservar los borradores del autor y no enviarlos con la sesión de otra persona.
-- [ ] Mostrar en cada favor el error de sincronización y una acción para reintentar, además del aviso genérico de pendiente y la cola del perfil.
+- [x] Mostrar en cada favor el error de sincronización y una acción para reintentar, además del aviso genérico de pendiente y la cola del perfil.
 - [x] Mejorar la confirmación al retirar, con opción visible para cancelar y texto claro antes del segundo toque.
 
 Criterio de cierre: el favor permanece después de recargar y cambiar de dispositivo; otra cuenta autorizada lo ve y no puede modificarlo.
 
 ### Servicios, directorio y avales
 
-- [ ] Crear tablas, migraciones y políticas RLS para servicios y proveedores; conectar publicación, lectura, edición y retiro.
-- [ ] Implementar avales en el servidor con una restricción única por usuario y proveedor, retiro del aval y conteos compartidos.
-- [ ] Validar en el servidor la pertenencia al barrio o la elegibilidad territorial para avalar.
-- [ ] Agregar transporte de servicios y avales a la cola persistente, también para acciones realizadas con conexión.
+- [x] Crear tablas, migraciones y políticas RLS para servicios; conectar publicación, lectura, edición y retiro. Falta aplicar la migración en Supabase.
+- [x] Implementar avales en el servidor con una restricción única por usuario y servicio, retiro del aval y conteos compartidos. Falta probar concurrencia.
+- [x] Validar en el servidor que quien avala pertenezca al barrio del servicio.
+- [x] Agregar transporte de servicios y avales a la cola persistente, también para acciones realizadas con conexión.
 - [ ] Sustituir proveedores y contactos de demostración por registros administrables con fecha de actualización y responsable de validación.
 
 Criterio de cierre: dos cuentas ven los mismos servicios y conteos; un reintento no crea servicios ni avales duplicados.
 
 ### Contacto y mensajería
 
-- [ ] Implementar conversaciones, participantes y mensajes persistentes, con RLS que limite la lectura a los participantes.
-- [ ] Agregar bandeja de conversaciones, historial y estados de entrega basados en confirmaciones reales.
-- [ ] Hasta implementar el chat, indicar su indisponibilidad antes de elegirlo al publicar; evitar que la opción aparezca como un canal ya operativo.
-- [ ] Revisar `ContactActionModal.tsx`: todavía contiene una confirmación simulada de envío usada fuera del flujo actualizado de favores.
-- [ ] Unificar el contacto por WhatsApp entre módulos. En favores ya se abre la conversación; verificar números, errores de apertura y consentimiento para compartir el teléfono.
-- [ ] Quitar la etiqueta de teléfono o contacto «verificado» donde no exista una verificación real.
+- [x] Implementar conversaciones, participantes y mensajes persistentes, con RLS que limita la lectura a los participantes. Falta aplicar la migración y probar con dos cuentas.
+- [x] Agregar bandeja, historial y estados de entrega/lectura basados en marcas del servidor.
+- [x] Indicar en la publicación cuándo el chat necesita backend y permitirlo al usar el flujo conectado.
+- [x] Revisar `ContactActionModal.tsx`: consulta RPC reales de conversación y mensaje; no muestra una confirmación simulada. Falta prueba de extremo a extremo.
+- [x] Usar la utilidad común de WhatsApp para normalizar el número y mostrar errores; el RPC exige consentimiento para publicar el teléfono.
+- [x] Quitar la etiqueta «verificado» de servicios sin verificación real.
+- [x] Etiqueta «verificado» retirada de WhatsApp en `PublishFavorModal` y de los servicios de demostración.
 
 Criterio de cierre: ningún flujo anuncia un mensaje enviado sin confirmación; el teléfono no se publica cuando se elige contacto interno.
 
@@ -51,62 +56,65 @@ Criterio de cierre: ningún flujo anuncia un mensaje enviado sin confirmación; 
 
 ### Emergencias y recursos
 
-- [ ] Leer los reportes de Supabase para alimentar el tablero compartido; actualmente la interfaz usa su lista local.
-- [ ] Conectar cambios de estado y asignación de brigada al servidor, comprobando permisos de coordinador/administrador en cada operación.
-- [ ] Implementar activación y cierre del modo emergencia en el servidor, con alcance territorial, autor y fecha.
-- [ ] Conectar el inventario de recursos, solicitudes y ofertas; controlar cantidades y actualizaciones concurrentes.
-- [ ] Implementar la consulta autorizada de datos privados desde el tablero, sin depender del rol local de demostración.
-- [ ] Agregar historial de cambios de estado, asignaciones y acceso a información sensible; definir conservación y eliminación de datos.
-- [ ] Verificar rechazo de accesos directos no autorizados a tablas y RPC antes de considerar un uso fuera de la demostración.
+- [x] Leer los reportes de Supabase para alimentar el tablero compartido; falta comprobar en un proyecto conectado.
+- [x] Conectar cambios de estado y asignación al servidor, con rol de coordinador/administrador verificado en cada operación.
+- [x] Implementar activación y cierre del modo emergencia con alcance territorial, autor y fecha.
+- [x] Conectar recursos compartidos con validación de cantidad y control de versión.
+- [x] Implementar la consulta autorizada de datos privados desde el tablero mediante RPC.
+- [x] Agregar bitácora de cambios de estado, asignaciones, activación/cierre del modo y acceso a datos privados. La vista está limitada a coordinadores/administradores y no copia información sensible. Falta definir conservación/eliminación y validar en Supabase.
+- [x] Revocar en la migración el `SELECT` directo de la tabla privada para que la lectura de datos sensibles pase por el RPC que registra la consulta.
+- [ ] Validar en Supabase con sesiones de vecino, coordinador y administrador que RLS y RPC rechacen roles y barrios no autorizados.
 
 Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuenta vecina no obtiene direcciones ni teléfonos privados mediante consultas directas.
 
 ### Moderación
 
-- [ ] Guardar denuncias en Supabase y crear una bandeja compartida por ámbito territorial.
-- [ ] Permitir ocultar y restaurar contenido con permisos comprobados en el servidor.
-- [ ] Registrar motivo, moderador y fecha de cada decisión, y reflejarla en las lecturas del muro.
-- [ ] Definir límites de publicación y denuncia para reducir spam y abuso.
+- [x] Guardar denuncias en Supabase y crear una bandeja compartida por ámbito territorial.
+- [x] Permitir ocultar y restaurar contenido con permisos comprobados en el servidor.
+- [x] Registrar motivo, moderador y fecha de cada decisión de moderación, y reflejarla en las lecturas del muro.
+- [x] Límites de publicación y denuncia en servidor (migración `202611080006_rate_limits.sql`, con prueba `tests/rateLimit.test.cjs`). Falta aplicarla al proyecto Supabase y ajustar los valores.
 
 ## Prioridad 3: cuenta, ubicación y experiencia de uso
 
-- [ ] Agregar recuperación y cambio de contraseña, reenvío de confirmación y retornos de correo comprobados en móvil y web.
+- [x] Implementar recuperación de contraseña con enlace PKCE, formulario de cambio al volver a la app y reenvío de confirmación.
+- [ ] Probar los retornos y envíos de correo en móvil y web con Supabase configurado y proveedor SMTP listo.
 - [x] Mostrar errores y confirmaciones de correo/contraseña dentro del formulario de login y registro.
-- [ ] Revisar los usos restantes de `Alert.alert` en otros flujos que no ofrecen una experiencia equivalente en web.
+- [x] `Alert.alert` reemplazado por `notify`/`confirmAction` (`src/utils/dialog.ts`), que funcionan en web y móvil.
 - [ ] Validar Google OAuth en Android, iOS y web con la configuración y las compilaciones correspondientes.
 - [ ] Implementar verificación de teléfono si se seguirá ofreciendo como «verificado». Definir por separado qué significa verificar identidad.
-- [ ] Implementar permisos y lectura real de GPS opcional. Actualmente no se guardan coordenadas obtenidas del dispositivo.
+- [x] Permisos y lectura de GPS opcional implementados en `ProfileScreen` y `SavedPlacesModal`; las coordenadas se guardan solo en el dispositivo. Falta probar en dispositivos reales.
 - [ ] Calcular distancias solo con ubicaciones válidas; revisar distancias y métricas de ejemplo de otros módulos.
-- [ ] Definir barrios colindantes fuera de la demostración de Cusco; el catálogo Ubigeo no aporta límites ni adyacencia de barrios.
-- [ ] Agregar edición del contenido de un favor: el RPC actual permite cambiar su estado, pero no editar título o descripción después de crearlo.
-- [ ] Exponer en la interfaz la acción de cerrar un favor (`cerrada`), además de resolver y reabrir.
-- [ ] Añadir paginación al muro: hoy la consulta carga como máximo 500 favores y no permite acceder a páginas anteriores.
-- [ ] Evaluar actualizaciones mediante Realtime; actualmente el muro se consulta cada 30 segundos y mediante el botón Actualizar muro.
-- [ ] Revisar accesibilidad, foco, teclado, tamaños de texto y zonas táctiles en las pantallas principales.
+- [ ] Definir barrios colindantes fuera de la demostración de Cusco; el catálogo Ubigeo no aporta límites ni adyacencia de barrios. (El alcance «colindantes» vuelve a funcionar para la demo de Cusco.)
+- [x] Agregar edición del contenido de un favor mediante RPC; falta comprobarla en Supabase.
+- [x] Exponer en la interfaz la acción de cerrar un favor (`cerrada`), además de resolver y reabrir.
+- [x] Paginación del muro con «Cargar más favores» (`loadMoreFavors`, de 50 en 50). Pendiente: paginación por cursor en vez de ampliar el límite.
+- [x] Actualización del muro por Realtime (suscripción en `AppContext` + migración `202611080007_realtime_favors.sql`); el sondeo de 30 s queda como respaldo. Falta aplicar la migración y probar con dos dispositivos.
+- [ ] Revisar accesibilidad: se agregaron roles `button` y etiquetas accesibles a controles de las pantallas indicadas en `docs/MEJORAS_REALIZADAS.md`. Falta revisar foco, teclado, tamaños de texto, contraste y zonas táctiles con un lector de pantalla real.
 
 ## Prioridad 4: fiabilidad y entrega
 
-- [ ] Añadir reintentos con espera progresiva y distinguir errores temporales de errores que requieren corregir un borrador o volver a iniciar sesión.
+- [x] Reintentos con espera progresiva (hasta 5 min) y distinción entre errores temporales y permanentes en `AppContext.synchronizeQueue`.
 - [ ] Definir resolución de conflictos cuando varios dispositivos modifican una publicación de la misma cuenta sin conexión.
 - [ ] Revisar el aislamiento de todos los datos locales al cambiar de cuenta, cerrar sesión o cambiar de barrio, sin perder operaciones pendientes.
 - [ ] Generar y usar tipos TypeScript del esquema de Supabase para tablas y RPC.
-- [ ] Automatizar TypeScript, lint, pruebas de lógica y pruebas SQL en integración continua. Existen pruebas locales de ubicación, OAuth, favores y permisos SQL.
+- [x] Integración continua en `.github/workflows/ci.yml` (typecheck, lint, pruebas y revisión de migraciones). Falta comprobar su primera ejecución en GitHub.
 - [ ] Agregar pruebas de interfaz para login/registro, publicación, cambio de cuenta y reconexión en web y móvil.
 - [ ] Configurar un entorno de pruebas separado de producción y un procedimiento de despliegue y recuperación de migraciones.
 - [ ] Comprobar copias de seguridad y restauración; registrar errores sin incluir contraseñas, tokens ni información privada de reportes.
 - [ ] Definir compilaciones y distribución para Android/iOS, alojamiento web y una forma visible de identificar la versión cargada.
 - [ ] Revisar la política de privacidad, consentimiento y eliminación de cuenta antes de recopilar datos reales.
+- [ ] Revisar las 12 vulnerabilidades moderadas reportadas por `npm ci` y decidir actualizaciones seguras de dependencias.
 
 ## Documentación por actualizar
 
-- [ ] Actualizar `README.md` y `SUPABASE_SETUP.md`: aún contienen frases anteriores a la conexión y al despliegue de favores, y referencias generales a módulos que ya tienen sincronización parcial.
+- [x] Actualizar `README.md` y `SUPABASE_SETUP.md` para documentar las migraciones `202611080004` a `202611080007`, límites anti-spam y Realtime; quedan por aplicar al proyecto remoto.
 - [ ] Documentar por plataforma qué funciona offline, qué se comparte y qué necesita sesión o almacenamiento seguro nativo.
 - [ ] Preparar una guía de prueba con dos cuentas, dos barrios y dos distritos, incluyendo los resultados esperados y la versión de la app utilizada.
 
 ## Orden recomendado
 
-1. Confirmar favores entre cuentas y dispositivos con la versión actualizada.
-2. Resolver el contacto real entre vecinos y eliminar confirmaciones simuladas.
-3. Conectar servicios y avales.
-4. Completar tablero de emergencias, recursos y moderación compartidos.
-5. Consolidar pruebas, despliegue, privacidad y recuperación antes de ampliar el uso.
+1. Revisar el `dry-run` y aplicar las migraciones `202611080004`–`202611080007` a un proyecto Supabase de pruebas.
+2. Probar roles, datos privados y bitácora con cuentas de distintos roles y barrios.
+3. Probar Realtime, cola offline, reintentos y cambio de cuenta con dos cuentas y dos dispositivos.
+4. Comprobar recuperación de correo y Google OAuth en web y móvil con proveedores configurados.
+5. Validar el workflow en GitHub, hacer revisión de accesibilidad manual y cerrar las tareas de despliegue, privacidad y copias de seguridad.

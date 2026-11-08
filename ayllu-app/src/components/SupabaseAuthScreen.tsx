@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { signInWithGoogle } from '../lib/socialAuth';
+import { getAuthRedirectUrl, signInWithGoogle } from '../lib/socialAuth';
 import { Colors } from '../theme/colors';
 
 export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callbackError }) => {
@@ -10,6 +10,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
   const [formError, setFormError] = useState('');
   const [formNotice, setFormNotice] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +56,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
     setIsSubmitting(true);
     try {
       const result = isCreatingAccount
-        ? await supabase.auth.signUp({ email: normalizedEmail, password })
+        ? await supabase.auth.signUp({ email: normalizedEmail, password, options: { emailRedirectTo: getAuthRedirectUrl() } })
         : await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
       if (result.error) throw result.error;
 
@@ -85,6 +86,31 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
     }
   };
 
+  const sendAccountEmail = async (type: 'recovery' | 'confirmation') => {
+    if (busy || !supabase) return;
+    setFormError(''); setFormNotice(''); setSocialError('');
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setFormError('Ingresa un correo electrónico válido.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const result = type === 'recovery'
+        ? await supabase.auth.resetPasswordForEmail(normalizedEmail, { redirectTo: getAuthRedirectUrl() })
+        : await supabase.auth.resend({ type: 'signup', email: normalizedEmail, options: { emailRedirectTo: getAuthRedirectUrl() } });
+      if (result.error) throw result.error;
+      setFormNotice(type === 'recovery'
+        ? 'Si existe una cuenta con ese correo, recibirás un enlace para restablecer la contraseña. Revisa también spam.'
+        : 'Si la cuenta aún necesita confirmación, recibirás un nuevo correo. Revisa también spam.');
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+      setFormError(code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit'
+        ? 'Se enviaron demasiadas solicitudes. Espera unos minutos e inténtalo de nuevo.'
+        : 'No se pudo enviar el correo. Verifica la dirección e inténtalo nuevamente.');
+    } finally { setIsSubmitting(false); }
+  };
+
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -92,11 +118,11 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
         <View style={styles.icon}>
           <MaterialIcons name="diversity-3" size={28} color={Colors.primary} />
         </View>
-        <Text style={styles.title}>{isCreatingAccount ? 'Crear cuenta Ayllu' : 'Inicia sesión en Ayllu'}</Text>
-        <Text style={styles.subtitle}>Accede con tu cuenta de Google o tu correo.</Text>
+        <Text style={styles.title}>{isRecoveringPassword ? 'Restablecer contraseña' : isCreatingAccount ? 'Crear cuenta Ayllu' : 'Inicia sesión en Ayllu'}</Text>
+        <Text style={styles.subtitle}>{isRecoveringPassword ? 'Te enviaremos un enlace seguro a tu correo.' : 'Accede con tu cuenta de Google o tu correo.'}</Text>
 
-        {(socialError || callbackError) ? <Text accessibilityRole="alert" style={styles.errorText}>{socialError || callbackError}</Text> : null}
-        <TouchableOpacity
+        {!isRecoveringPassword && (socialError || callbackError) ? <Text accessibilityRole="alert" style={styles.errorText}>{socialError || callbackError}</Text> : null}
+        {!isRecoveringPassword && <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Continuar con Google"
           accessibilityState={{ disabled: busy, busy: isGoogleSubmitting }}
@@ -107,8 +133,8 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           {isGoogleSubmitting ? <ActivityIndicator color={Colors.primary} /> : (
             <Text style={styles.socialText}>Continuar con Google</Text>
           )}
-        </TouchableOpacity>
-        <Text style={styles.separator}>O usa tu correo electrónico</Text>
+        </TouchableOpacity>}
+        {!isRecoveringPassword && <Text style={styles.separator}>O usa tu correo electrónico</Text>}
         <Text style={styles.label}>Correo electrónico</Text>
         <TextInput
           style={styles.input}
@@ -122,8 +148,8 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           textContentType="emailAddress"
           editable={!busy}
         />
-        <Text style={styles.label}>Contraseña</Text>
-        <View style={styles.passwordContainer}>
+        {!isRecoveringPassword && <Text style={styles.label}>Contraseña</Text>}
+        {!isRecoveringPassword && <View style={styles.passwordContainer}>
           <TextInput
             style={styles.passwordInput}
             value={password}
@@ -148,21 +174,27 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           >
             <MaterialIcons name={showPassword ? 'visibility-off' : 'visibility'} size={22} color={Colors.slateDim} />
           </TouchableOpacity>
-        </View>
+        </View>}
 
         {!!formError && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>{formError}</Text>}
         {!!formNotice && <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{formNotice}</Text>}
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={busy}>
-          {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
+        <TouchableOpacity accessibilityRole="button" style={styles.submitButton} onPress={isRecoveringPassword ? () => { void sendAccountEmail('recovery'); } : handleSubmit} disabled={busy}>
+          {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isRecoveringPassword ? 'Enviar enlace' : isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => { setIsCreatingAccount(value => !value); setShowPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
+        {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity accessibilityRole="button" onPress={() => { setFormError(''); setFormNotice(''); setIsRecoveringPassword(true); }} disabled={busy}>
+          <Text style={styles.toggleText}>¿Olvidaste tu contraseña?</Text>
+        </TouchableOpacity>}
+        {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity accessibilityRole="button" onPress={() => { void sendAccountEmail('confirmation'); }} disabled={busy}>
+          <Text style={styles.toggleText}>Reenviar correo de confirmación</Text>
+        </TouchableOpacity>}
+        <TouchableOpacity accessibilityRole="button" onPress={() => { if (isRecoveringPassword) { setIsRecoveringPassword(false); } else { setIsCreatingAccount(value => !value); } setShowPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
           <Text style={styles.toggleText}>
-            {isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
+            {isRecoveringPassword ? 'Volver a iniciar sesión' : isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
           </Text>
         </TouchableOpacity>
-        <Text style={styles.footnote}>Al crear una cuenta, el perfil comienza con permisos de vecino. Un administrador podrá asignar otros roles.</Text>
+        {!isRecoveringPassword && <Text style={styles.footnote}>Al crear una cuenta, el perfil comienza con permisos de vecino. Un administrador podrá asignar otros roles.</Text>}
       </View>
     </ScrollView>
     </KeyboardAvoidingView>

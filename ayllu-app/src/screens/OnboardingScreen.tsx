@@ -7,9 +7,9 @@ import {
   TouchableOpacity, 
   TextInput, 
   Switch, 
-  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { notify } from '../utils/dialog';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
@@ -35,17 +35,17 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
   const handleRegister = async () => {
     if (!isReasonableText(nickname, 80)) {
-      Alert.alert('Revisa el nombre', 'Ingresa un apodo de entre 1 y 80 caracteres.');
+      void notify('Revisa el nombre', 'Ingresa un apodo de entre 1 y 80 caracteres.');
       return;
     }
 
     const normalizedPhone = normalizePeruMobilePhone(phone);
     if (!normalizedPhone) {
-      Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
+      void notify('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
     if (!resolveProfileUbigeo(user) || !user.neighborhood.trim()) {
-      Alert.alert('Barrio requerido', 'Selecciona departamento, provincia, distrito y escribe tu barrio o sector.');
+      void notify('Barrio requerido', 'Selecciona departamento, provincia, distrito y escribe tu barrio o sector.');
       return;
     }
 
@@ -55,13 +55,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !sessionData.session) {
-          Alert.alert('Sesión requerida', 'Inicia sesión nuevamente para guardar tu perfil en la comunidad.');
+          void notify('Sesión requerida', 'Inicia sesión nuevamente para guardar tu perfil en la comunidad.');
           return;
         }
         authenticatedUserId = sessionData.session.user.id;
         savedLocation = await saveCommunityProfile({ ...user, nickname: nickname.trim(), phone: normalizedPhone });
       } catch (error) {
-        Alert.alert('No se guardó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+        void notify('No se guardó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
         return;
       }
     }
@@ -76,11 +76,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       coords: undefined,
     });
 
-    Alert.alert(
-      '¡Bienvenido(a) a Ayllu!',
-      'Tu cuenta vecinal ha sido creada con éxito. Tu red de apoyo mutuo está activa.',
-      [{ text: 'Comenzar', onPress: onComplete }]
-    );
+    void notify('¡Bienvenido(a) a Ayllu!', 'Tu cuenta vecinal ha sido creada con éxito. Tu red de apoyo mutuo está activa.').then(() => onComplete());
   };
 
   return (
@@ -105,7 +101,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         </View>
 
         {/* Tutorial Button (RF-04) Civic Horizon Card */}
-        <TouchableOpacity
+        <TouchableOpacity accessibilityRole="button"
           style={styles.tutorialCard}
           onPress={() => setShowTutorial(true)}
           activeOpacity={0.85}
@@ -187,7 +183,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
             </View>
 
             {/* Selector de Barrio Interactivo con Modal */}
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={styles.neighborhoodSelectBtn}
               onPress={() => setShowNeighborhoodModal(true)}
               activeOpacity={0.8}
@@ -228,7 +224,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
         {/* Botón Principal CTA */}
         <View style={styles.ctaContainer}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={styles.ctaButton}
             onPress={handleRegister}
             activeOpacity={0.85}
