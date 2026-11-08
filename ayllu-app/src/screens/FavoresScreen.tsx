@@ -73,14 +73,110 @@ export const FavoresScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={()=>setEditing(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#ffffff'}}><Text>Editar favor</Text><TextInput accessibilityLabel="Título del favor" value={editing?.title ?? ''} maxLength={160} onChangeText={title=>setEditing(current=>current?{...current,title}:null)} style={{padding:12,borderWidth:1}}/><TextInput accessibilityLabel="Descripción del favor" value={editing?.description ?? ''} multiline maxLength={500} onChangeText={description=>setEditing(current=>current?{...current,description}:null)} style={{padding:12,borderWidth:1}}/><Text accessibilityRole="alert">{actionError}</Text><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>{void runAction(async()=>{if(editing) await editFavor(editing.id,editing.title,editing.description);setEditing(null);});}}><Text>Guardar cambios</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" onPress={()=>setEditing(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
+      {/* Modal Editar Favor (Civic Horizon Style) */}
+      {editing && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setEditing(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.dragHandle} />
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Editar Publicación Solidaria</Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar edición del favor"
+                  onPress={() => setEditing(null)}
+                >
+                  <MaterialIcons name="close" size={20} color={Colors.slateDim} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.inputFieldLabel}>Título del favor (hasta 160 caracteres)</Text>
+              <TextInput
+                accessibilityLabel="Título del favor"
+                value={editing.title}
+                maxLength={160}
+                onChangeText={title => setEditing(current => current ? { ...current, title } : null)}
+                style={styles.modalTextInput}
+                placeholder="Ej. Presto escalera de aluminio 3m"
+                placeholderTextColor={Colors.slateDim}
+              />
+
+              <Text style={[styles.inputFieldLabel, { marginTop: 12 }]}>Descripción detallada (hasta 500 caracteres)</Text>
+              <TextInput
+                accessibilityLabel="Descripción del favor"
+                value={editing.description}
+                multiline
+                numberOfLines={3}
+                maxLength={500}
+                onChangeText={description => setEditing(current => current ? { ...current, description } : null)}
+                style={[styles.modalTextInput, styles.modalTextArea]}
+                placeholder="Explica las condiciones de cuidado, préstamo o ayuda..."
+                placeholderTextColor={Colors.slateDim}
+              />
+
+              {!!actionError && <Text accessibilityRole="alert" style={styles.modalAlertText}>{actionError}</Text>}
+
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={styles.modalCancelBtn}
+                  disabled={busy}
+                  onPress={() => setEditing(null)}
+                >
+                  <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={styles.modalSaveBtn}
+                  disabled={busy}
+                  onPress={() => {
+                    void runAction(async () => {
+                      if (editing) {
+                        await editFavor(editing.id, editing.title, editing.description);
+                      }
+                      setEditing(null);
+                    });
+                  }}
+                >
+                  <MaterialIcons name="check" size={18} color="#ffffff" />
+                  <Text style={styles.modalSaveBtnText}>Guardar cambios</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={busy} onRefresh={() => { void runAction(refreshFavors); }} />}>
-        {!!(actionError || favorsError) && <Text accessibilityRole="alert" style={{ padding: 16, color: '#b91c1c' }}>{actionError || favorsError}</Text>}
-        <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => { void runAction(refreshFavors); }} style={{ padding: 12 }}>
-          <Text style={{ color: Colors.primary }}>Actualizar muro</Text>
-        </TouchableOpacity>
-        {hasMoreFavors && <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>{void loadMoreFavors();}} style={{padding:12}}><Text>Cargar más favores</Text></TouchableOpacity>}
+        {!!(actionError || favorsError) && (
+          <View style={styles.feedNoticeBanner}>
+            <MaterialIcons name="error-outline" size={16} color={Colors.emergencyDark} />
+            <Text accessibilityRole="alert" style={styles.feedNoticeText}>{actionError || favorsError}</Text>
+          </View>
+        )}
+        <View style={styles.feedBarRow}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => { void runAction(refreshFavors); }}
+            style={styles.refreshFeedBtn}
+          >
+            <MaterialIcons name="refresh" size={16} color={Colors.primary} />
+            <Text style={styles.refreshFeedText}>Actualizar muro</Text>
+          </TouchableOpacity>
+          {hasMoreFavors && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => { void loadMoreFavors(); }}
+              style={styles.loadMoreFeedBtn}
+            >
+              <MaterialIcons name="expand-more" size={16} color={Colors.secondary} />
+              <Text style={styles.loadMoreFeedText}>Cargar más favores</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {/* Banner Solidario Filosófico Ayllu (RF-11) */}
         <View style={styles.bannerContainer}>
           <View style={styles.bannerTopRow}>
@@ -308,8 +404,26 @@ export const FavoresScreen: React.FC = () => {
                       // Author management controls (RF-12)
                       <View style={styles.authorActionsRow}>
                         {confirmRemove !== favor.id && <>
-                          <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>setEditing({...favor})} style={styles.authorStatusBtn}><Text>Editar</Text></TouchableOpacity>
-                          {favor.status!=='cerrada' && <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>handleStatusChange(favor,'cerrada')} style={styles.authorStatusBtn}><Text>Cerrar</Text></TouchableOpacity>}
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            disabled={busy}
+                            onPress={() => setEditing({ ...favor })}
+                            style={styles.authorStatusBtn}
+                          >
+                            <MaterialIcons name="edit" size={13} color={Colors.primary} />
+                            <Text style={styles.authorStatusText}>Editar</Text>
+                          </TouchableOpacity>
+                          {favor.status !== 'cerrada' && (
+                            <TouchableOpacity
+                              accessibilityRole="button"
+                              disabled={busy}
+                              onPress={() => handleStatusChange(favor, 'cerrada')}
+                              style={styles.authorStatusBtn}
+                            >
+                              <MaterialIcons name="lock-outline" size={13} color={Colors.secondary} />
+                              <Text style={styles.authorStatusText}>Cerrar</Text>
+                            </TouchableOpacity>
+                          )}
                           {favor.id.startsWith('fav-') && <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
                             <Text style={styles.authorStatusText}>Compartir</Text>
                           </TouchableOpacity>}
@@ -830,5 +944,157 @@ const styles = StyleSheet.create({
     color: Colors.secondaryMuted,
     textAlign: 'center',
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  dragHandle: {
+    width: 44,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.secondary,
+  },
+  inputFieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.secondary,
+    marginBottom: 6,
+  },
+  modalTextInput: {
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: Colors.secondary,
+  },
+  modalTextArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  modalAlertText: {
+    color: Colors.emergencyDark,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.secondaryMuted,
+  },
+  modalSaveBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  modalSaveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  feedNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  feedNoticeText: {
+    fontSize: 12,
+    color: Colors.emergencyDark,
+    fontWeight: '600',
+    flex: 1,
+  },
+  feedBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+  },
+  refreshFeedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  refreshFeedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  loadMoreFeedBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  loadMoreFeedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.secondary,
   },
 });

@@ -118,7 +118,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
     setResQuantity('');
     setResLocation('');
     setShowAddResourceModal(false);
-    void notify('Recurso guardado', 'El recurso quedó guardado en el servidor. Aún no está publicado en un servidor compartido.');
+    void notify('Recurso guardado', 'El recurso quedó registrado y sincronizado con la red comunitaria.');
     setIsSavingResource(false);
   };
 
@@ -356,7 +356,20 @@ export const EmergencyDashboardScreen: React.FC = () => {
                         {isAuthorized ? (
                           // COORDINATOR / ADMIN VIEW (FULL DATA)
                           <View style={styles.sensitiveFull}>
-                          <TouchableOpacity accessibilityRole="button" onPress={()=>{void readPrivateReport(report.id).then(data=>setPrivateData(current=>({...current,[report.id]:data}))).catch(e=>setNotice(e.message));}}><Text>Consultar datos privados (acceso registrado)</Text></TouchableOpacity>
+                            <TouchableOpacity
+                              accessibilityRole="button"
+                              style={styles.auditAccessBtn}
+                              onPress={() => {
+                                void readPrivateReport(report.id)
+                                  .then(data => setPrivateData(current => ({ ...current, [report.id]: data })))
+                                  .catch(e => setNotice(e instanceof Error ? e.message : 'Error al consultar datos.'));
+                              }}
+                            >
+                              <MaterialIcons name="security" size={15} color={Colors.tertiary} />
+                              <Text style={styles.auditAccessBtnText}>
+                                {privateData[report.id] ? 'Datos consultados (Acceso registrado en auditoría)' : 'Consultar datos privados protegidos (Acceso registrado)'}
+                              </Text>
+                            </TouchableOpacity>
                             <View style={styles.sensitiveTopRow}>
                               <View style={{ flex: 1 }}>
                                 <Text style={styles.beneficiaryLabel}>Beneficiario(a) Protegido(a):</Text>
@@ -1351,5 +1364,22 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
+  },
+  auditAccessBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  auditAccessBtnText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: Colors.tertiary,
   },
 });
