@@ -23,7 +23,8 @@
     },
     "plugins": [
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      ["expo-image-picker", { "photosPermission": "Ayllu necesita acceso a tus fotos para que puedas elegir una foto de perfil.", "microphonePermission": false }]
     ],
     "scheme": "ayllu"
   }

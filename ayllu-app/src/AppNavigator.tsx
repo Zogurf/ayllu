@@ -119,7 +119,7 @@ export const AppNavigator: React.FC = () => {
               id: session.user.id, nickname: '', phone: '', neighborhood: '', district: '', region: '',
               province: undefined, districtUbigeo: undefined, neighborhoodId: undefined,
               role: 'vecino', isRegistered: false, gpsEnabled: false, coords: undefined,
-              avatarUrl: '', coverageScope: 1,
+              avatarUrl: (user.id === session.user.id && user.avatarUrl.startsWith('data:image/') ? user.avatarUrl : String(session.user.user_metadata?.avatar_url ?? session.user.user_metadata?.picture ?? '')), coverageScope: 1,
             });
             setProfileCheck('missing');
           }
@@ -146,6 +146,7 @@ export const AppNavigator: React.FC = () => {
           ...getLocation(neighborhoodResult.data?.district_ubigeo ?? ''),
           role: membershipResult.data?.role ?? 'vecino',
           isRegistered: true,
+          avatarUrl: (user.id === session.user.id && user.avatarUrl.startsWith('data:image/') ? user.avatarUrl : String(session.user.user_metadata?.avatar_url ?? session.user.user_metadata?.picture ?? '')),
         });
         setProfileCheck('exists');
       } catch (error) {

@@ -21,7 +21,7 @@ interface ContentReportModalProps {
 
 const REPORT_REASONS = [
   'Contenido incorrecto o engañoso',
-  'Intento de cobro de dinero (Viola Ayni)',
+  'Intento de cobro o estafa',
   'Acoso, abuso o lenguaje inapropiado',
   'Datos de contacto falsos o desactualizados',
   'Otro motivo',

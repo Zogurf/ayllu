@@ -1,3 +1,4 @@
+import { EmptyCommunityState } from '../components/EmptyCommunityState';
 import React, { useState } from 'react';
 import {
   View,
@@ -270,13 +271,17 @@ export const DirectoryScreen: React.FC = () => {
           {/* Providers List */}
           <View style={styles.cardsContainer}>
             {displayedServices.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="search-off" size={40} color={Colors.border} />
-                <Text style={styles.emptyTitle}>No se encontraron oficios</Text>
-                <Text style={styles.emptySubtitle}>
-                  Prueba ampliando el radio de búsqueda a barrios colindantes en tu perfil.
-                </Text>
-              </View>
+              <EmptyCommunityState
+                title={searchQuery || selectedCategory !== 'all' ? 'No encontramos servicios con estos filtros' : 'Todavía no hay servicios en este alcance'}
+                description={searchQuery || selectedCategory !== 'all'
+                  ? 'Prueba otra búsqueda o consulta todas las categorías.'
+                  : '¿Tienes un oficio? Ofrece tu servicio a tus vecinos. También puedes cambiar el alcance en la parte superior.'}
+                actionLabel={searchQuery || selectedCategory !== 'all' ? 'Quitar filtros' : 'Ofrecer mi servicio'}
+                onAction={() => {
+                  if (searchQuery || selectedCategory !== 'all') { setSearchQuery(''); setSelectedCategory('all'); }
+                  else setShowPublishModal(true);
+                }}
+              />
             ) : (
               displayedServices.map(service => {
                 const userHasAvaled = service.avalesUserIds.includes(user.id);

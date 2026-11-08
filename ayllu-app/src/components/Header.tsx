@@ -1,4 +1,5 @@
-import React from 'react';
+import { LEGACY_CUSCO_UBIGEO, resolveProfileUbigeo } from '../lib/ubigeo';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -15,7 +16,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTutorial,
   onNavigateProfile,
 }) => {
-  const { user, isOnline } = useApp();
+  const { user, isOnline, setCoverageScope } = useApp();
+  const [showScopeOptions, setShowScopeOptions] = useState(false);
+  const hasAdjacentAreas = resolveProfileUbigeo(user) === LEGACY_CUSCO_UBIGEO;
+  const scopeLabel = user.coverageScope === 3 ? 'Todo el distrito'
+    : user.coverageScope === 2 && hasAdjacentAreas ? 'Mi barrio y colindantes' : 'Mi barrio';
 
   const getRoleLabel = (role: string) => {
     switch (role) {
@@ -60,14 +65,15 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Neighborhood selector button */}
             <TouchableOpacity accessibilityRole="button"
+              accessibilityLabel={`Cambiar ubicación: ${user.neighborhood}, ${user.district}`}
               style={styles.locationSelector}
               onPress={onOpenNeighborhoodModal}
               activeOpacity={0.7}
             >
               <Text style={styles.locationText} numberOfLines={1}>
-                {user.activePlaceLabel ? `${user.activePlaceLabel} · ` : ''}{user.activePlaceAddress ? `${user.activePlaceAddress} · ` : ''}{user.neighborhood}
+                {user.neighborhood} · {user.district}
               </Text>
-              <MaterialIcons name="arrow-drop-down" size={18} color={Colors.slateDim} />
+              <Text style={styles.changeText}>Cambiar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -102,11 +108,39 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+      <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showScopeOptions }}
+        accessibilityLabel={`Viendo: ${scopeLabel}. Cambiar alcance`}
+        style={styles.scopeBar} onPress={() => setShowScopeOptions(value => !value)}>
+        <MaterialIcons name="filter-list" size={18} color={Colors.primary} />
+        <Text style={styles.scopeLabel}>Viendo: {scopeLabel}</Text>
+        <Text style={styles.changeText}>Cambiar alcance</Text>
+      </TouchableOpacity>
+      {showScopeOptions && <View style={styles.scopeOptions}>
+        <Text style={styles.scopeHelp}>Elige qué publicaciones ver. Esto no cambia quién puede ver las tuyas.</Text>
+        {([
+          { value: 1, label: 'Mi barrio' },
+          ...(hasAdjacentAreas ? [{ value: 2, label: 'Mi barrio y colindantes' }] : []),
+          { value: 3, label: 'Todo el distrito' },
+        ] as { value: 1 | 2 | 3; label: string }[]).map(option => (
+          <TouchableOpacity key={option.value} accessibilityRole="radio"
+            accessibilityState={{ checked: user.coverageScope === option.value }}
+            style={styles.scopeOption} onPress={() => { setCoverageScope(option.value); setShowScopeOptions(false); }}>
+            <MaterialIcons name={user.coverageScope === option.value ? 'radio-button-checked' : 'radio-button-unchecked'} size={20} color={Colors.primary} />
+            <Text style={styles.scopeLabel}>{option.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  scopeBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8, minHeight: 44, padding: 10, borderRadius: 10, backgroundColor: Colors.surfaceSubtle },
+  scopeLabel: { flex: 1, fontSize: 12, color: Colors.secondary, fontWeight: '600' },
+  changeText: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
+  scopeOptions: { padding: 10, gap: 4 },
+  scopeHelp: { fontSize: 12, lineHeight: 18, color: Colors.secondaryMuted },
+  scopeOption: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   container: {
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
@@ -195,12 +229,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 1,
     marginTop: 1,
+    minHeight: 44,
   },
   locationText: {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.secondary,
-    maxWidth: 160,
+    flexShrink: 1,
   },
   rightSection: {
     flexDirection: 'row',

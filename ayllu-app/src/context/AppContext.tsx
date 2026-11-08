@@ -65,7 +65,7 @@ interface AppContextType {
   // Cadena de Favores
   favors: CommunityFavor[];
   filteredFavors: CommunityFavor[];
-  addFavor: (favor: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => Promise<void>;
+  addFavor: (favor: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => Promise<string>;
   updateFavorStatus: (favorId: string, status: FavorStatus) => Promise<void>;
   removeFavor: (favorId: string) => Promise<void>;
   refreshFavors: () => Promise<void>;
@@ -468,10 +468,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addFavor = async (favorData: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => {
     if (supabase && !user.neighborhoodId) throw new Error('Completa tu perfil y barrio antes de publicar.');
+    const id = supabase ? createUuid() : `fav-${createUuid()}`;
     await persistFavorChange({ ...favorData, authorId: user.id,
-      districtUbigeo: resolveProfileUbigeo(user), id: supabase ? createUuid() : `fav-${createUuid()}`, createdAt: new Date().toISOString(),
+      districtUbigeo: resolveProfileUbigeo(user), id, createdAt: new Date().toISOString(),
       status: 'disponible', distanceMeters: 0, isOfflinePending: true,
     });
+    return id;
   };
 
   const updateFavorStatus = async (favorId: string, status: FavorStatus) => {

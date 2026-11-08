@@ -86,6 +86,9 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
 
           <Text accessibilityRole="alert">{submitError}</Text>
           <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{checked:sharePhone}} onPress={()=>setSharePhone(!sharePhone)} style={{padding:12}}><Text>{sharePhone?'☑':'☐'} Autorizo compartir el teléfono de mi perfil con vecinos del distrito.</Text></TouchableOpacity>
+          <Text style={{ color: Colors.secondaryMuted, fontSize: 12, lineHeight: 18, paddingVertical: 8 }}>
+            Se publicará en {user.neighborhood}. Podrán verlo cuentas de tu distrito.
+          </Text>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>

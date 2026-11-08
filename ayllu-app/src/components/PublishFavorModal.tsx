@@ -12,9 +12,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { FavorCategory, FavorMode, ContactChannel } from '../types';
+import { OfflineStorage } from '../storage/offlineStorage';
+import { supabase } from '../lib/supabase';
+import { notify } from '../utils/dialog';
 import { isReasonableText } from '../utils/validation';
 
 interface PublishFavorModalProps {
+  initialMode?: FavorMode;
   visible: boolean;
   onClose: () => void;
 }
@@ -36,14 +40,14 @@ const DURATION_CHIPS = [
   'Donación definitiva'
 ];
 
-export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, onClose }) => {
-  const { user, addFavor } = useApp();
+export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, onClose, initialMode = 'ofrezco' }) => {
+  const { user, addFavor, isOnline, synchronizeQueue } = useApp();
 
   // 3-step state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
   // Form Fields
-  const [mode, setMode] = useState<FavorMode>('ofrezco');
+  const [mode, setMode] = useState<FavorMode>(initialMode);
   const [category, setCategory] = useState<FavorCategory>('herramientas');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -56,13 +60,15 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
 
   const resetForm = () => {
     setCurrentStep(1);
-    setMode('ofrezco');
+    setMode(initialMode);
     setCategory('herramientas');
     setTitle('');
     setDescription('');
     setDurationInfo('Fin de semana');
     setContactChannel('ayllu');
     setIsUrgent(false);
+    setSharePhone(false);
+    setSubmitError('');
   };
 
   const handleNext = () => {
@@ -94,7 +100,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
     setSubmitError('');
     const catObj = CATEGORIES.find(c => c.id === category);
     try {
-      await addFavor({
+      const favorId = await addFavor({
         title: title.trim(),
         description: description.trim() || 'Coordinación vecinal directa solidaria.',
         category,
@@ -110,8 +116,29 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
         isUrgent,
         authorAvatar: user.avatarUrl,
       });
+      // A local save is not a publication: only queue acknowledgement proves delivery.
+      let published = false;
+      if (supabase && isOnline) {
+        try {
+          await synchronizeQueue(false);
+          const queue = await OfflineStorage.getSyncQueue();
+          published = !queue.some(item => item.type === 'favor' && item.payload.id === favorId);
+        } catch {
+          // The durable operation remains available for the next retry.
+        }
+      }
       resetForm();
       onClose();
+      void notify(
+        published ? 'Publicado en tu comunidad' : 'Guardado en tu celular',
+        published
+          ? 'Tus vecinos ya pueden ver tu publicación y contactarte por el canal que elegiste.'
+          : !supabase
+            ? 'Estás en modo demostración. Tu publicación está guardada solo en este dispositivo.'
+            : !isOnline
+              ? 'Se enviará cuando tengas conexión. Por ahora, tus vecinos todavía no pueden verla.'
+              : 'Tu publicación está guardada y pendiente de envío. Puedes revisar su estado y reintentar desde el muro.',
+      );
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'No se guardó el favor. Inténtalo nuevamente.');
     } finally {
@@ -189,7 +216,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
               <Text style={styles.boldPrimary}>Paso {currentStep} de 3: </Text>
               {currentStep === 1 && 'Selecciona modalidad y categoría.'}
               {currentStep === 2 && 'Define los términos del préstamo o auxilio.'}
-              {currentStep === 3 && 'Canal de contacto y principio Ayni solidario.'}
+              {currentStep === 3 && 'Elige cómo quieres coordinar con tus vecinos.'}
             </Text>
           </View>
 
@@ -211,7 +238,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                       color={mode === 'ofrezco' ? Colors.primary : Colors.secondaryMuted}
                     />
                     <Text style={[styles.modeButtonText, mode === 'ofrezco' && styles.modeButtonTextActive]}>
-                      Ofrecer ayuda
+                      Quiero ayudar
                     </Text>
                   </TouchableOpacity>
 
@@ -225,7 +252,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                       color={mode === 'solicito' ? Colors.primary : Colors.secondaryMuted}
                     />
                     <Text style={[styles.modeButtonText, mode === 'solicito' && styles.modeButtonTextActive]}>
-                      Pedir auxilio
+                      Necesito ayuda
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -334,15 +361,15 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
             )}
 
             {/* ======================================================== */}
-            {/* STEP 3: Privacidad y Principio Ayni */}
+            {/* STEP 3: Privacidad y contacto */}
             {/* ======================================================== */}
             {currentStep === 3 && (
               <View style={styles.stepContent}>
-                {/* Ayni Badge */}
+                {/* Aviso de apoyo vecinal */}
                 <View style={styles.ayniNotice}>
                   <View style={styles.ayniTopRow}>
                     <MaterialIcons name="verified" size={18} color={Colors.primary} />
-                    <Text style={styles.ayniTitle}>Principio Ayni</Text>
+                    <Text style={styles.ayniTitle}>Apoyo vecinal</Text>
                   </View>
                   <Text style={styles.ayniText}>
                     Sin intercambio monetario. Economía comunitaria basada en la reciprocidad andina y confianza vecinal.
@@ -400,7 +427,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                 <View style={styles.scopeBox}>
                   <MaterialIcons name="near-me" size={16} color={Colors.primary} />
                   <Text style={styles.scopeText}>
-                    Alcance visible: {user.neighborhood}
+                    Se publicará en {user.neighborhood}. Podrán verlo cuentas de tu distrito.
                   </Text>
                 </View>
               </View>

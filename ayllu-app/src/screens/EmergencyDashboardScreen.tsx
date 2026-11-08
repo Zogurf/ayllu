@@ -1,3 +1,4 @@
+import { EmptyCommunityState } from '../components/EmptyCommunityState';
 import React, { useState } from 'react';
 import { 
   View, 
@@ -498,6 +499,14 @@ export const EmergencyDashboardScreen: React.FC = () => {
             </TouchableOpacity>
 
             <View style={styles.resourcesList}>
+              {filteredCriticalResources.length === 0 && (
+                <EmptyCommunityState
+                  title="Todavía no hay recursos registrados en este alcance"
+                  description="Registra agua, alimentos u otros recursos disponibles para apoyar a tu comunidad."
+                  actionLabel="Registrar un recurso"
+                  onAction={() => setShowAddResourceModal(true)}
+                />
+              )}
               {filteredCriticalResources.map(res => (
                 <View key={res.id} style={styles.resourceCard}>
                   <View style={styles.resourceHeader}>

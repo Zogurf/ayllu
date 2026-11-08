@@ -20,6 +20,7 @@ import { NeighborhoodModal } from '../components/NeighborhoodModal';
 import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
 import { supabase } from '../lib/supabase';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { MessagingInboxModal } from '../components/MessagingInboxModal';
 
 interface ProfileScreenProps {
@@ -49,6 +50,33 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
   const [showSavedPlaces, setShowSavedPlaces] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [showInbox, setShowInbox] = useState(false);
+  const [isPickingPhoto, setIsPickingPhoto] = useState(false);
+
+  const handlePickPhoto = async () => {
+    if (isPickingPhoto) return;
+    setIsPickingPhoto(true);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        void notify('Permiso para fotos', 'Permite el acceso a tus fotos para elegir una imagen de perfil.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true,
+      });
+      if (result.canceled) return;
+      const photo = result.assets[0];
+      if (!photo.base64) throw new Error('No se pudo preparar la imagen. Elige otra foto.');
+      const mimeType = photo.mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
+      // Keep the resized image in the existing per-device profile storage; no upload is made.
+      updateProfile({ avatarUrl: `data:${mimeType};base64,${photo.base64}` });
+      void notify('Foto actualizada', 'La foto se guardó en este dispositivo. No se comparte con otras cuentas.');
+    } catch (error) {
+      void notify('No se cambió la foto', error instanceof Error ? error.message : 'Inténtalo de nuevo.');
+    } finally {
+      setIsPickingPhoto(false);
+    }
+  };
 
   const handleSaveName = () => {
     if (!isReasonableText(nickname, 80)) {
@@ -135,7 +163,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
         {/* Profile Card & Geographic Header (RF-01, RF-05) */}
         <View style={styles.profileCard}>
           <View style={styles.profileTopRow}>
-            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+            <View style={styles.avatarWrap}>
+              {user.avatarUrl ? <Image source={{ uri: user.avatarUrl }} style={styles.avatar} /> : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}><MaterialIcons name="person" size={38} color={Colors.primary} /></View>
+              )}
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cambiar foto de perfil" disabled={isPickingPhoto}
+                style={styles.changePhotoButton} onPress={() => { void handlePickPhoto(); }}>
+                <MaterialIcons name={isPickingPhoto ? 'hourglass-empty' : 'photo-camera'} size={15} color="#ffffff" />
+                <Text style={styles.changePhotoText}>{isPickingPhoto ? 'Abriendo…' : 'Cambiar foto'}</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.profileInfo}>
               <View style={styles.nicknameRow}>
                 <Text style={styles.nickname}>{user.nickname}</Text>
@@ -149,6 +186,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               </Text>
             </View>
           </View>
+
+          {supabase && (
+            <TouchableOpacity accessibilityRole="button" style={styles.signOutBtn}
+              onPress={() => {
+                void confirmAction('Cerrar sesión', 'Tendrás que volver a iniciar sesión para acceder a tu cuenta.', 'Cerrar sesión')
+                  .then(async accepted => {
+                    if (!accepted) return;
+                    try {
+                      const { error } = await supabase.auth.signOut();
+                      if (error) throw error;
+                    } catch (error) {
+                      void notify('No se pudo cerrar sesión', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+                    }
+                  });
+              }}>
+              <MaterialIcons name="logout" size={18} color={Colors.secondary} />
+              <Text style={styles.signOutBtnText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          )}
 
           {isEditingName && (
             <View style={styles.editSection}>
@@ -450,23 +506,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             <MaterialIcons name="restart-alt" size={18} color={Colors.emergencyDark} />
             <Text style={styles.resetBtnText}>Restablecer Datos Demo</Text>
           </TouchableOpacity>
-          {supabase && (
-            <TouchableOpacity accessibilityRole="button"
-              style={styles.signOutBtn}
-              onPress={async () => {
-                if (!supabase) return;
-                try {
-                  const { error } = await supabase.auth.signOut();
-                  if (error) throw error;
-                } catch (error) {
-                  void notify('No se pudo cerrar sesión', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
-                }
-              }}
-            >
-              <MaterialIcons name="logout" size={18} color={Colors.secondary} />
-              <Text style={styles.signOutBtnText}>Cerrar sesión</Text>
-            </TouchableOpacity>
-          )}
+
         </View>
       </ScrollView>
 
@@ -555,6 +595,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  avatarWrap: { alignItems: 'center', gap: 6 },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primaryContainer },
+  changePhotoButton: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primary, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 10 },
+  changePhotoText: { color: '#ffffff', fontSize: 10, fontWeight: '700' },
   avatar: {
     width: 52,
     height: 52,

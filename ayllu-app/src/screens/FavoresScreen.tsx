@@ -1,3 +1,4 @@
+import { EmptyCommunityState } from '../components/EmptyCommunityState';
 import React, { useState } from 'react';
 import {
   View,
@@ -13,7 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
-import { CommunityFavor, FavorStatus } from '../types';
+import { CommunityFavor, FavorStatus, FavorMode } from '../types';
 import { PublishFavorModal } from '../components/PublishFavorModal';
 import { ContentReportModal } from '../components/ContentReportModal';
 import { ContactActionModal } from '../components/ContactActionModal';
@@ -36,6 +37,7 @@ export const FavoresScreen: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState('all');
+  const [publishMode, setPublishMode] = useState<FavorMode>('solicito');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [reportFavor, setReportFavor] = useState<CommunityFavor | null>(null);
   const [contactFavor, setContactFavor] = useState<CommunityFavor | null>(null);
@@ -187,14 +189,14 @@ export const FavoresScreen: React.FC = () => {
               <View>
                 <Text style={styles.bannerTitle}>Cadena de Favores</Text>
                 <Text style={styles.bannerSubtitle}>
-                  Economía solidaria · Sin intercambio monetario
+                  Apoyo mutuo entre vecinos · Sin pagos
                 </Text>
               </View>
             </View>
 
             <View style={styles.ayniBadge}>
               <MaterialIcons name="handshake" size={13} color={Colors.primary} />
-              <Text style={styles.ayniBadgeText}>Ayni Activo</Text>
+              <Text style={styles.ayniBadgeText}>Apoyo vecinal activo</Text>
             </View>
           </View>
 
@@ -208,14 +210,22 @@ export const FavoresScreen: React.FC = () => {
 
         {/* Main CTA Button & Impact Metrics */}
         <View style={styles.actionSection}>
-          <TouchableOpacity accessibilityRole="button"
-            style={styles.publishMainBtn}
-            onPress={() => setShowPublishModal(true)}
-            activeOpacity={0.85}
-          >
-            <MaterialIcons name="add-circle" size={22} color="#ffffff" />
-            <Text style={styles.publishMainBtnText}>Pedir u Ofrecer Favor</Text>
-          </TouchableOpacity>
+          <Text style={styles.actionHeading}>¿Cómo quieres participar?</Text>
+          <View style={styles.publishActions}>
+            {([
+              { mode: 'solicito', label: 'Necesito ayuda', icon: 'support' },
+              { mode: 'ofrezco', label: 'Quiero ayudar', icon: 'volunteer-activism' },
+            ] as const).map(action => (
+              <TouchableOpacity key={action.mode} accessibilityRole="button"
+                accessibilityHint="Abre el formulario con esta modalidad seleccionada"
+                style={[styles.publishMainBtn, action.mode === 'ofrezco' && styles.offerButton]}
+                onPress={() => { setPublishMode(action.mode); setShowPublishModal(true); }}
+                activeOpacity={0.85}>
+                <MaterialIcons name={action.icon} size={22} color="#ffffff" />
+                <Text style={styles.publishMainBtnText}>{action.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <View style={styles.metricsRow}>
             <View style={styles.metricCard}>
@@ -279,13 +289,17 @@ export const FavoresScreen: React.FC = () => {
         {/* Muro de Publicaciones Solidarias (RF-11, RF-12, RF-14) */}
         <View style={styles.feedContainer}>
           {displayedFavors.length === 0 ? (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="sentiment-dissatisfied" size={38} color={Colors.border} />
-              <Text style={styles.emptyTitle}>No hay publicaciones en este filtro</Text>
-              <Text style={styles.emptySubtitle}>
-                Sé la primera persona en ofrecer o solicitar un favor solidario a tus vecinos.
-              </Text>
-            </View>
+            <EmptyCommunityState
+              title={selectedTag !== 'all' ? 'No hay favores con este filtro' : 'Todavía no hay publicaciones en este alcance'}
+              description={selectedTag !== 'all'
+                ? 'Prueba viendo todas las categorías de ayuda.'
+                : 'Comparte lo que necesitas o lo que puedes ofrecer. También puedes cambiar el alcance en la parte superior.'}
+              actionLabel={selectedTag !== 'all' ? 'Quitar filtros' : 'Publicar el primero'}
+              onAction={() => {
+                if (selectedTag !== 'all') setSelectedTag('all');
+                else { setPublishMode('ofrezco'); setShowPublishModal(true); }
+              }}
+            />
           ) : (
             displayedFavors.map(favor => {
               const syncError = syncQueue.find(q=>q.ownerUserId===user.id && q.type==='favor' && q.payload.id===favor.id && q.status==='error');
@@ -479,6 +493,8 @@ export const FavoresScreen: React.FC = () => {
 
       {/* Publish Favor Modal (3 Steps RF-13) */}
       <PublishFavorModal
+        key={publishMode}
+        initialMode={publishMode}
         visible={showPublishModal}
         onClose={() => setShowPublishModal(false)}
       />
@@ -601,7 +617,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     gap: 10,
   },
+  actionHeading: { fontSize: 15, fontWeight: '700', color: Colors.secondary },
+  publishActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  offerButton: { backgroundColor: Colors.secondary },
   publishMainBtn: {
+    flex: 1,
+    minWidth: 140,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

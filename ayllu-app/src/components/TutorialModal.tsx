@@ -63,7 +63,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ visible, onClose }
               <View style={styles.keyContent}>
                 <Text style={styles.keyTitle}>2. Cadena de Favores (Sin Dinero)</Text>
                 <Text style={styles.keyDescription}>
-                  100% solidario bajo el principio andino del Ayni. No hay transacciones monetarias ni comisiones; nos cuidamos y respaldamos como vecindad.
+                  Ayllu conecta a vecinos para compartir apoyo, habilidades y recursos. La ayuda se coordina directamente, sin pagos ni comisiones.
                 </Text>
               </View>
             </View>

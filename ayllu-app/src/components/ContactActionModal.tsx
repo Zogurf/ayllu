@@ -105,7 +105,7 @@ export const ContactActionModal: React.FC<ContactActionModalProps> = ({ visible,
       {channel === 'ayllu' && <ScrollView style={styles.thread}>{messages.map((item) => <View key={item.id} style={[styles.bubble, item.sender_id === userId ? styles.mine : styles.theirs]}><Text style={styles.body}>{item.body}</Text>{item.sender_id === userId && <Text style={styles.status}>{readAt && readAt >= item.created_at ? 'Leído' : deliveredAt && deliveredAt >= item.created_at ? 'Entregado' : 'Enviado'}</Text>}</View>)}</ScrollView>}
       <Text style={styles.label}>Mensaje solidario</Text>
       <TextInput style={styles.textArea} placeholder={`Hola ${targetName}, me interesa coordinar este favor vecinal...`} placeholderTextColor={Colors.slateDim} value={message} onChangeText={setMessage} multiline maxLength={2000}/>
-      <View style={styles.ethicsBox}><MaterialIcons name="handshake" size={16} color={Colors.primary}/><Text style={styles.ethicsText}>Los favores en Ayllu son solidarios y libres de dinero (Principio Ayni).</Text></View>
+      <View style={styles.ethicsBox}><MaterialIcons name="handshake" size={16} color={Colors.primary}/><Text style={styles.ethicsText}>Ayllu facilita el apoyo directo entre vecinos; no se realizan pagos en la app.</Text></View>
       <TouchableOpacity accessibilityRole="button" style={[styles.submitBtn, (busy || (channel === 'ayllu' && !conversationId)) && { opacity: 0.55 }]} onPress={() => { void send(); }} disabled={busy || (channel === 'ayllu' && !conversationId)}><MaterialIcons name="send" size={18} color="#fff"/><Text style={styles.submitBtnText}>{busy ? 'Enviando...' : channel === 'ayllu' ? 'Enviar mensaje' : 'Abrir WhatsApp'}</Text></TouchableOpacity>
     </View></View>
   </Modal>;
