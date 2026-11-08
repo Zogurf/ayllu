@@ -16,6 +16,8 @@ import {
   EmergencyStatus
 } from '../types';
 import { OfflineStorage, redactEmergencyReport } from '../storage/offlineStorage';
+import { fetchFavors } from '../services/favors';
+import { mergeFavorFeed } from '../services/favorFeed';
 import { submitQueuedItem } from '../services/syncTransport';
 import { supabase } from '../lib/supabase';
 import { 
@@ -58,8 +60,10 @@ interface AppContextType {
   favors: CommunityFavor[];
   filteredFavors: CommunityFavor[];
   addFavor: (favor: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => Promise<void>;
-  updateFavorStatus: (favorId: string, status: FavorStatus) => void;
-  removeFavor: (favorId: string) => void;
+  updateFavorStatus: (favorId: string, status: FavorStatus) => Promise<void>;
+  removeFavor: (favorId: string) => Promise<void>;
+  refreshFavors: () => Promise<void>;
+  favorsError: string;
 
   // Emergency Reports & Sensitive Data
   emergencyReports: EmergencyReport[];
@@ -104,6 +108,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [criticalResources, setCriticalResources] = useState<CriticalResource[]>(INITIAL_CRITICAL_RESOURCES);
   const [contentReports, setContentReports] = useState<ContentReport[]>([]);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
+
+  const [favorsError, setFavorsError] = useState('');
 
   // Load persisted offline state on startup
   useEffect(() => {
@@ -159,6 +165,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateProfile({ coverageScope });
   };
 
+  const favorRevision = useRef(0);
+  const feedOwner = useRef(user.id);
+  useEffect(() => { feedOwner.current = user.id; favorRevision.current += 1; }, [user.id, user.neighborhoodId]);
+
   // Drain the persistent outbox sequentially. An item leaves it only after server acknowledgement.
   const syncInProgress = useRef(false);
   const synchronizeQueue = useCallback(async (retryFailed = true): Promise<{ success: boolean; count: number; failed: number; message?: string }> => {
@@ -168,16 +178,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     let acknowledgedCount = 0;
     let failedCount = 0;
-    let queue = await OfflineStorage.getSyncQueue();
+    let queue: SyncQueueItem[] = [];
+    const blockedFavors = new Set<string>();
     try {
-      for (const item of queue) {
-        if (item.status === 'error' && !retryFailed) continue;
+      queue = await OfflineStorage.getSyncQueue();
+      for (const item of [...queue].reverse()) {
+        const favorId = item.type === 'favor' ? String((item.payload as Record<string, unknown>).id) : '';
+        if (blockedFavors.has(favorId)) { failedCount += 1; continue; }
+        if (item.status === 'error' && !retryFailed) { if (favorId) blockedFavors.add(favorId); continue; }
         try {
+          favorRevision.current += 1;
           await submitQueuedItem(item);
+          favorRevision.current += 1;
           queue = await OfflineStorage.acknowledgeSyncItem(item.id);
           setSyncQueue(queue);
           acknowledgedCount += 1;
 
+          if (item.type === 'favor') {
+            const payload = item.payload as Record<string, unknown>;
+            const remaining = queue.some(entry => entry.type === 'favor' && (entry.payload as Record<string, unknown>).id === payload.id);
+            setFavors(current => {
+              const updated = current.map(favor => favor.id === payload.id ? { ...favor, isOfflinePending: remaining } : favor);
+              void OfflineStorage.saveFavors(updated).catch(console.warn);
+              return updated;
+            });
+          }
           if (item.type === 'emergency_report') {
             const payload = item.payload as Record<string, unknown>;
             const reportId = String(payload.localReportId ?? payload.reportId);
@@ -190,6 +215,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             void OfflineStorage.removePrivateEmergencyReport(privateDataRef).catch(error => console.warn('Could not remove synced private cache:', error));
           }
         } catch (error) {
+          if (favorId) blockedFavors.add(favorId);
           const failedItem: SyncQueueItem = {
             ...item,
             status: 'error',
@@ -360,47 +386,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Cadena de Favores (RF-11 to RF-14)
-  const addFavor = async (favorData: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => {
-    const newFavor: CommunityFavor = {
-      ...favorData,
-      districtUbigeo: resolveProfileUbigeo(user),
-      id: `fav-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      status: 'disponible',
-      distanceMeters: Math.floor(Math.random() * 350) + 50,
-      favorsCompletedByAuthor: 1,
-      isOfflinePending: true,
-    };
-
-    const updatedFavors = [newFavor, ...favors];
-
-    if (!isOnline) {
-      const queueItem: SyncQueueItem = {
-        id: `sync-fav-${Date.now()}`,
-        ownerUserId: user.id,
-        type: 'favor',
-        payload: newFavor,
-        createdAt: new Date().toISOString(),
-        status: 'pending',
-        title: `Favor: ${newFavor.title}`,
-      };
-      await enqueueSyncItem(queueItem);
+  // Shared feed. Pending local changes take precedence over server snapshots.
+  const refreshFavors = useCallback(async () => {
+    if (!supabase || !isOnline || !isHydrated) return;
+    const owner = user.id;
+    const revision = favorRevision.current;
+    if (syncInProgress.current) return;
+    const district = resolveProfileUbigeo(user);
+    if (!district) return;
+    try {
+      const remote = await fetchFavors(district);
+      const queue = await OfflineStorage.getSyncQueue();
+      if (owner !== feedOwner.current || revision !== favorRevision.current || syncInProgress.current) return;
+      setFavors(current => {
+        const updated = mergeFavorFeed(current, remote, queue, owner);
+        void OfflineStorage.saveFavors(updated).catch(console.warn);
+        return updated;
+      });
+      setFavorsError('');
+    } catch (error) {
+      setFavorsError(error instanceof Error ? error.message : 'No se pudo actualizar el muro.');
     }
-    await OfflineStorage.saveFavors(updatedFavors);
-    setFavors(updatedFavors);
+  }, [isOnline, isHydrated, user]);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => { if (active) void refreshFavors(); };
+    refresh();
+    const timer = setInterval(refresh, 30000);
+    return () => { active = false; clearInterval(timer); };
+  }, [refreshFavors, lastSyncTime]);
+
+  const persistFavorChange = async (favor: CommunityFavor, action: 'save' | 'delete' = 'save') => {
+    favorRevision.current += 1;
+    if (favor.authorId !== user.id) throw new Error('Solo el autor puede cambiar este favor.');
+    const updated = action === 'delete'
+      ? favors.filter(f => f.id !== favor.id)
+      : [favor, ...favors.filter(f => f.id !== favor.id)];
+    if (supabase) {
+      const item: SyncQueueItem = {
+        id: createUuid(), ownerUserId: user.id, type: 'favor',
+        payload: { ...favor, action }, createdAt: new Date().toISOString(),
+        status: 'pending', title: `Favor: ${favor.title}`,
+      };
+      // Save the durable operation first; retries reuse its identifier.
+      const queue = await OfflineStorage.enqueueSyncItem(item);
+      await OfflineStorage.saveFavors(updated);
+      setFavors(updated);
+      setSyncQueue(queue);
+      return;
+    }
+    await OfflineStorage.saveFavors(updated);
+    setFavors(updated);
   };
 
-  const updateFavorStatus = (favorId: string, status: FavorStatus) => {
-    const updated = favors.map(f => f.id === favorId ? { ...f, status } : f);
-    setFavors(updated);
-    OfflineStorage.saveFavors(updated);
+  const addFavor = async (favorData: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => {
+    if (supabase && !user.neighborhoodId) throw new Error('Completa tu perfil y barrio antes de publicar.');
+    await persistFavorChange({ ...favorData, authorId: user.id,
+      districtUbigeo: resolveProfileUbigeo(user), id: supabase ? createUuid() : `fav-${createUuid()}`, createdAt: new Date().toISOString(),
+      status: 'disponible', distanceMeters: 0, isOfflinePending: true,
+    });
   };
 
-  const removeFavor = (favorId: string) => {
-    const updated = favors.filter(f => f.id !== favorId);
-    setFavors(updated);
-    OfflineStorage.saveFavors(updated);
+  const updateFavorStatus = async (favorId: string, status: FavorStatus) => {
+    const favor = favors.find(f => f.id === favorId);
+    if (!favor) throw new Error('Favor no encontrado.');
+    await persistFavorChange({ ...favor, status, isOfflinePending: true });
+  };
+
+  const removeFavor = async (favorId: string) => {
+    const favor = favors.find(f => f.id === favorId);
+    if (!favor) return;
+    if (favor.id.startsWith('fav-')) {
+      // Legacy local drafts were never uploaded.
+      favorRevision.current += 1;
+      const saved = await OfflineStorage.getFavors();
+      const updated = saved.filter(f => f.id !== favorId);
+      for (const item of await OfflineStorage.getSyncQueue()) {
+        if (item.type === 'favor' && (item.payload as Record<string, unknown>).id === favorId && item.ownerUserId === user.id) {
+          setSyncQueue(await OfflineStorage.removeSyncItem(item.id));
+        }
+      }
+      await OfflineStorage.saveFavors(updated);
+      setFavors(updated);
+      return;
+    }
+    await persistFavorChange(favor, 'delete');
   };
 
   // Emergency Reports (RF-17, RF-18, RF-19)
@@ -527,7 +598,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const adjacentNames = INITIAL_NEIGHBORHOODS.filter(n => n.isAdjacent).map(n => n.name);
   const isNeighborhoodMatch = (item: { neighborhood: string; districtUbigeo?: string }) => locationMatchesScope(user, item, adjacentNames);
   const filteredServices = services.filter(s => !s.isHidden && isNeighborhoodMatch(s));
-  const filteredFavors = favors.filter(f => !f.isHidden && isNeighborhoodMatch(f));
+  const filteredFavors = favors.filter(f => !f.isHidden && (!f.isOfflinePending || f.authorId === user.id) && isNeighborhoodMatch(f));
   const filteredEmergencyReports = emergencyReports.filter(r => isNeighborhoodMatch(r));
   const filteredCriticalResources = criticalResources.filter(r => isNeighborhoodMatch(r));
 
@@ -554,6 +625,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         favors,
         filteredFavors,
         addFavor,
+        refreshFavors,
+        favorsError,
         updateFavorStatus,
         removeFavor,
         emergencyReports,

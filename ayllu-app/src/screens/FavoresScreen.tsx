@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  Image, 
-  Alert 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  RefreshControl
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { CommunityFavor, FavorStatus } from '../types';
 import { PublishFavorModal } from '../components/PublishFavorModal';
-import { ContactActionModal } from '../components/ContactActionModal';
+import * as WebBrowser from 'expo-web-browser';
 import { ContentReportModal } from '../components/ContentReportModal';
 
 const FILTER_TAGS = [
@@ -27,11 +27,13 @@ const FILTER_TAGS = [
 ];
 
 export const FavoresScreen: React.FC = () => {
-  const { filteredFavors, updateFavorStatus, removeFavor, user } = useApp();
+  const { filteredFavors, updateFavorStatus, removeFavor, refreshFavors, favorsError, user, addFavor } = useApp();
 
+  const [actionError, setActionError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState('all');
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [contactFavor, setContactFavor] = useState<CommunityFavor | null>(null);
   const [reportFavor, setReportFavor] = useState<CommunityFavor | null>(null);
 
   // Filter favors
@@ -42,27 +44,37 @@ export const FavoresScreen: React.FC = () => {
   });
 
   const activeCount = filteredFavors.filter(f => f.status === 'disponible').length;
-  const completedCount = filteredFavors.filter(f => f.status === 'resuelta').length + 142; // Seeded metric
+  const completedCount = filteredFavors.filter(f => f.status === 'resuelta').length;
 
-  const handleStatusChange = (favor: CommunityFavor, newStatus: FavorStatus) => {
-    updateFavorStatus(favor.id, newStatus);
-    Alert.alert('Estado Actualizado', `El favor ahora figura como: "${newStatus.toUpperCase()}".`);
+  const runAction = async (action: () => Promise<void>) => {
+    if (busy) return;
+    setBusy(true); setActionError('');
+    try { await action(); }
+    catch (error) { setActionError(error instanceof Error ? error.message : 'No se guardó el cambio.'); }
+    finally { setBusy(false); }
   };
-
-  const handleRemove = (favorId: string) => {
-    Alert.alert(
-      'Retirar Publicación',
-      '¿Deseas retirar esta publicación del muro vecinal?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Retirar', style: 'destructive', onPress: () => removeFavor(favorId) },
-      ]
-    );
+  const handleStatusChange = (favor: CommunityFavor, status: FavorStatus) => {
+    void runAction(() => updateFavorStatus(favor.id, status));
+  };
+  const handleRemove = (id: string) => {
+    if (confirmRemove !== id) { setConfirmRemove(id); return; }
+    void runAction(async () => { await removeFavor(id); setConfirmRemove(null); });
+  };
+  const publishDraft = (favor: CommunityFavor) => {
+    void runAction(async () => {
+      await addFavor({ ...favor, neighborhood: user.neighborhood, authorId: user.id });
+      await removeFavor(favor.id);
+    });
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={busy} onRefresh={() => { void runAction(refreshFavors); }} />}>
+        {!!(actionError || favorsError) && <Text accessibilityRole="alert" style={{ padding: 16, color: '#b91c1c' }}>{actionError || favorsError}</Text>}
+        <TouchableOpacity disabled={busy} onPress={() => { void runAction(refreshFavors); }} style={{ padding: 12 }}>
+          <Text style={{ color: Colors.primary }}>Actualizar muro</Text>
+        </TouchableOpacity>
         {/* Banner Solidario Filosófico Ayllu (RF-11) */}
         <View style={styles.bannerContainer}>
           <View style={styles.bannerTopRow}>
@@ -120,7 +132,7 @@ export const FavoresScreen: React.FC = () => {
               </View>
               <View>
                 <Text style={styles.metricNumber}>{completedCount}</Text>
-                <Text style={styles.metricLabel}>Completados mes</Text>
+                <Text style={styles.metricLabel}>Favores resueltos</Text>
               </View>
             </View>
           </View>
@@ -183,7 +195,7 @@ export const FavoresScreen: React.FC = () => {
                     <View style={styles.offlinePendingBadge}>
                       <MaterialIcons name="cloud-queue" size={14} color={Colors.warningText} />
                       <Text style={styles.offlinePendingText}>
-                        Guardado en tu móvil; aún no se ha compartido.
+                        Guardado en este dispositivo; pendiente de compartir.
                       </Text>
                     </View>
                   )}
@@ -191,14 +203,14 @@ export const FavoresScreen: React.FC = () => {
                   {/* Header: Author, Verification, Neighborhood, Status */}
                   <View style={styles.favorHeader}>
                     <View style={styles.authorProfile}>
-                      <Image source={{ uri: favor.authorAvatar }} style={styles.authorAvatar} />
+                      {!!favor.authorAvatar && <Image source={{ uri: favor.authorAvatar }} style={styles.authorAvatar} />}
                       <View>
                         <View style={styles.authorNameRow}>
                           <Text style={styles.authorName}>{favor.authorName}</Text>
-                          <MaterialIcons name="verified" size={15} color={Colors.primary} />
+
                         </View>
                         <Text style={styles.neighborhoodDistance}>
-                          📍 {favor.neighborhood} (a ~{favor.distanceMeters}m)
+                          📍 {favor.neighborhood}
                         </Text>
                       </View>
                     </View>
@@ -216,7 +228,7 @@ export const FavoresScreen: React.FC = () => {
                             favor.status === 'disponible' ? styles.statusDispText : styles.statusResText,
                           ]}
                         >
-                          {favor.status === 'disponible' ? 'Disponible' : 'Resuelta'}
+                          {favor.status === 'disponible' ? 'Disponible' : favor.status === 'cerrada' ? 'Cerrada' : 'Resuelta'}
                         </Text>
                       </View>
 
@@ -261,7 +273,16 @@ export const FavoresScreen: React.FC = () => {
                       <>
                         <TouchableOpacity
                           style={styles.respondBtn}
-                          onPress={() => setContactFavor(favor)}
+                          onPress={() => {
+                            if (favor.contactChannel === 'ayllu') {
+                              setActionError('La mensajería interna aún no está disponible. El favor sí está publicado en el muro.');
+                            } else {
+                              const phone = favor.authorPhone.replace(/\D/g, '');
+                              if (!phone) { setActionError('Esta publicación no tiene teléfono de contacto.'); return; }
+                              void WebBrowser.openBrowserAsync(`https://wa.me/${phone}?text=${encodeURIComponent(`Hola, me interesa tu favor: ${favor.title}`)}`)
+                                .catch(() => setActionError('No se pudo abrir WhatsApp.'));
+                            }
+                          }}
                           activeOpacity={0.8}
                         >
                           <MaterialIcons
@@ -285,7 +306,11 @@ export const FavoresScreen: React.FC = () => {
                     ) : (
                       // Author management controls (RF-12)
                       <View style={styles.authorActionsRow}>
+                        {favor.id.startsWith('fav-') && <TouchableOpacity disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
+                          <Text style={styles.authorStatusText}>Compartir</Text>
+                        </TouchableOpacity>}
                         <TouchableOpacity
+                          disabled={busy || favor.id.startsWith('fav-')}
                           style={styles.authorStatusBtn}
                           onPress={() =>
                             handleStatusChange(
@@ -305,11 +330,12 @@ export const FavoresScreen: React.FC = () => {
                         </TouchableOpacity>
 
                         <TouchableOpacity
+                          disabled={busy}
                           style={styles.authorDeleteBtn}
                           onPress={() => handleRemove(favor.id)}
                         >
                           <MaterialIcons name="delete-outline" size={14} color={Colors.emergencyDark} />
-                          <Text style={styles.authorDeleteText}>Retirar</Text>
+                          <Text style={styles.authorDeleteText}>{confirmRemove === favor.id ? 'Confirmar retiro' : 'Retirar'}</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -326,18 +352,6 @@ export const FavoresScreen: React.FC = () => {
         visible={showPublishModal}
         onClose={() => setShowPublishModal(false)}
       />
-
-      {/* Contact Neighbor Modal (RF-14) */}
-      {contactFavor && (
-        <ContactActionModal
-          visible={!!contactFavor}
-          onClose={() => setContactFavor(null)}
-          targetName={contactFavor.authorName}
-          targetItemTitle={contactFavor.title}
-          channel={contactFavor.contactChannel}
-          phone={contactFavor.authorPhone}
-        />
-      )}
 
       {/* Report Modal */}
       {reportFavor && (

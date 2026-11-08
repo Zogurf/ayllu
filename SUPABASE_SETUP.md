@@ -69,7 +69,7 @@ Cierra sesión y vuelve a entrar para que la app vuelva a leer el rol. Hazlo sol
 
 ## Alcance actual
 
-Auth y el perfil de barrio están conectados; el transporte Supabase implementado es el de reportes de emergencia. El directorio, favores, avales, recursos, cambios de estado, modo emergencia y moderación siguen almacenados localmente: aún requieren sus tablas/RPC/políticas y adaptadores de lectura/escritura. En Web los datos sensibles de reportes no se aceptan offline porque no hay SecureStore nativo.
+Auth y el perfil de barrio están conectados; hay transporte Supabase para reportes de emergencia y favores. El directorio, avales, recursos, cambios de estado de emergencias, modo emergencia y moderación siguen almacenados localmente: aún requieren sus tablas/RPC/políticas y adaptadores de lectura/escritura. En Web los datos sensibles de reportes no se aceptan offline porque no hay SecureStore nativo.
 
 Para regenerar tipos desde el esquema desplegado:
 
@@ -78,3 +78,26 @@ npx supabase gen types typescript --linked > ayllu-app/src/types/supabase.genera
 ```
 
 Revisa el archivo generado antes de incorporarlo a imports; hoy el cliente usa tipos genéricos para facilitar el primer despliegue.
+
+## Muro de favores compartido
+
+Aplica `202611080003_community_favors.sql` con `npx supabase db push --remote`.
+Crea `community_favors` y el RPC `sync_community_favor`. Requiere las cinco migraciones anteriores.
+
+Los usuarios autenticados pueden leer publicaciones de su distrito; el filtro de la app mantiene el alcance de barrio seleccionado. Solo el autor puede marcar resuelto, reabrir o retirar. La identidad y el barrio se obtienen del perfil del servidor. El teléfono solo se comparte cuando el autor selecciona WhatsApp; el canal interno no publica el teléfono.
+
+Las publicaciones nuevas y los cambios se guardan en la cola incluso con conexión. Permanecen pendientes hasta recibir confirmación, y los reintentos no duplican publicaciones ni revierten cambios ya confirmados. El muro se actualiza cada 30 segundos y con el botón Actualizar muro. Los favores antiguos con identificador `fav-` conservan su carácter local: el autor puede pulsar Compartir para publicar una copia en su barrio actual. Retirar requiere dos pulsaciones en la tarjeta para confirmar también en web.
+
+WhatsApp abre una conversación con un mensaje preparado; el usuario decide enviarlo. La mensajería interna y la moderación compartida todavía no están implementadas. El muro muestra esa limitación en lugar de simular un envío.
+
+Prueba manual: inicia sesión con dos cuentas del mismo barrio, publica desde una, actualiza el muro en la otra, marca resuelto y retira desde la cuenta autora. Una cuenta de otro distrito no debe poder leer la publicación. Prueba además crear sin conexión y reconectar; el aviso pendiente debe desaparecer después de sincronizar.
+
+Verificaciones automatizadas:
+
+```bash
+node --test tests/*.test.cjs
+npx tsc --noEmit
+npm run lint
+# Desde la raíz, con PGlite instalado fuera del proyecto:
+NODE_PATH=/tmp/ayllu-ubigeo-sql/node_modules node ayllu-app/scripts/check-favor-migrations.cjs
+```

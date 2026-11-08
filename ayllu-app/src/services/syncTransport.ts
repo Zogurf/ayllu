@@ -18,6 +18,16 @@ export async function submitQueuedItem(item: SyncQueueItem): Promise<void> {
     throw new Error('Este elemento pendiente pertenece a otra cuenta y no se enviará con la sesión actual.');
   }
 
+  if (item.type === 'favor') {
+    const payload = item.payload as Record<string, unknown>;
+    const { data, error } = await supabase.rpc('sync_community_favor', {
+      p_operation_id: item.id, p_favor: payload, p_action: payload.action ?? 'save',
+    });
+    if (error) throw new Error(error.message);
+    if (data !== payload.id) throw new Error('El servidor no confirmó el favor.');
+    return;
+  }
+
   if (item.type !== 'emergency_report') {
     throw new Error(`La sincronización de ${item.type} aún no está habilitada en el backend.`);
   }

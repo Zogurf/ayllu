@@ -10,6 +10,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
@@ -92,25 +93,38 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           editable={!busy}
         />
         <Text style={styles.label}>Contraseña</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Al menos 8 caracteres"
-          placeholderTextColor={Colors.slateDim}
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete={isCreatingAccount ? 'new-password' : 'password'}
-          textContentType={isCreatingAccount ? 'newPassword' : 'password'}
-          editable={!busy}
-          onSubmitEditing={handleSubmit}
-        />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Al menos 8 caracteres"
+            placeholderTextColor={Colors.slateDim}
+            secureTextEntry={!showPassword}
+            autoCorrect={false}
+            autoCapitalize="none"
+            autoComplete={isCreatingAccount ? 'new-password' : 'password'}
+            textContentType={isCreatingAccount ? 'newPassword' : 'password'}
+            editable={!busy}
+            onSubmitEditing={handleSubmit}
+          />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            accessibilityState={{ disabled: busy }}
+            style={styles.passwordToggle}
+            onPress={() => setShowPassword(value => !value)}
+            disabled={busy}
+          >
+            <MaterialIcons name={showPassword ? 'visibility-off' : 'visibility'} size={22} color={Colors.slateDim} />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={busy}>
           {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setIsCreatingAccount(value => !value)} disabled={busy}>
+        <TouchableOpacity onPress={() => { setIsCreatingAccount(value => !value); setShowPassword(false); }} disabled={busy}>
           <Text style={styles.toggleText}>
             {isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
           </Text>
@@ -135,6 +149,9 @@ const styles = StyleSheet.create({
   subtitle: { color: Colors.secondaryMuted, fontSize: 14, lineHeight: 20, marginBottom: 8 },
   label: { color: Colors.secondary, fontWeight: '700', fontSize: 13, marginBottom: -6 },
   input: { minHeight: 48, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, paddingHorizontal: 12, color: Colors.secondary, backgroundColor: '#fff' },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, backgroundColor: '#fff' },
+  passwordInput: { flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: 12, color: Colors.secondary },
+  passwordToggle: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   submitButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary, borderRadius: 10, marginTop: 6 },
   submitText: { color: '#fff', fontWeight: '800', fontSize: 15 },
   toggleText: { color: Colors.primaryDark, textAlign: 'center', fontWeight: '700', padding: 8 },

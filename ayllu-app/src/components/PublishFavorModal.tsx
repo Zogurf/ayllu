@@ -38,7 +38,7 @@ const DURATION_CHIPS = [
 ];
 
 export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, onClose }) => {
-  const { user, addFavor, isOnline } = useApp();
+  const { user, addFavor } = useApp();
 
   // 3-step state
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -52,6 +52,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
   const [contactChannel, setContactChannel] = useState<ContactChannel>('ayllu');
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const resetForm = () => {
     setCurrentStep(1);
@@ -89,6 +90,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
   const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitError('');
     const catObj = CATEGORIES.find(c => c.id === category);
     try {
       await addFavor({
@@ -106,26 +108,13 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
         isUrgent,
         authorAvatar: user.avatarUrl,
       });
+      resetForm();
+      onClose();
     } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'No se guardó el favor. Inténtalo nuevamente.');
+    } finally {
       setIsSubmitting(false);
-      Alert.alert('No se guardó el favor', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
-      return;
     }
-
-    const msg = isOnline
-      ? 'Favor guardado en este dispositivo. El muro todavía no está conectado a un servidor compartido.'
-      : 'Favor guardado en este dispositivo. Aún no se ha enviado a un servidor compartido.';
-
-    Alert.alert('Ayllu Solidario', msg, [
-      {
-        text: 'Aceptar',
-        onPress: () => {
-          setIsSubmitting(false);
-          resetForm();
-          onClose();
-        },
-      },
-    ]);
   };
 
   return (
@@ -134,6 +123,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
+          {!!submitError && <Text accessibilityRole="alert" style={{ color: '#b91c1c', padding: 12 }}>{submitError}</Text>}
           {/* Top Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>

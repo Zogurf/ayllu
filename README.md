@@ -34,7 +34,8 @@ Las pantallas y los flujos visuales de los módulos están implementados en dist
 |---|---|---|
 | Registro y perfil | Perfil local persistido; Auth por correo/contraseña y perfil remoto opcionales al configurar Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo |
 | Directorio y contactos | Datos semilla locales | Fuente administrable y sincronizada; verificación real de proveedores y vigencia de contactos |
-| Servicios, avales y favores | Flujos locales; avales guardados en el dispositivo | API compartida, autorización en servidor y reglas transaccionales contra duplicados |
+| Servicios y avales | Flujos locales; avales guardados en el dispositivo | API compartida y reglas transaccionales contra duplicados |
+| Favores | Muro Supabase por distrito, publicación y cambios con cola offline, permisos por autor | Aplicar migración `202611080003`; mensajería interna y moderación compartida pendientes |
 | Emergencias y recursos | Reportes pueden sincronizarse por RPC autenticado con RLS; el tablero y recursos siguen locales | Completar sincronización de estados/recursos y auditoría antes de uso real |
 | Mensajería | Confirmación simulada en la interfaz | Canal de mensajería real o apertura de WhatsApp con consentimiento |
 | Moderación | Denuncias y ocultamiento local | Cola compartida, persistencia y permisos administrativos en servidor |
@@ -52,7 +53,7 @@ Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proye
 
 ### Base de datos y backend (siguiente etapa)
 
-La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. La integración actual cubre Auth, perfiles, barrios y reportes de emergencia. Los campos privados de reportes se separan de la información comunitaria. El directorio, avales, favores, recursos y moderación aún son locales; se incorporarán con sus propias migraciones, políticas y adaptadores de sincronización.
+La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. La integración actual cubre Auth, perfiles, barrios y reportes de emergencia. Los campos privados de reportes se separan de la información comunitaria. El muro de favores tiene transporte Supabase y requiere aplicar la migración `202611080003`. El directorio, avales, recursos y moderación aún son locales; se incorporarán con sus propias migraciones, políticas y adaptadores de sincronización.
 
 Sigue [SUPABASE_SETUP.md](SUPABASE_SETUP.md) para crear el proyecto, aplicar migraciones, configurar Auth, guardar las variables y probar el flujo. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
 
@@ -111,7 +112,7 @@ Esta sección conserva los requisitos acordados para el producto. Su presencia a
 
 ### Módulo 5: Funcionamiento Sin Conexión (Offline First)
 - **RF-22 (Consulta offline):** Los datos operativos guardados se leen localmente desde SQLite en Android/iOS y AsyncStorage en Web; contactos de apoyo siguen siendo datos semilla y no hay sincronización real.
-- **RF-23 (Guardado local de reportes):** El reporte de emergencia se guarda localmente y se encola con estado `PENDIENTE`. Servicios y favores se guardan localmente; cuando se crean sin conexión también se añaden a la cola, que aún no tiene transporte para estos tipos.
+- **RF-23 (Guardado local de reportes):** El reporte de emergencia se guarda localmente y se encola con estado `PENDIENTE`. Los favores y sus cambios se guardan en una cola persistente y se envían mediante un RPC autenticado. Los servicios siguen siendo locales, sin transporte compartido.
 - **RF-24 (Sincronización y prevención de duplicados):** La cola no elimina elementos hasta recibir confirmación. Reportes de emergencia usan un RPC idempotente; requiere proyecto Supabase, barrio sembrado y sesión válida. Otros tipos aún no tienen transporte backend.
 - **RF-25 (Límite de la coordinación offline):** Objetivo de producto. La advertencia se muestra en algunos flujos de demo, pero la cola aún no se entrega a coordinadores.
 
