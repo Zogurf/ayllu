@@ -50,7 +50,12 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
-<Text accessibilityRole="alert">{error}</Text>
+          {!!error && (
+            <View style={styles.errorBanner}>
+              <MaterialIcons name="error-outline" size={16} color={Colors.emergencyDark} />
+              <Text accessibilityRole="alert" style={styles.errorBannerText}>{error}</Text>
+            </View>
+          )}
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -167,6 +172,23 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 20,
     paddingBottom: 24,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  errorBannerText: {
+    fontSize: 12,
+    color: Colors.emergencyDark,
+    fontWeight: '600',
+    flex: 1,
   },
   dragHandle: {
     width: 44,

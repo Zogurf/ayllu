@@ -267,6 +267,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           </View>
         </View>
 
+        {/* Messaging Inbox Quick Card (Supabase) */}
+        {supabase && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.messagesQuickCard}
+            onPress={() => setShowInbox(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.messagesIconWrap}>
+              <MaterialIcons name="forum" size={22} color={Colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.messagesCardTitle}>Bandeja de Mensajes Barriales</Text>
+              <Text style={styles.messagesCardDesc}>
+                Conversaciones seguras con vecinos y coordinadores de brigada
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+        )}
+
         {/* Coverage Scope Switcher (RF-03) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
@@ -277,13 +298,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           </Text>
 
           {/* Scope 1 */}
-          {supabase && <TouchableOpacity accessibilityRole="button"
-            style={styles.signOutBtn}
-            onPress={() => setShowInbox(true)}
-          >
-            <MaterialIcons name="chat" size={18} color={Colors.primary} />
-            <Text style={styles.signOutBtnText}>Mensajes</Text>
-          </TouchableOpacity>}
           <TouchableOpacity accessibilityRole="button"
             style={[styles.scopeOption, user.coverageScope === 1 && styles.scopeOptionActive]}
             onPress={() => setCoverageScope(1)}
@@ -1017,6 +1031,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: Colors.emergencyDark,
+  },
+  messagesQuickCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  messagesIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messagesCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.secondary,
+  },
+  messagesCardDesc: {
+    fontSize: 11,
+    color: Colors.secondaryMuted,
+    marginTop: 1,
   },
   signOutBtn: {
     flexDirection: 'row',

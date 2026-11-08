@@ -1,4 +1,5 @@
 import { Avatar } from './Avatar';
+import { AylluLogo } from './AylluLogo';
 import { LEGACY_CUSCO_UBIGEO, resolveProfileUbigeo } from '../lib/ubigeo';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
@@ -46,14 +47,13 @@ export const Header: React.FC<HeaderProps> = ({
       <View style={styles.topRow}>
         {/* Ayllu Logo + Status */}
         <View style={styles.leftSection}>
-          <View style={styles.logoBadge}>
-            <MaterialIcons name="diversity-3" size={20} color={Colors.primary} />
-          </View>
+          <AylluLogo size={36} rounded />
           <View style={styles.titleColumn}>
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>AYLLU</Text>
+              <Text style={styles.brandTagline}>· Red Cívica</Text>
 
-              {/* Actual device network state */}
+              {/* Actual device network state with clear meaning */}
               <View
                 style={[styles.statusPill, isOnline ? styles.onlinePill : styles.offlinePill]}
               >
@@ -64,17 +64,18 @@ export const Header: React.FC<HeaderProps> = ({
               </View>
             </View>
 
-            {/* Neighborhood selector button */}
+            {/* Neighborhood selector button with pin icon */}
             <TouchableOpacity accessibilityRole="button"
-              accessibilityLabel={`Cambiar ubicación: ${user.neighborhood}, ${user.district}`}
+              accessibilityLabel={`Cambiar ubicación actual: ${user.neighborhood}, ${user.district}`}
               style={styles.locationSelector}
               onPress={onOpenNeighborhoodModal}
               activeOpacity={0.7}
             >
+              <MaterialIcons name="place" size={13} color={Colors.primary} style={{ marginRight: 2 }} />
               <Text style={styles.locationText} numberOfLines={1}>
                 {user.neighborhood} · {user.district}
               </Text>
-              <Text style={styles.changeText}>Cambiar</Text>
+              <MaterialIcons name="expand-more" size={16} color={Colors.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -85,9 +86,9 @@ export const Header: React.FC<HeaderProps> = ({
           <TouchableOpacity accessibilityRole="button"
             style={styles.iconButton}
             onPress={onOpenTutorial}
-            accessibilityLabel="Abrir tutorial de Ayllu"
+            accessibilityLabel="Abrir tutorial rápido de 3 claves cívicas"
           >
-            <MaterialIcons name="lightbulb-outline" size={20} color={Colors.primary} />
+            <MaterialIcons name="lightbulb-outline" size={18} color={Colors.primary} />
           </TouchableOpacity>
 
           {/* Profile Avatar with Role Indicator */}
@@ -95,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
             style={styles.avatarButton}
             onPress={onNavigateProfile}
             activeOpacity={0.8}
-            accessibilityLabel="Ver perfil y configuración"
+            accessibilityLabel="Ver mi perfil y configuración"
           >
             <Avatar
               uri={user.avatarUrl}
@@ -109,39 +110,150 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-      <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showScopeOptions }}
-        accessibilityLabel={`Viendo: ${scopeLabel}. Cambiar alcance`}
-        style={styles.scopeBar} onPress={() => setShowScopeOptions(value => !value)}>
-        <MaterialIcons name="filter-list" size={18} color={Colors.primary} />
-        <Text style={styles.scopeLabel}>Viendo: {scopeLabel}</Text>
-        <Text style={styles.changeText}>Cambiar alcance</Text>
+
+      {/* Scope Selector Bar */}
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityState={{ expanded: showScopeOptions }}
+        accessibilityLabel={`Filtrando publicaciones por: ${scopeLabel}. Toca para cambiar alcance`}
+        style={[styles.scopeBar, showScopeOptions && styles.scopeBarActive]}
+        onPress={() => setShowScopeOptions(value => !value)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.scopeBarLeft}>
+          <MaterialIcons name="tune" size={15} color={Colors.primary} />
+          <Text style={styles.scopeLabelPrefix}>Filtro de alcance:</Text>
+          <Text style={styles.scopeLabelActiveValue}>{scopeLabel}</Text>
+        </View>
+        <View style={styles.scopeBarRight}>
+          <Text style={styles.changeText}>{showScopeOptions ? 'Ocultar' : 'Cambiar'}</Text>
+          <MaterialIcons
+            name={showScopeOptions ? 'expand-less' : 'expand-more'}
+            size={16}
+            color={Colors.primary}
+          />
+        </View>
       </TouchableOpacity>
-      {showScopeOptions && <View style={styles.scopeOptions}>
-        <Text style={styles.scopeHelp}>Elige qué publicaciones ver. Esto no cambia quién puede ver las tuyas.</Text>
-        {([
-          { value: 1, label: 'Mi barrio' },
-          ...(hasAdjacentAreas ? [{ value: 2, label: 'Mi barrio y colindantes' }] : []),
-          { value: 3, label: 'Todo el distrito' },
-        ] as { value: 1 | 2 | 3; label: string }[]).map(option => (
-          <TouchableOpacity key={option.value} accessibilityRole="radio"
-            accessibilityState={{ checked: user.coverageScope === option.value }}
-            style={styles.scopeOption} onPress={() => { setCoverageScope(option.value); setShowScopeOptions(false); }}>
-            <MaterialIcons name={user.coverageScope === option.value ? 'radio-button-checked' : 'radio-button-unchecked'} size={20} color={Colors.primary} />
-            <Text style={styles.scopeLabel}>{option.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>}
+
+      {showScopeOptions && (
+        <View style={styles.scopeOptions}>
+          <Text style={styles.scopeHelp}>
+            Elige qué publicaciones y servicios ver en tu pantalla. Esto no afecta la privacidad de lo que tú publiques.
+          </Text>
+          {([
+            { value: 1, label: 'Mi barrio únicamente (~450m)' },
+            ...(hasAdjacentAreas ? [{ value: 2, label: 'Mi barrio y colindantes' }] : []),
+            { value: 3, label: 'Todo el distrito' },
+          ] as { value: 1 | 2 | 3; label: string }[]).map(option => {
+            const isSelected = user.coverageScope === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                style={[styles.scopeOption, isSelected && styles.scopeOptionSelected]}
+                onPress={() => {
+                  setCoverageScope(option.value);
+                  setShowScopeOptions(false);
+                }}
+              >
+                <MaterialIcons
+                  name={isSelected ? 'radio-button-checked' : 'radio-button-unchecked'}
+                  size={18}
+                  color={isSelected ? Colors.primary : Colors.slateDim}
+                />
+                <Text style={[styles.scopeOptionText, isSelected && styles.scopeOptionTextSelected]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scopeBar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 8, minHeight: 44, padding: 10, borderRadius: 10, backgroundColor: Colors.surfaceSubtle },
-  scopeLabel: { flex: 1, fontSize: 12, color: Colors.secondary, fontWeight: '600' },
-  changeText: { fontSize: 12, color: Colors.primary, fontWeight: '700' },
-  scopeOptions: { padding: 10, gap: 4 },
-  scopeHelp: { fontSize: 12, lineHeight: 18, color: Colors.secondaryMuted },
-  scopeOption: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  scopeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  scopeBarActive: {
+    borderColor: '#bfdbfe',
+    backgroundColor: '#eff6ff',
+  },
+  scopeBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  scopeLabelPrefix: {
+    fontSize: 11.5,
+    color: Colors.slateDim,
+    fontWeight: '500',
+  },
+  scopeLabelActiveValue: {
+    fontSize: 12,
+    color: Colors.primaryDark,
+    fontWeight: '700',
+  },
+  scopeBarRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  changeText: {
+    fontSize: 11.5,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  scopeOptions: {
+    backgroundColor: Colors.surface,
+    padding: 12,
+    gap: 6,
+    marginTop: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  scopeHelp: {
+    fontSize: 11.5,
+    lineHeight: 17,
+    color: Colors.secondaryMuted,
+    marginBottom: 4,
+  },
+  scopeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 40,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  scopeOptionSelected: {
+    backgroundColor: Colors.primaryContainer,
+  },
+  scopeOptionText: {
+    fontSize: 12.5,
+    color: Colors.secondary,
+    fontWeight: '500',
+  },
+  scopeOptionTextSelected: {
+    color: Colors.primaryDark,
+    fontWeight: '700',
+  },
   container: {
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
@@ -163,8 +275,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoBadge: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     backgroundColor: Colors.primaryContainer,
     borderWidth: 1,
@@ -182,10 +294,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   brandText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '900',
     color: Colors.primary,
     letterSpacing: 0.8,
+  },
+  brandTagline: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.slateDim,
   },
   statusPill: {
     flexDirection: 'row',
@@ -210,7 +327,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   onlineDot: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.success,
   },
   offlineDot: {
     backgroundColor: Colors.warning,
@@ -220,7 +337,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   onlineText: {
-    color: Colors.primaryDark,
+    color: '#15803d',
   },
   offlineText: {
     color: Colors.warningText,
@@ -228,9 +345,8 @@ const styles = StyleSheet.create({
   locationSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 1,
-    marginTop: 1,
-    minHeight: 44,
+    gap: 2,
+    marginTop: 2,
   },
   locationText: {
     fontSize: 12,

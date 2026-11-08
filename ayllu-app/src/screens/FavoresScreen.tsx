@@ -317,7 +317,22 @@ export const FavoresScreen: React.FC = () => {
                     </View>
                   )}
 
-                  {syncError && <View style={{padding:12}}><Text accessibilityRole="alert">{syncError.errorMessage}</Text><TouchableOpacity accessibilityRole="button" onPress={()=>{void runAction(async()=>{await synchronizeQueue(true);});}}><Text>Reintentar sincronización</Text></TouchableOpacity></View>}
+                  {syncError && (
+                    <View style={styles.syncErrorCard}>
+                      <View style={styles.syncErrorLeft}>
+                        <MaterialIcons name="sync-problem" size={16} color={Colors.emergencyDark} />
+                        <Text accessibilityRole="alert" style={styles.syncErrorCardText}>{syncError.errorMessage}</Text>
+                      </View>
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        style={styles.syncErrorRetryBtn}
+                        onPress={() => { void runAction(async () => { await synchronizeQueue(true); }); }}
+                      >
+                        <MaterialIcons name="refresh" size={13} color="#ffffff" style={{ marginRight: 2 }} />
+                        <Text style={styles.syncErrorRetryBtnText}>Reintentar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   {/* Header: Author, Verification, Neighborhood, Status */}
                   <View style={styles.favorHeader}>
                     <View style={styles.authorProfile}>
@@ -1118,5 +1133,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.secondary,
+  },
+  syncErrorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+    gap: 8,
+  },
+  syncErrorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  syncErrorCardText: {
+    fontSize: 11.5,
+    color: Colors.emergencyDark,
+    fontWeight: '600',
+    flex: 1,
+  },
+  syncErrorRetryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.emergency,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  syncErrorRetryBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });

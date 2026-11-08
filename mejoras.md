@@ -151,3 +151,98 @@ Durante esta intervención se realizaron las siguientes mejoras concretas de có
 - [ ] Configurar EAS Build (`eas.json`) para compilar paquetes Android (APK / AAB) e iOS (IPA para TestFlight).
 - [ ] Configurar alojamiento para la versión web con cabeceras de seguridad CSP (Content Security Policy) y certificados SSL/TLS.
 - [ ] Habilitar monitoreo de excepciones sin registro de datos sensibles (evitar capturar PII en logs de error).
+
+---
+
+## 6. Rediseño Integral de Experiencia de Usuario (UX) y Sistema Visual (UI) - Edición SaaS
+
+En esta fase se ejecutó una transformación completa del producto desde el rol de **Senior UX/UI Designer, Product Designer y Frontend Developer**, elevando la calidad de Ayllu a un estándar comercial SaaS profesional sin alterar la lógica de negocio ni los contratos de API existentes.
+
+### 6.1. Auditoría UX/UI y Problemas Detectados
+
+Antes de la intervención, se identificaron fricciones críticas en la experiencia:
+1. **Estiramiento no restringido en Web/Desktop:** En pantallas grandes, las tarjetas, listas y modales se expandían al 100% del ancho del viewport, generando líneas de texto ilegibles (>1200px) y campos de entrada desproporcionados.
+2. **Textos y estados de error no formateados:** Errores de sincronización y validaciones se mostraban como cadenas de texto plano (`<Text accessibilityRole="alert">{error}</Text>`) sin iconos, sin padding, ni contraste adecuado.
+3. **Falta de sistema de diseño y tokens unificados:** Variaciones arbitrarias en radios de borde (4px, 6px, 8px, 12px, 16px, 24px) y sombras inconsistentes entre pantallas.
+4. **Bandeja de Mensajería comprimida:** El modal de mensajería (`MessagingInboxModal`) mostraba hilos y mensajes en una sola línea condensada, sin burbujas de conversación, sin indicadores de lectura (`Enviado`, `Entregado`, `Leído`), y con botones de envío poco notorios.
+5. **Ubicación ilógica de acciones en Perfil:** La acción de "Mensajes" estaba ubicada de forma accidental como un botón dentro del selector de alcance territorial, generando confusión sobre su propósito.
+6. **Controles de formulario poco amigables:** En modales de publicación, las autorizaciones de compartir teléfono utilizaban caracteres ASCII (`☑`/`☐`) en vez de componentes táctiles con accesibilidad nativa y explicación clara de privacidad.
+7. **Tablero de Emergencias poco claro para legos:** Los KPIs carecían de jerarquía visual y la pestaña de auditoría de trazabilidad no tenía formato de línea temporal con iconos de eventos.
+
+### 6.2. Sistema Visual y Componentes Reutilizables Implementados
+
+Se enriqueció el núcleo de diseño en `src/theme/colors.ts` y se creó la biblioteca de componentes atómicos en `src/components/ui/`:
+
+1. **Tokens de Diseño Centralizados (`src/theme/colors.ts`):**
+   - **`Spacing`:** Escala modular uniforme (`xs: 4`, `sm: 8`, `md: 12`, `lg: 16`, `xl: 20`, `xxl: 24`, `xxxl: 32`).
+   - **`BorderRadius`:** Radios consistentes (`none: 0`, `xs: 4`, `sm: 8`, `md: 12`, `lg: 16`, `xl: 20`, `full: 9999`).
+   - **`Shadows`:** Elevaciones multiplataforma pulidas (`sm`, `md`, `lg`, `modal`).
+   - **`Typography`:** Escala tipográfica estandarizada (`xs: 10.5` a `hero: 28`).
+
+2. **Componente `ResponsiveContainer` (`src/components/ui/ResponsiveContainer.tsx`):**
+   - Centra y restringe el ancho de la aplicación en pantallas grandes (Desktop/Web) con `maxWidth` predeterminado de 768px, borde sutil y sombra suave, manteniendo el 100% del ancho fluido en dispositivos móviles y tablets nativas.
+
+3. **Componente `Badge` (`src/components/ui/Badge.tsx`):**
+   - Distintivo visual reutilizable para estados y categorías con soporte de variantes (`primary`, `secondary`, `success`, `warning`, `danger`, `emergency`, `info`, `neutral`), puntos pulsantes (`pulse`) e iconos opcionales.
+
+4. **Componente `Button` (`src/components/ui/Button.tsx`):**
+   - Botón interactivo accesible con variantes (`primary`, `secondary`, `outline`, `danger`, `ghost`), tamaños (`sm`, `md`, `lg`), estados de carga con spinner y soporte de iconos.
+
+5. **Componente `Card` (`src/components/ui/Card.tsx`):**
+   - Contenedor estructural con soporte de variantes (`default`, `elevated`, `outlined`, `emergency`) y paddings semánticos.
+
+6. **Componente `EmptyCommunityState` mejorado (`src/components/EmptyCommunityState.tsx`):**
+   - Estado vacío profesional con avatar circular decorativo, tipografía jerárquica clara, llamada a la acción principal y acción secundaria opcional.
+
+### 6.3. Pantallas y Módulos Rediseñados
+
+1. **Navegación Global (`src/AppNavigator.tsx`):**
+   - Contenedor responsivo centrado para Web/Desktop.
+   - Pestañas inferiores con indicadores activos estilizados en píldora, roles de accesibilidad semánticos y etiquetas legibles.
+
+2. **Encabezado Comunitario (`src/components/Header.tsx`):**
+   - Marca SaaS limpia con logo e indicador de estado de red (`Online` con punto verde / `Offline` con punto ámbar).
+   - Selector de localidad con icono de pin y conmutador colapsable de alcance territorial con retroalimentación inmediata.
+
+3. **Muro Solidario (`src/screens/FavoresScreen.tsx`):**
+   - Banner de error de sincronización rediseñado como tarjeta interactiva de reintento.
+   - Pestañas de modo ("Todos", "Quiero ayudar", "Necesito ayuda") con contadores claros.
+   - Botón flotante/superior de publicación visible y accesible.
+
+4. **Tablero de Auxilio y Emergencias (`src/screens/EmergencyDashboardScreen.tsx`):**
+   - Banner de aviso superior estructurado.
+   - Tarjeta de estado de modo barrial con pulso de tranquilidad ("Monitoreo Preventivo Activo") vs alerta ("Modo Emergencia Activo").
+   - Rejilla de métricas KPI en 4 tarjetas estilizadas con iconos semánticos y fondos tintados (Totales, Pendientes en rojo, En Atención en azul, Resueltos en verde).
+   - Línea de tiempo inmutable en pestaña "Trazabilidad" con tarjetas individuales, iconos por tipo de evento y metadatos de usuario/hora.
+   - Formulario de recursos críticos con chips de selección táctiles y campos limpios.
+
+5. **Directorio y Red de Emergencias (`src/screens/DirectoryScreen.tsx`):**
+   - Conmutador segmentado con feedback de estado activo para "Oficios Barriales" vs "Red de Emergencia 24/7".
+   - Tarjetas de proveedores con avatar, especialidad, distintivo de avales vecinales (+1) y botones de acción rápida.
+   - Banners de aviso de llamadas con confirmación previa para evitar marcado accidental.
+
+6. **Perfil Vecinal y Conectividad (`src/screens/ProfileScreen.tsx`):**
+   - Tarjeta de identidad limpia con avatar interactivo (selector de fotos locales), apodo, teléfono y zona comunitaria activa.
+   - Nueva tarjeta destacada "Bandeja de Mensajes Barriales" para acceso directo a conversaciones privadas.
+   - Conmutador de alcance simplificado con estados de selección claros e informativos sobre radios de cobertura.
+   - Lista de cola de sincronización con insignias de estado explícitas ("En cola", "Sincronizando", "Error", "Confirmado").
+
+7. **Bandeja de Mensajería Interna (`src/components/MessagingInboxModal.tsx`):**
+   - Transformación de la vista básica en una interfaz de chat moderna con lista de conversaciones a la izquierda/superior y área de mensajes.
+   - Encabezado de conversación con nombre de interlocutor, título del favor y distintivo de privacidad/cifrado.
+   - Burbujas de chat diferenciadas (propios vs recibidos) con marcas de entrega y lectura (`Enviado`, `Entregado`, `Leído`) mediante iconos de doble check.
+   - Barra de redacción táctil con botón de envío elevado y estado de carga.
+
+8. **Modales de Publicación y Moderación:**
+   - `PublishFavorModal.tsx`: Barra de progreso de 3 pasos con números de paso circulares y estados completados; banderas de consentimiento con checkboxes nativos y explicaciones claras sobre números de WhatsApp.
+   - `PublishServiceModal.tsx`: Reubicación lógica de campos y avisos dentro del cuerpo del formulario, selector de categorías por chips e indicador de alcance territorial.
+   - `ManageEmergencyModal.tsx` y `ContentReportModal.tsx`: Banners de alerta estructurados en sustitución de textos de error sin formato.
+
+### 6.4. Verificación de Calidad y Tests
+
+- **Pruebas Unitarias y de Integración:** 26 de 26 pruebas pasando (`node --test ayllu-app/tests/*.test.cjs`).
+- **Verificación de Tipos TypeScript:** 0 errores (`npx tsc --noEmit`).
+- **Linter de Calidad:** 0 errores, 0 advertencias (`npx expo lint`).
+- **Scripts de Validación de Migraciones:**
+  - `check-favor-migrations.cjs`: Aprobado (idempotencia, RLS, favores, servicios, trazabilidad).
+  - `check-ubigeo-migrations.cjs`: Aprobado (catálogo nacional de 1,874 distritos, perfiles, retrocompatibilidad).
