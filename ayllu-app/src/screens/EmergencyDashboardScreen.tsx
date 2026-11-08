@@ -489,22 +489,22 @@ export const EmergencyDashboardScreen: React.FC = () => {
         {/* ======================================================== */}
         {activeTab === 'recursos' && (
           <View style={styles.tabContent}>
-            <TouchableOpacity accessibilityRole="button"
+            {canCoordinate && <TouchableOpacity accessibilityRole="button"
               style={[styles.newReportBtn, { backgroundColor: Colors.primary }]}
               onPress={() => setShowAddResourceModal(true)}
               activeOpacity={0.85}
             >
               <MaterialIcons name="add-box" size={20} color="#ffffff" />
               <Text style={styles.newReportBtnText}>Registrar / Ofrecer Recurso Crítico</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
 
             <View style={styles.resourcesList}>
               {filteredCriticalResources.length === 0 && (
                 <EmptyCommunityState
                   title="Todavía no hay recursos registrados en este alcance"
-                  description="Registra agua, alimentos u otros recursos disponibles para apoyar a tu comunidad."
-                  actionLabel="Registrar un recurso"
-                  onAction={() => setShowAddResourceModal(true)}
+                  description={canCoordinate ? "Registra agua, alimentos u otros recursos disponibles para apoyar a tu comunidad." : "Los coordinadores registran aquí los recursos disponibles para el barrio."}
+                  actionLabel={canCoordinate ? "Registrar un recurso" : "Ver reportes de la comunidad"}
+                  onAction={() => canCoordinate ? setShowAddResourceModal(true) : setActiveTab('reportes')}
                 />
               )}
               {filteredCriticalResources.map(res => (

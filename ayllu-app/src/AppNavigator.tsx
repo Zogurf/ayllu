@@ -1,3 +1,4 @@
+import { getLocalAvatar } from './storage/avatarStorage';
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
@@ -36,8 +37,9 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 type TabType = 'directorio' | 'favores' | 'emergencia' | 'perfil';
 
 export const AppNavigator: React.FC = () => {
-  const { user, updateProfile, isHydrated, emergencyMode, showTutorial, setShowTutorial } = useApp();
+  const { user, updateProfile, isHydrated, isOnline, canCoordinate, emergencyMode, showTutorial, setShowTutorial } = useApp();
   const profileLookupInProgress = useRef(false);
+  const restoredOfflineProfile = useRef(false);
   const updateProfileRef = useRef(updateProfile);
 
   const [activeTab, setActiveTab] = useState<TabType>('directorio');
@@ -101,25 +103,34 @@ export const AppNavigator: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!supabase || !session || !isHydrated || profileCheck === 'exists' || profileCheck === 'missing' || profileCheck === 'error') return;
+    if (!supabase || !session || !isHydrated || (profileCheck === 'exists' && !(restoredOfflineProfile.current && isOnline)) || profileCheck === 'missing' || profileCheck === 'error') return;
     if (profileLookupInProgress.current) return;
     let mounted = true;
     profileLookupInProgress.current = true;
     void (async () => {
       try {
+        const avatarUrl = await getLocalAvatar(session.user.id, session.user.user_metadata?.avatar_url ?? session.user.user_metadata?.picture);
+        if (!mounted) return;
+    if (!isOnline && user.id === session.user.id && user.isRegistered && user.neighborhoodId) {
+      restoredOfflineProfile.current = true;
+      setProfileCheck('exists');
+      return;
+    }
+        restoredOfflineProfile.current = false;
         const { data: profile, error: profileQueryError } = await supabase
           .from('profiles')
           .select('nickname, phone, neighborhood_id')
           .eq('id', session.user.id)
           .maybeSingle();
         if (profileQueryError) throw profileQueryError;
+        if (!mounted) return;
         if (!profile) {
           if (mounted) {
             updateProfileRef.current({
               id: session.user.id, nickname: '', phone: '', neighborhood: '', district: '', region: '',
               province: undefined, districtUbigeo: undefined, neighborhoodId: undefined,
               role: 'vecino', isRegistered: false, gpsEnabled: false, coords: undefined,
-              avatarUrl: (user.id === session.user.id && user.avatarUrl.startsWith('data:image/') ? user.avatarUrl : String(session.user.user_metadata?.avatar_url ?? session.user.user_metadata?.picture ?? '')), coverageScope: 1,
+              avatarUrl: avatarUrl, coverageScope: 1,
             });
             setProfileCheck('missing');
           }
@@ -146,7 +157,7 @@ export const AppNavigator: React.FC = () => {
           ...getLocation(neighborhoodResult.data?.district_ubigeo ?? ''),
           role: membershipResult.data?.role ?? 'vecino',
           isRegistered: true,
-          avatarUrl: (user.id === session.user.id && user.avatarUrl.startsWith('data:image/') ? user.avatarUrl : String(session.user.user_metadata?.avatar_url ?? session.user.user_metadata?.picture ?? '')),
+          avatarUrl: avatarUrl,
         });
         setProfileCheck('exists');
       } catch (error) {
@@ -160,7 +171,7 @@ export const AppNavigator: React.FC = () => {
       mounted = false;
       profileLookupInProgress.current = false;
     };
-  }, [session, isHydrated, profileRetry, profileCheck]);
+  }, [session, isHydrated, profileRetry, profileCheck, isOnline, user.id, user.isRegistered, user.neighborhoodId]);
 
   if (supabase && authLoading) {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
@@ -221,7 +232,7 @@ export const AppNavigator: React.FC = () => {
       <View style={styles.body}>
         {activeTab === 'directorio' && <DirectoryScreen />}
         {activeTab === 'favores' && <FavoresScreen />}
-        {activeTab === 'emergencia' && <EmergencyDashboardScreen />}
+        {activeTab === 'emergencia' && <EmergencyDashboardScreen key={`${user.id}:${user.neighborhoodId}:${canCoordinate}`} />}
         {activeTab === 'perfil' && (
           <ProfileScreen onOpenTutorial={() => setShowTutorial(true)} />
         )}

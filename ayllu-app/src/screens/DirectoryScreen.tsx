@@ -1,3 +1,4 @@
+import { Avatar } from '../components/Avatar';
 import { EmptyCommunityState } from '../components/EmptyCommunityState';
 import React, { useState } from 'react';
 import {
@@ -7,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
   Linking,
   Modal
 } from 'react-native';
@@ -290,7 +290,7 @@ export const DirectoryScreen: React.FC = () => {
                     {/* Card Top: Avatar, Name, Category, Avales Badge */}
                     <View style={styles.cardHeader}>
                       <View style={styles.cardProfile}>
-                        <Image source={{ uri: service.avatarUrl }} style={styles.providerAvatar} />
+                        <Avatar uri={service.avatarUrl} style={styles.providerAvatar} />
                         <View style={styles.providerInfo}>
                           <View style={styles.nameRow}>
                             <Text style={styles.providerName}>{service.providerName}</Text>
@@ -565,7 +565,7 @@ export const DirectoryScreen: React.FC = () => {
               </View>
 
               <View style={styles.modalProfileRow}>
-                <Image source={{ uri: detailService.avatarUrl }} style={styles.detailAvatar} />
+                <Avatar uri={detailService.avatarUrl} style={styles.detailAvatar} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.detailName}>{detailService.providerName}</Text>
                   <Text style={styles.detailTitle}>{detailService.title}</Text>

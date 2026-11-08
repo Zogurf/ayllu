@@ -1,3 +1,4 @@
+import { saveLocalAvatar } from '../storage/avatarStorage';
 import React, { useState } from 'react';
 import {
   View,
@@ -68,8 +69,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
       const photo = result.assets[0];
       if (!photo.base64) throw new Error('No se pudo preparar la imagen. Elige otra foto.');
       const mimeType = photo.mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
-      // Keep the resized image in the existing per-device profile storage; no upload is made.
-      updateProfile({ avatarUrl: `data:${mimeType};base64,${photo.base64}` });
+      const avatarUrl = `data:${mimeType};base64,${photo.base64}`;
+      await saveLocalAvatar(user.id, avatarUrl);
+      updateProfile({ avatarUrl });
       void notify('Foto actualizada', 'La foto se guardó en este dispositivo. No se comparte con otras cuentas.');
     } catch (error) {
       void notify('No se cambió la foto', error instanceof Error ? error.message : 'Inténtalo de nuevo.');
@@ -114,7 +116,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
       'Ayllu usará la ubicación mientras utilizas la app para calcular distancias aproximadas. Las coordenadas se guardan en este dispositivo y no se publican.',
       'Permitir',
     );
-    if (!accepted) return;
+    if (!accepted || !supabase) return;
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) throw new Error('Permite el acceso a la ubicación mientras usas Ayllu.');
@@ -192,7 +194,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               onPress={() => {
                 void confirmAction('Cerrar sesión', 'Tendrás que volver a iniciar sesión para acceder a tu cuenta.', 'Cerrar sesión')
                   .then(async accepted => {
-                    if (!accepted) return;
+                    if (!accepted || !supabase) return;
                     try {
                       const { error } = await supabase.auth.signOut();
                       if (error) throw error;
@@ -493,7 +495,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             <Text style={styles.tutorialBtnText}>Volver a ver el tutorial inicial</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity accessibilityRole="button"
+          {!supabase && <TouchableOpacity accessibilityRole="button"
             style={styles.resetBtn}
             onPress={() => {
               void confirmAction(
@@ -505,7 +507,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
           >
             <MaterialIcons name="restart-alt" size={18} color={Colors.emergencyDark} />
             <Text style={styles.resetBtnText}>Restablecer Datos Demo</Text>
-          </TouchableOpacity>
+          </TouchableOpacity>}
 
         </View>
       </ScrollView>

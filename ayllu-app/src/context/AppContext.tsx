@@ -1,5 +1,7 @@
+import { loadSharedSnapshot, saveSharedSnapshot, loadFavorSnapshot, saveFavorSnapshot } from '../storage/sharedCache';
 import { getLocation, locationMatchesScope, resolveProfileUbigeo } from '../lib/ubigeo';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { Platform } from 'react-native';
 import * as Network from 'expo-network';
 import { 
   UserProfile, 
@@ -54,7 +56,7 @@ interface AppContextType {
   // Local Services & Directory
   services: LocalService[];
   filteredServices: LocalService[];
-  addService: (service: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified' | 'isOfflinePending'>) => Promise<void>;
+  addService: (service: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified' | 'isOfflinePending'>) => Promise<string>;
   toggleAval: (serviceId: string) => Promise<{ success: boolean; message: string }>;
   saveService: (service: LocalService, action?: 'save' | 'delete') => Promise<void>;
   sharedError: string;
@@ -78,7 +80,7 @@ interface AppContextType {
   emergencyReports: EmergencyReport[];
   emergencyAuditEvents: EmergencyAuditEvent[];
   filteredEmergencyReports: EmergencyReport[];
-  addEmergencyReport: (report: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
+  addEmergencyReport: (report: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>, operationId?: string) => Promise<'published' | 'pending'>;
   updateEmergencyReportStatus: (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => Promise<void>;
 
   // Critical Resources
@@ -124,6 +126,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [hasMoreFavors, setHasMoreFavors] = useState(true);
   const [favorsError, setFavorsError] = useState('');
   const [sharedError, setSharedError] = useState('');
+  const [sharedRevision, setSharedRevision] = useState(0);
   const [canCoordinate, setCanCoordinate] = useState(false);
 
   // Load persisted offline state on startup
@@ -316,14 +319,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveService = async (service: LocalService, action: 'save' | 'delete' = 'save') => {
-    if (!supabase || !user.neighborhoodId) throw new Error('Inicia sesión y completa tu barrio.');
+    if (!supabase) {
+      const updated = action === 'delete' ? services.filter(item => item.id !== service.id)
+        : [{ ...service, isOfflinePending: false }, ...services.filter(item => item.id !== service.id)];
+      await OfflineStorage.saveServices(updated);
+      setServices(updated);
+      return;
+    }
+    if (!user.neighborhoodId) throw new Error('Completa tu barrio antes de ofrecer un servicio.');
     if (service.authorId !== user.id) throw new Error('Solo el autor puede modificar el servicio.');
-    await enqueueSyncItem({id:createUuid(),ownerUserId:user.id,type:'service_post',payload:{...service,action},status:'pending',title:`Servicio: ${service.title}`,createdAt:new Date().toISOString()});
+    await enqueueSyncItem({id:createUuid(),ownerUserId:user.id,type:'service_post',payload:{...service,avatarUrl:service.avatarUrl.startsWith('data:') ? '' : service.avatarUrl,action},status:'pending',title:`Servicio: ${service.title}`,createdAt:new Date().toISOString()});
     const updated=action==='delete' ? services.filter(s=>s.id!==service.id) : [{...service,isOfflinePending:true},...services.filter(s=>s.id!==service.id)];
     await OfflineStorage.saveServices(updated); setServices(updated);
   };
   const addService = async (data: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified' | 'isOfflinePending'>) => {
-    await saveService({...data,authorId:user.id,districtUbigeo:resolveProfileUbigeo(user),id:createUuid(),createdAt:new Date().toISOString(),avalesCount:0,avalesUserIds:[],isVerified:false,isOfflinePending:true});
+    const id = createUuid();
+    await saveService({...data,authorId:user.id,districtUbigeo:resolveProfileUbigeo(user),id,createdAt:new Date().toISOString(),avalesCount:0,avalesUserIds:[],isVerified:false,isOfflinePending:true});
+    return id;
   };
   const toggleAval = async (serviceId: string) => {
     const target=services.find(s=>s.id===serviceId);
@@ -373,12 +385,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         setServices([...byId.values()]); setCriticalResources(data.resources); setContentReports(data.moderation); setEmergencyMode(data.mode); setCanCoordinate(data.canCoordinate); setEmergencyAuditEvents(data.auditEvents);
         setEmergencyReports(current=>[...current.filter(r=>ownQueue.some(q=>q.type==='emergency_report' && q.payload.reportId===r.id)),...data.reports]);
+        void saveSharedSnapshot(user.id, user.neighborhoodId!, {services:[...byId.values()],reports:data.reports,resources:data.resources,mode:data.mode}).catch(() => { /* Feed remains available even when device storage is full. */ });
         setSharedError('');
       } catch(error) { if(active) setSharedError(error && typeof error==='object' && 'message' in error ? String(error.message) : 'No se pudo actualizar la comunidad.'); }
     };
     void refresh(); const timer=setInterval(()=>{void refresh();},15000);
     return ()=>{active=false;clearInterval(timer);};
-  }, [user.id,user.neighborhoodId,isHydrated,isOnline,lastSyncTime,user,favorRevision]);
+  }, [user.id,user.neighborhoodId,isHydrated,isOnline,lastSyncTime,user,favorRevision,sharedRevision]);
+
+  useEffect(() => {
+    const client = supabase;
+    const district = resolveProfileUbigeo(user);
+    if (!client || !isOnline || !isHydrated || !user.neighborhoodId || !district) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setSharedRevision(value => value + 1), 350);
+    };
+    const channel = client.channel(`shared:${user.id}:${user.neighborhoodId}`);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'local_services', filter: `district_ubigeo=eq.${district}` }, scheduleRefresh);
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'service_endorsements' }, scheduleRefresh);
+    for (const table of ['emergency_reports', 'critical_resources', 'emergency_modes', 'content_reports', 'emergency_audit_events']) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `neighborhood_id=eq.${user.neighborhoodId}` }, scheduleRefresh);
+    }
+    channel.subscribe();
+    return () => { if (timer) clearTimeout(timer); void client.removeChannel(channel); };
+  }, [user, isOnline, isHydrated]);
+
+  useEffect(() => {
+    if (!supabase || !isHydrated || isOnline || !user.neighborhoodId) return;
+    let active = true;
+    void Promise.all([loadSharedSnapshot(user.id, user.neighborhoodId), OfflineStorage.getSyncQueue(), OfflineStorage.getEmergencyReports(), loadFavorSnapshot(user.id, resolveProfileUbigeo(user) ?? '')]).then(([snapshot, queue, savedReports, cachedFavors]) => {
+      if (!active) return;
+      const ownQueue = queue.filter(item => item.ownerUserId === user.id);
+      const byId = new Map((snapshot?.services ?? []).filter(service => !service.isOfflinePending).map(service => [service.id, service]));
+      for (const item of [...ownQueue].reverse()) {
+        if (item.type !== 'service_post') continue;
+        const service = item.payload as LocalService & {action?: string};
+        if (service.action === 'delete') byId.delete(service.id);
+        else byId.set(service.id, {...service, isOfflinePending:true});
+      }
+      setServices([...byId.values()]);
+      const pendingReports = savedReports.filter(report => ownQueue.some(item => item.type === 'emergency_report' && item.payload.reportId === report.id));
+      setEmergencyReports([...pendingReports, ...(snapshot?.reports ?? [])]);
+      setFavors(current => mergeFavorFeed(current, cachedFavors, ownQueue, user.id));
+      if (snapshot) { setCriticalResources(snapshot.resources); setEmergencyMode(snapshot.mode); }
+    }).catch(() => setSharedError('No se pudo recuperar la copia guardada en este dispositivo.'));
+    return () => { active = false; };
+  }, [user, isHydrated, isOnline]);
 
   const readPrivateReport = async (id: string): Promise<Record<string,string>> => rpc('read_emergency_private',{p_report_id:id});
 
@@ -399,6 +453,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         void OfflineStorage.saveFavors(updated).catch(console.warn);
         return updated;
       });
+      void saveFavorSnapshot(owner, district, remote).catch(() => { /* Keep the current feed if storage is full. */ });
       setHasMoreFavors(remote.length === favorLimit);
       setFavorsError('');
     } catch (error) {
@@ -452,7 +507,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (supabase) {
       const item: SyncQueueItem = {
         id: createUuid(), ownerUserId: user.id, type: 'favor',
-        payload: { ...favor, version: favor.version ?? 0, action }, createdAt: new Date().toISOString(),
+        payload: { ...favor, authorAvatar: favor.authorAvatar?.startsWith('data:') ? '' : favor.authorAvatar, version: favor.version ?? 0, action }, createdAt: new Date().toISOString(),
         status: 'pending', title: `Favor: ${favor.title}`,
       };
       // Save the durable operation first; retries reuse its identifier.
@@ -510,8 +565,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Emergency Reports (RF-17, RF-18, RF-19)
-  const addEmergencyReport = async (reportData: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => {
-    const id = createUuid();
+  const addEmergencyReport = async (reportData: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>, operationId = createUuid()): Promise<'published' | 'pending'> => {
+    const id = operationId;
+    if (Platform.OS === 'web') {
+      if (!supabase || !isOnline || !user.neighborhoodId) throw new Error('Para enviar un reporte desde la web, inicia sesión, completa tu barrio y conéctate a internet. Los datos permanecen en el formulario.');
+      const result = await rpc('sync_emergency_report', {
+        p_idempotency_key: operationId,
+        p_report: { id, neighborhood_id: user.neighborhoodId, category: reportData.category, title: reportData.title, description: reportData.description, priority: reportData.priority },
+        p_private: { beneficiary_name: reportData.beneficiaryName, beneficiary_age: reportData.beneficiaryAge ?? null, exact_address: reportData.exactAddress, contact_phone: reportData.contactPhone, consent_at: new Date().toISOString(), consent_version: 'ayllu-emergency-v1' },
+      });
+      if (result !== id) throw new Error('El servidor no confirmó el reporte. Reintenta sin cerrar el formulario.');
+      setEmergencyReports(current => [{...redactEmergencyReport({...reportData, id, code: `AY-${id.slice(0,8)}`, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), status:'pendiente', districtUbigeo:resolveProfileUbigeo(user)}), isOfflinePending:false}, ...current.filter(report => report.id !== id)]);
+      setFavorRevision(current => current + 1);
+      return 'published';
+    }
     const codeNum = Math.floor(100 + Math.random() * 900);
     const newReport: EmergencyReport = {
       ...reportData,
@@ -561,11 +628,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await OfflineStorage.removePrivateEmergencyReport(id);
       throw error;
     }
+    return 'pending';
   };
 
   const updateEmergencyReportStatus = async (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => {
     if (!isOnline) throw new Error('Conéctate para actualizar el reporte.');
-    await rpc('update_emergency_status',{p_report_id:reportId,p_status:status,p_brigade:assignedBrigade ?? null});
+    await rpc('update_emergency_status',{p_report_id:reportId,p_status:status,p_brigade:assignedBrigade ?? emergencyReports.find(report => report.id === reportId)?.assignedBrigade ?? null});
     setEmergencyReports(current=>current.map(r=>r.id===reportId?{...r,status,assignedBrigade:assignedBrigade??r.assignedBrigade,updatedAt:new Date().toISOString()}:r));
   };
 
@@ -574,8 +642,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const match=data.quantity.trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
     if (!match || Number(match[1].replace(',','.'))<=0) throw new Error('Ingresa cantidad positiva y unidad.');
     const id=createUuid();
-    await rpc('save_critical_resource',{p_id:id,p_content:data,p_quantity:Number(match[1].replace(',','.')),p_unit:match[2] || 'unidades',p_version:0});
-    setCriticalResources(current=>[{...data,id,version:1,updatedAt:new Date().toISOString()},...current]);
+    const content = {...data,districtUbigeo:resolveProfileUbigeo(user)};
+    await rpc('save_critical_resource',{p_id:id,p_content:content,p_quantity:Number(match[1].replace(',','.')),p_unit:match[2] || 'unidades',p_version:0});
+    setCriticalResources(current=>[{...content,id,version:1,updatedAt:new Date().toISOString()},...current]);
   };
 
   const addContentReport = async (data: Omit<ContentReport, 'id' | 'createdAt' | 'status'>) => {

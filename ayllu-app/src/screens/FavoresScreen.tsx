@@ -1,3 +1,4 @@
+import { Avatar } from '../components/Avatar';
 import { EmptyCommunityState } from '../components/EmptyCommunityState';
 import React, { useState } from 'react';
 import {
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   TextInput,
   Modal,
   RefreshControl
@@ -321,7 +321,7 @@ export const FavoresScreen: React.FC = () => {
                   {/* Header: Author, Verification, Neighborhood, Status */}
                   <View style={styles.favorHeader}>
                     <View style={styles.authorProfile}>
-                      {!!favor.authorAvatar && <Image source={{ uri: favor.authorAvatar }} style={styles.authorAvatar} />}
+                      <Avatar uri={favor.authorAvatar} style={styles.authorAvatar} />
                       <View>
                         <View style={styles.authorNameRow}>
                           <Text style={styles.authorName}>{favor.authorName}</Text>

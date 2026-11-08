@@ -1,6 +1,7 @@
+import { Avatar } from './Avatar';
 import { LEGACY_CUSCO_UBIGEO, resolveProfileUbigeo } from '../lib/ubigeo';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
@@ -96,8 +97,8 @@ export const Header: React.FC<HeaderProps> = ({
             activeOpacity={0.8}
             accessibilityLabel="Ver perfil y configuración"
           >
-            <Image
-              source={{ uri: user.avatarUrl }}
+            <Avatar
+              uri={user.avatarUrl}
               style={styles.avatar}
             />
             <View style={[styles.roleBadge, { backgroundColor: getRoleColor(user.role) }]}>

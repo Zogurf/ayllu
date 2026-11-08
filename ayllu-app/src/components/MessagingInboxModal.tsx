@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -17,6 +17,9 @@ export const MessagingInboxModal: React.FC<{ visible: boolean; onClose: () => vo
   const [deliveredAt, setDeliveredAt] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
+  const sending = useRef(false);
+  const pendingMessage = useRef<{ id: string; body: string; conversationId: string } | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   const loadConversations = useCallback(async () => {
     if (!supabase) return;
@@ -68,13 +71,46 @@ export const MessagingInboxModal: React.FC<{ visible: boolean; onClose: () => vo
     return () => clearInterval(timer);
   }, [visible, selected, loadThread]);
 
+  useEffect(() => {
+    const client = supabase;
+    if (!visible || !client || !userId) return;
+    const channel = client.channel(`inbox:${userId}:${selected?.id ?? 'list'}`);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void (selected ? loadThread(selected) : loadConversations()).catch(() => setError('No se pudo actualizar la conversación.'));
+      }, 250);
+    };
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, refresh);
+    if (selected) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selected.id}` }, refresh);
+    }
+    channel.subscribe();
+    return () => { if (timer) clearTimeout(timer); void client.removeChannel(channel); };
+  }, [visible, userId, selected, loadThread, loadConversations]);
+
   const send = async () => {
-    if (!supabase || !selected || !draft.trim()) return;
+    if (!supabase || !selected || !draft.trim() || sending.current) return;
+    sending.current = true;
+    setIsSending(true);
     setError('');
-    const { error: sendError } = await supabase.rpc('send_message', { p_id: Crypto.randomUUID(), p_conversation_id: selected.id, p_body: draft.trim() });
-    if (sendError) { setError(sendError.message); return; }
-    setDraft('');
-    await loadThread(selected);
+    try {
+      if (pendingMessage.current?.body !== draft.trim() || pendingMessage.current?.conversationId !== selected.id) {
+        pendingMessage.current = { id: Crypto.randomUUID(), body: draft.trim(), conversationId: selected.id };
+      }
+      const pending = pendingMessage.current;
+      const { error: sendError } = await supabase.rpc('send_message', { p_id: pending.id, p_conversation_id: pending.conversationId, p_body: pending.body });
+      if (sendError) throw sendError;
+      pendingMessage.current = null;
+      setDraft('');
+      await loadThread(selected);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'No se pudo enviar el mensaje. Inténtalo nuevamente.');
+    } finally {
+      sending.current = false;
+      setIsSending(false);
+    }
   };
 
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { setSelected(null); onClose(); }}>
@@ -92,7 +128,7 @@ export const MessagingInboxModal: React.FC<{ visible: boolean; onClose: () => vo
             {message.sender_id === userId && <Text style={styles.status}>{readAt && readAt >= message.created_at ? 'Leído' : deliveredAt && deliveredAt >= message.created_at ? 'Entregado' : 'Enviado'}</Text>}
           </View>)}
         </ScrollView>
-        <View style={styles.compose}><TextInput value={draft} onChangeText={setDraft} placeholder="Escribe un mensaje" maxLength={2000} style={styles.input}/><TouchableOpacity accessibilityRole="button" onPress={() => { void send(); }} accessibilityLabel="Enviar mensaje"><MaterialIcons name="send" size={22} color={Colors.primary}/></TouchableOpacity></View>
+        <View style={styles.compose}><TextInput value={draft} onChangeText={setDraft} placeholder="Escribe un mensaje" maxLength={2000} style={styles.input}/><TouchableOpacity accessibilityRole="button" onPress={() => { void send(); }} disabled={isSending || !draft.trim()} accessibilityLabel={isSending ? "Enviando mensaje" : "Enviar mensaje"}><MaterialIcons name="send" size={22} color={Colors.primary}/></TouchableOpacity></View>
       </> : <ScrollView style={styles.thread}>{conversations.length ? conversations.map((conversation) => <TouchableOpacity accessibilityRole="button" key={conversation.id} style={styles.row} onPress={() => { setError(''); setSelected(conversation); }}><MaterialIcons name="chat-bubble-outline" size={20} color={Colors.primary}/><View style={{flex:1}}><Text style={styles.title}>{conversation.title || 'Favor vecinal'}</Text><Text style={styles.subtitle}>{conversation.author_id === userId ? 'Conversación sobre tu favor' : 'Tu solicitud de apoyo'}</Text></View><MaterialIcons name="chevron-right" size={22} color={Colors.slateDim}/></TouchableOpacity>) : <Text style={styles.subtitle}>Todavía no tienes conversaciones.</Text>}</ScrollView>}
     </View></View>
   </Modal>;

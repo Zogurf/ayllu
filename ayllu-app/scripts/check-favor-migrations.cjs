@@ -11,6 +11,10 @@ const assert = require('node:assert/strict');
  grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
  const migrations = path.resolve(__dirname, '../../supabase/migrations');
  for (const name of fs.readdirSync(migrations).filter(n => n.endsWith('.sql')).sort()) {
+   if (process.env.AYLLU_TEST_MISSING_AUDIT === '1' && name.startsWith('202611080008_')) await db.exec('drop table public.emergency_audit_events cascade');
+   if (process.env.AYLLU_TEST_RESOURCE_RETURN_DRIFT === '1' && name.startsWith('202611080009_')) {
+     await db.exec("drop function public.save_critical_resource(uuid,jsonb,numeric,text,integer); create function public.save_critical_resource(p_id uuid,p_content jsonb,p_quantity numeric,p_unit text,p_version integer) returns jsonb language sql as $$ select '{}'::jsonb $$;");
+   }
    await db.exec(fs.readFileSync(path.join(migrations,name),'utf8').replace('create extension if not exists pgcrypto with schema extensions;', ''));
  }
  const owner='10000000-0000-4000-8000-000000000001';
@@ -48,9 +52,40 @@ const assert = require('node:assert/strict');
  const del=op();await save(del,favor,'delete');await save(del,favor,'delete');
  await assert.rejects(save(op()),/retirada/);
  assert.equal((await db.query('select * from public.community_favors where not deleted')).rows.length,0);
+ await login(owner);
+ const neighborhoodId=(await db.query('select neighborhood_id from public.profiles where id=$1',[owner])).rows[0].neighborhood_id;
+ const serviceId='40000000-0000-4000-8000-000000000001';
+ const service={id:serviceId,title:'Gasfitería de prueba',description:'Servicio ficticio',category:'gasfiteria',categoryLabel:'Gasfitería',neighborhood:'Mi Barrio',districtUbigeo:'150101',sharePhone:false};
+ const serviceOp=op();
+ const saveService=()=>db.query('select public.sync_local_service($1,$2,$3)',[serviceOp,JSON.stringify(service),'save']);
+ await saveService(); await saveService();
+ assert.equal((await db.query('select id from public.local_services where id=$1',[serviceId])).rows.length,1);
+ const emergencyId='50000000-0000-4000-8000-000000000001';
+ const report={id:emergencyId,neighborhood_id:neighborhoodId,category:'salud',title:'Reporte de prueba',description:'Simulación',priority:'alta'};
+ const privateReport={beneficiary_name:'Persona ficticia',exact_address:'Dirección ficticia',contact_phone:'',consent_at:new Date().toISOString(),consent_version:'ayllu-emergency-v1'};
+ const emergencyOp=op();
+ const sendReport=()=>db.query('select public.sync_emergency_report($1,$2,$3)',[emergencyOp,JSON.stringify(report),JSON.stringify(privateReport)]);
+ await sendReport(); await sendReport();
+ assert.equal((await db.query('select id from public.emergency_reports where id=$1',[emergencyId])).rows.length,1);
+ await assert.rejects(db.query('select * from public.emergency_report_private'),/permission denied/);
+ await assert.rejects(db.query('select public.read_emergency_private($1)',[emergencyId]),/permiso/);
+ const resourceId='60000000-0000-4000-8000-000000000001';
+ const resource={name:'Agua de prueba',type:'agua',mode:'disponible',neighborhood:'Mi Barrio',districtUbigeo:'150101'};
+ const saveResource=(quantity,version)=>db.query('select public.save_critical_resource($1,$2,$3,$4,$5)',[resourceId,JSON.stringify(resource),quantity,'litros',version]);
+ await assert.rejects(saveResource(10,0),/coordinadores/);
+ await db.exec('reset role');
+ await db.query("update public.community_memberships set role='coordinador' where user_id=$1",[owner]);
+ await login(owner);
+ await saveResource(10,0); await saveResource(10,0);
+ await saveResource(20,1);
+ await assert.rejects(saveResource(30,1),/cambió/);
+ const privateResult=(await db.query('select public.read_emergency_private($1) as data',[emergencyId])).rows[0].data;
+ assert.equal(privateResult.beneficiary_name,'Persona ficticia');
+ assert.equal((await db.query("select id from public.emergency_audit_events where event_type='private_report_viewed'")).rows.length,1);
  await db.exec('reset role; set role anon');
  await assert.rejects(db.query('select * from public.community_favors'),/permission denied/);
  await assert.rejects(save(op()),/permission denied/);
- console.log('PASS: migrations, district RLS, ownership, validation, private phone, idempotency, deletion and anonymous denial');
+ await assert.rejects(saveResource(10,0),/permission denied/);
+ console.log('PASS: migrations, favors, services, emergency idempotency, audited private access, resource permissions/version checks, RLS and anonymous denial');
  } finally { await db.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -13,6 +13,9 @@ import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { ServiceCategory } from '../types';
 import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
+import { notify } from '../utils/dialog';
+import { OfflineStorage } from '../storage/offlineStorage';
+import { supabase } from '../lib/supabase';
 
 interface PublishServiceModalProps {
   visible: boolean;
@@ -30,7 +33,7 @@ const SERVICE_CATEGORIES: { id: ServiceCategory; label: string; icon: keyof type
 ];
 
 export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visible, onClose }) => {
-  const { user, addService } = useApp();
+  const { user, addService, isOnline, synchronizeQueue } = useApp();
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<ServiceCategory>('gasfiteria');
@@ -55,8 +58,10 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
 
     const catObj = SERVICE_CATEGORIES.find(c => c.id === category);
     setIsSubmitting(true);
+    setSubmitError('');
+    let published = false;
     try {
-      await addService({
+      const id = await addService({
         title: title.trim(),
         category,
         categoryLabel: catObj ? catObj.label : 'General',
@@ -68,6 +73,13 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
         description: description.trim(),
         avatarUrl: user.avatarUrl,
       });
+      if (supabase && isOnline) {
+        try {
+          await synchronizeQueue(false);
+          const queue = await OfflineStorage.getSyncQueue();
+          published = !queue.some(item => item.type === 'service_post' && item.payload.id === id);
+        } catch { /* The durable queue retains the service for a retry. */ }
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'No se pudo guardar el servicio.');
       setIsSubmitting(false);
@@ -75,6 +87,11 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
     }
 
     setTitle(''); setDescription(''); setAddressApprox(''); setIsSubmitting(false); onClose();
+    setSharePhone(false);
+    void notify(published ? 'Servicio publicado' : 'Servicio guardado en este dispositivo', published
+      ? 'Tu oferta ya está disponible para tu comunidad.'
+      : supabase ? 'Todavía está pendiente de envío. Puedes revisar el estado o reintentar en el directorio.'
+      : 'Estás en modo demostración. Solo se verá en este dispositivo.');
 
   };
 
@@ -84,7 +101,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
-          <Text accessibilityRole="alert">{submitError}</Text>
+          {!!submitError && <Text accessibilityRole="alert" style={styles.submitError}>{submitError}</Text>}
           <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{checked:sharePhone}} onPress={()=>setSharePhone(!sharePhone)} style={{padding:12}}><Text>{sharePhone?'☑':'☐'} Autorizo compartir el teléfono de mi perfil con vecinos del distrito.</Text></TouchableOpacity>
           <Text style={{ color: Colors.secondaryMuted, fontSize: 12, lineHeight: 18, paddingVertical: 8 }}>
             Se publicará en {user.neighborhood}. Podrán verlo cuentas de tu distrito.
@@ -317,6 +334,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
+  submitError: { color: Colors.emergencyDark, backgroundColor: '#fef2f2', borderRadius: 8, padding: 10, marginBottom: 8, fontSize: 12, lineHeight: 18 },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',

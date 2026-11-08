@@ -107,3 +107,33 @@ npm run lint
 # Desde la raíz, con PGlite instalado fuera del proyecto:
 NODE_PATH=/tmp/ayllu-ubigeo-sql/node_modules node ayllu-app/scripts/check-favor-migrations.cjs
 ```
+
+
+## Paquete de estabilidad y módulos compartidos (008–009)
+
+Aplicar desde la raíz con el CLI, manteniendo el historial:
+
+```bash
+npx supabase db push --dry-run --remote
+npx supabase db push --remote
+npx supabase migration list --remote
+```
+
+- `202611080008_realtime_shared_modules.sql`: añade servicios, avales, emergencias, recursos, moderación, auditoría y mensajería a la publicación Realtime. Conserva RLS y excluye la tabla de datos privados de emergencias. Si la publicación no existe, la app conserva el sondeo periódico.
+- `202611080009_resource_version_lock.sql`: serializa las ediciones de recursos antes de validar la versión para impedir sobrescrituras simultáneas.
+
+No se necesitan tablas ni Storage para la foto local. La imagen elegida se guarda por cuenta en el dispositivo y tiene prioridad sobre la URL de Google. Los archivos locales no se envían como parte de publicaciones.
+
+La web puede enviar reportes de emergencia con conexión y sesión válidas. Usa un identificador estable para reintentar sin duplicados y no guarda nombres/direcciones privadas en el almacenamiento del navegador. Sin conexión, conserva el formulario abierto y avisa del impedimento. En móvil se conserva el envío mediante la cola protegida.
+
+La copia offline de los feeds se separa por cuenta y ámbito territorial. No incluye respuestas del RPC privado, moderación ni auditoría. Los privilegios siempre se verifican en servidor al realizar una acción.
+
+Validación manual pendiente: dos cuentas para Realtime y aislamiento de roles; selección de foto en Android/iOS; modo avión y reconexión; retornos OAuth/correos configurados en el Dashboard. Las pruebas locales no sustituyen estas verificaciones remotas.
+
+### Si 008 falla porque falta `emergency_audit_events`
+
+La versión corregida de `008` recupera de forma idempotente la tabla de auditoría, el índice, RLS, las políticas y los RPC de `005` antes de extender Realtime. Se verifica localmente tanto sobre una base completa como sobre una base cuya tabla de auditoría falta. Vuelve a ejecutar `db push --dry-run --remote` y `db push --remote`. No marques migraciones como aplicadas con `migration repair` para evitar el error: eso no crea los objetos faltantes.
+
+### Si 009 falla por el tipo de retorno de `save_critical_resource`
+
+La versión corregida de `009` elimina y recrea únicamente la firma `save_critical_resource(uuid,jsonb,numeric,text,integer)` con retorno UUID y vuelve a aplicar permisos restringidos a usuarios autenticados. No elimina recursos ni utiliza CASCADE. También solicita la recarga del esquema de PostgREST. Está probada sobre una base normal y sobre una base donde esa firma devolvía JSONB. Si `008` ya se aplicó, el siguiente `db push --remote` solo debe listar `009`.
