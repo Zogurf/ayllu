@@ -155,7 +155,7 @@ export const FavoresScreen: React.FC = () => {
                   isSel && styles.tagPillActive,
                   isUrgent && isSel && styles.tagUrgentActive,
                 ]}
-                onPress={() => setSelectedTag(tag.id)}
+                onPress={() => { setSelectedTag(tag.id); setConfirmRemove(null); }}
               >
                 {isUrgent && (
                   <View style={[styles.urgentDot, isSel && styles.urgentDotActive]} />
@@ -306,30 +306,43 @@ export const FavoresScreen: React.FC = () => {
                     ) : (
                       // Author management controls (RF-12)
                       <View style={styles.authorActionsRow}>
-                        {favor.id.startsWith('fav-') && <TouchableOpacity disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
-                          <Text style={styles.authorStatusText}>Compartir</Text>
-                        </TouchableOpacity>}
+                        {confirmRemove !== favor.id && <>
+                          {favor.id.startsWith('fav-') && <TouchableOpacity disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
+                            <Text style={styles.authorStatusText}>Compartir</Text>
+                          </TouchableOpacity>}
+                          <TouchableOpacity
+                            disabled={busy || favor.id.startsWith('fav-')}
+                            style={styles.authorStatusBtn}
+                            onPress={() =>
+                              handleStatusChange(
+                                favor,
+                                favor.status === 'disponible' ? 'resuelta' : 'disponible'
+                              )
+                            }
+                          >
+                            <MaterialIcons
+                              name={favor.status === 'disponible' ? "check-circle" : "replay"}
+                              size={14}
+                              color={Colors.primary}
+                            />
+                            <Text style={styles.authorStatusText}>
+                              {favor.status === 'disponible' ? 'Marcar Resuelto' : 'Reabrir'}
+                            </Text>
+                          </TouchableOpacity>
+                        </>}
+                        {confirmRemove === favor.id && (
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            accessibilityLabel="Cancelar retiro del favor"
+                            disabled={busy}
+                            style={styles.authorStatusBtn}
+                            onPress={() => setConfirmRemove(null)}
+                          >
+                            <Text style={styles.authorStatusText}>Cancelar</Text>
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity
-                          disabled={busy || favor.id.startsWith('fav-')}
-                          style={styles.authorStatusBtn}
-                          onPress={() =>
-                            handleStatusChange(
-                              favor,
-                              favor.status === 'disponible' ? 'resuelta' : 'disponible'
-                            )
-                          }
-                        >
-                          <MaterialIcons
-                            name={favor.status === 'disponible' ? "check-circle" : "replay"}
-                            size={14}
-                            color={Colors.primary}
-                          />
-                          <Text style={styles.authorStatusText}>
-                            {favor.status === 'disponible' ? 'Marcar Resuelto' : 'Reabrir'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
+                          accessibilityRole="button"
                           disabled={busy}
                           style={styles.authorDeleteBtn}
                           onPress={() => handleRemove(favor.id)}

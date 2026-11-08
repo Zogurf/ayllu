@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { signInWithGoogle } from '../lib/socialAuth';
@@ -7,6 +7,8 @@ import { Colors } from '../theme/colors';
 
 export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callbackError }) => {
   const [socialError, setSocialError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [formNotice, setFormNotice] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +21,8 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
   const handleGoogleSignIn = async () => {
     if (busy) return;
     setSocialError('');
+    setFormError('');
+    setFormNotice('');
     setIsGoogleSubmitting(true);
     try {
       await signInWithGoogle();
@@ -31,10 +35,20 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
 
   const handleSubmit = async () => {
     if (busy) return;
-    if (!supabase) return;
+    setFormError('');
+    setFormNotice('');
+    setSocialError('');
+    if (!supabase) {
+      setFormError('El acceso no está disponible en este momento. Inténtalo más tarde.');
+      return;
+    }
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail || password.length < 8) {
-      Alert.alert('Revisa tus datos', 'Ingresa tu correo y una contraseña de al menos 8 caracteres.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setFormError('Ingresa un correo electrónico válido.');
+      return;
+    }
+    if (!password || (isCreatingAccount && password.length < 8)) {
+      setFormError(isCreatingAccount ? 'La contraseña debe tener al menos 8 caracteres.' : 'Ingresa tu contraseña.');
       return;
     }
 
@@ -46,10 +60,26 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
       if (result.error) throw result.error;
 
       if (isCreatingAccount && !result.data.session) {
-        Alert.alert('Confirma tu correo', 'Te enviamos un enlace de verificación. Ábrelo y luego inicia sesión aquí.');
+        setFormNotice('Revisa tu correo para confirmar la cuenta. Si recibes un enlace de verificación, ábrelo y luego inicia sesión aquí.');
       }
     } catch (error) {
-      Alert.alert('No se pudo completar', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+      const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
+      const messages: Record<string, string> = {
+        invalid_credentials: 'El correo o la contraseña no son correctos. Revisa tus datos.',
+        email_not_confirmed: 'Confirma tu correo antes de iniciar sesión. Revisa también la carpeta de spam.',
+        user_already_exists: 'No se pudo crear la cuenta con estos datos. Prueba iniciar sesión.',
+        email_exists: 'No se pudo crear la cuenta con estos datos. Prueba iniciar sesión.',
+        weak_password: 'Elige una contraseña más segura y de al menos 8 caracteres.',
+        over_request_rate_limit: 'Hay demasiados intentos. Espera unos minutos y vuelve a intentarlo.',
+        over_email_send_rate_limit: 'Espera unos minutos antes de solicitar otro correo.',
+        signup_disabled: 'El registro de cuentas no está disponible en este momento.',
+        email_provider_disabled: 'El acceso por correo no está disponible en este momento.',
+        email_address_invalid: 'Revisa tu dirección de correo o utiliza otra.',
+      };
+      const networkError = error instanceof Error && /network|fetch|connection|timeout/i.test(error.message);
+      setFormError(messages[code] ?? (networkError
+        ? 'No se pudo conectar. Revisa tu conexión e inténtalo nuevamente.'
+        : 'No se pudo completar la solicitud. Inténtalo nuevamente en unos momentos.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -83,7 +113,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
         <TextInput
           style={styles.input}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={value => { setEmail(value); setFormError(''); setFormNotice(''); }}
           placeholder="tu@correo.com"
           placeholderTextColor={Colors.slateDim}
           keyboardType="email-address"
@@ -97,7 +127,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           <TextInput
             style={styles.passwordInput}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={value => { setPassword(value); setFormError(''); setFormNotice(''); }}
             placeholder="Al menos 8 caracteres"
             placeholderTextColor={Colors.slateDim}
             secureTextEntry={!showPassword}
@@ -120,11 +150,14 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           </TouchableOpacity>
         </View>
 
+        {!!formError && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>{formError}</Text>}
+        {!!formNotice && <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{formNotice}</Text>}
+
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={busy}>
           {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => { setIsCreatingAccount(value => !value); setShowPassword(false); }} disabled={busy}>
+        <TouchableOpacity onPress={() => { setIsCreatingAccount(value => !value); setShowPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
           <Text style={styles.toggleText}>
             {isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
           </Text>
@@ -137,6 +170,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
 };
 
 const styles = StyleSheet.create({
+  noticeText: { color: Colors.primaryDark, backgroundColor: Colors.primaryContainer, padding: 12, borderRadius: 10, fontSize: 14, lineHeight: 20 },
   errorText: { color: Colors.emergencyDark, fontSize: 14, lineHeight: 20 },
   socialButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border, borderRadius: 10 },
   socialText: { color: Colors.secondary, fontWeight: '700', fontSize: 15 },
