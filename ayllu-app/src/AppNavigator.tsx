@@ -22,6 +22,7 @@ import { TutorialModal } from './components/TutorialModal';
 import { ManageEmergencyModal } from './components/ManageEmergencyModal';
 import { SupabaseAuthScreen } from './components/SupabaseAuthScreen';
 import { PasswordRecoveryScreen } from './components/PasswordRecoveryScreen';
+import { ResponsiveContainer } from './components/ui/ResponsiveContainer';
 import { getLocation } from './lib/ubigeo';
 import { completeAuthCallback } from './lib/socialAuth';
 import { supabase } from './lib/supabase';
@@ -211,147 +212,166 @@ export const AppNavigator: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
+      <ResponsiveContainer maxWidth={768}>
+        {/* Main Header (Stitch design) */}
+        <Header
+          onOpenNeighborhoodModal={() => setShowNeighborhoodModal(true)}
+          onOpenTutorial={() => setShowTutorial(true)}
+          onNavigateProfile={() => setActiveTab('perfil')}
+        />
 
-      {/* Main Header (Stitch design) */}
-      <Header
-        onOpenNeighborhoodModal={() => setShowNeighborhoodModal(true)}
-        onOpenTutorial={() => setShowTutorial(true)}
-        onNavigateProfile={() => setActiveTab('perfil')}
-      />
+        {/* Connectivity & Offline Sync Indicator (RF-22 to RF-25, RNF-04) */}
+        <OfflineSyncBanner />
 
-      {/* Connectivity & Offline Sync Indicator (RF-22 to RF-25, RNF-04) */}
-      <OfflineSyncBanner />
+        {/* Emergency Active Alert Banner (RF-15, RF-16) */}
+        <EmergencyAlertBanner
+          onPressManage={() => setShowManageEmergencyModal(true)}
+          onPressViewDashboard={() => setActiveTab('emergencia')}
+        />
 
-      {/* Emergency Active Alert Banner (RF-15, RF-16) */}
-      <EmergencyAlertBanner
-        onPressManage={() => setShowManageEmergencyModal(true)}
-        onPressViewDashboard={() => setActiveTab('emergencia')}
-      />
+        {/* Screen Body */}
+        <View style={styles.body}>
+          {activeTab === 'directorio' && <DirectoryScreen />}
+          {activeTab === 'favores' && <FavoresScreen />}
+          {activeTab === 'emergencia' && <EmergencyDashboardScreen key={`${user.id}:${user.neighborhoodId}:${canCoordinate}`} />}
+          {activeTab === 'perfil' && (
+            <ProfileScreen onOpenTutorial={() => setShowTutorial(true)} />
+          )}
+        </View>
 
-      {/* Screen Body */}
-      <View style={styles.body}>
-        {activeTab === 'directorio' && <DirectoryScreen />}
-        {activeTab === 'favores' && <FavoresScreen />}
-        {activeTab === 'emergencia' && <EmergencyDashboardScreen key={`${user.id}:${user.neighborhoodId}:${canCoordinate}`} />}
-        {activeTab === 'perfil' && (
-          <ProfileScreen onOpenTutorial={() => setShowTutorial(true)} />
-        )}
-      </View>
-
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        {/* Tab 1: Directorio */}
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => setActiveTab('directorio')}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons
-            name="storefront"
-            size={22}
-            color={activeTab === 'directorio' ? Colors.primary : Colors.slateDim}
-          />
-          <Text
-            style={[
-              styles.navLabel,
-              activeTab === 'directorio' && styles.navLabelActive,
-            ]}
+        {/* Bottom Navigation Bar */}
+        <View style={styles.bottomNav} accessibilityRole="tablist">
+          {/* Tab 1: Directorio */}
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Directorio de oficios y servicios locales"
+            accessibilityState={{ selected: activeTab === 'directorio' }}
+            style={[styles.navTab, activeTab === 'directorio' && styles.navTabActive]}
+            onPress={() => setActiveTab('directorio')}
+            activeOpacity={0.75}
           >
-            Directorio
-          </Text>
-        </TouchableOpacity>
+            <View style={[styles.navIconWrap, activeTab === 'directorio' && styles.navIconWrapActive]}>
+              <MaterialIcons
+                name="storefront"
+                size={22}
+                color={activeTab === 'directorio' ? Colors.primary : Colors.slateDim}
+              />
+            </View>
+            <Text
+              style={[
+                styles.navLabel,
+                activeTab === 'directorio' && styles.navLabelActive,
+              ]}
+            >
+              Directorio
+            </Text>
+          </TouchableOpacity>
 
-        {/* Tab 2: Cadena de Favores */}
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => setActiveTab('favores')}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons
-            name="volunteer-activism"
-            size={22}
-            color={activeTab === 'favores' ? Colors.primary : Colors.slateDim}
-          />
-          <Text
-            style={[
-              styles.navLabel,
-              activeTab === 'favores' && styles.navLabelActive,
-            ]}
+          {/* Tab 2: Cadena de Favores */}
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Muro de favores y ayuda solidaria Ayni"
+            accessibilityState={{ selected: activeTab === 'favores' }}
+            style={[styles.navTab, activeTab === 'favores' && styles.navTabActive]}
+            onPress={() => setActiveTab('favores')}
+            activeOpacity={0.75}
           >
-            Favores
-          </Text>
-        </TouchableOpacity>
+            <View style={[styles.navIconWrap, activeTab === 'favores' && styles.navIconWrapActive]}>
+              <MaterialIcons
+                name="volunteer-activism"
+                size={22}
+                color={activeTab === 'favores' ? Colors.primary : Colors.slateDim}
+              />
+            </View>
+            <Text
+              style={[
+                styles.navLabel,
+                activeTab === 'favores' && styles.navLabelActive,
+              ]}
+            >
+              Favores
+            </Text>
+          </TouchableOpacity>
 
-        {/* Tab 3: Emergencias (with alert badge if active) */}
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => setActiveTab('emergencia')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.emergencyIconWrap}>
-            <MaterialIcons
-              name="crisis-alert"
-              size={22}
-              color={
-                activeTab === 'emergencia'
-                  ? Colors.emergency
-                  : emergencyMode.isActive
-                  ? Colors.emergencyDark
-                  : Colors.slateDim
-              }
-            />
-            {emergencyMode.isActive && (
-              <View style={styles.emergencyTabDot} />
-            )}
-          </View>
-          <Text
-            style={[
-              styles.navLabel,
-              activeTab === 'emergencia' && styles.navLabelEmergencyActive,
-              emergencyMode.isActive && !activeTab.includes('emergencia') && styles.emergencyTextPulsing,
-            ]}
+          {/* Tab 3: Emergencias (with alert badge if active) */}
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Tablero de emergencias y auxilio vecinal"
+            accessibilityState={{ selected: activeTab === 'emergencia' }}
+            style={[styles.navTab, activeTab === 'emergencia' && styles.navTabEmergencyActive]}
+            onPress={() => setActiveTab('emergencia')}
+            activeOpacity={0.75}
           >
-            Emergencia
-          </Text>
-        </TouchableOpacity>
+            <View style={[styles.emergencyIconWrap, activeTab === 'emergencia' && styles.navIconWrapEmergencyActive]}>
+              <MaterialIcons
+                name="crisis-alert"
+                size={22}
+                color={
+                  activeTab === 'emergencia'
+                    ? Colors.emergency
+                    : emergencyMode.isActive
+                    ? Colors.emergencyDark
+                    : Colors.slateDim
+                }
+              />
+              {emergencyMode.isActive && (
+                <View style={styles.emergencyTabDot} />
+              )}
+            </View>
+            <Text
+              style={[
+                styles.navLabel,
+                activeTab === 'emergencia' && styles.navLabelEmergencyActive,
+                emergencyMode.isActive && !activeTab.includes('emergencia') && styles.emergencyTextPulsing,
+              ]}
+            >
+              Emergencia
+            </Text>
+          </TouchableOpacity>
 
-        {/* Tab 4: Perfil & Config */}
-        <TouchableOpacity
-          style={styles.navTab}
-          onPress={() => setActiveTab('perfil')}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons
-            name="tune"
-            size={22}
-            color={activeTab === 'perfil' ? Colors.primary : Colors.slateDim}
-          />
-          <Text
-            style={[
-              styles.navLabel,
-              activeTab === 'perfil' && styles.navLabelActive,
-            ]}
+          {/* Tab 4: Perfil & Config */}
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityLabel="Mi perfil y configuración barrial"
+            accessibilityState={{ selected: activeTab === 'perfil' }}
+            style={[styles.navTab, activeTab === 'perfil' && styles.navTabActive]}
+            onPress={() => setActiveTab('perfil')}
+            activeOpacity={0.75}
           >
-            Mi Barrio
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <View style={[styles.navIconWrap, activeTab === 'perfil' && styles.navIconWrapActive]}>
+              <MaterialIcons
+                name="tune"
+                size={22}
+                color={activeTab === 'perfil' ? Colors.primary : Colors.slateDim}
+              />
+            </View>
+            <Text
+              style={[
+                styles.navLabel,
+                activeTab === 'perfil' && styles.navLabelActive,
+              ]}
+            >
+              Mi Barrio
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Global Modals */}
-      <NeighborhoodModal
-        visible={showNeighborhoodModal}
-        onClose={() => setShowNeighborhoodModal(false)}
-      />
+        {/* Global Modals */}
+        <NeighborhoodModal
+          visible={showNeighborhoodModal}
+          onClose={() => setShowNeighborhoodModal(false)}
+        />
 
-      <TutorialModal
-        visible={showTutorial}
-        onClose={() => setShowTutorial(false)}
-      />
+        <TutorialModal
+          visible={showTutorial}
+          onClose={() => setShowTutorial(false)}
+        />
 
-      <ManageEmergencyModal
-        visible={showManageEmergencyModal}
-        onClose={() => setShowManageEmergencyModal(false)}
-      />
+        <ManageEmergencyModal
+          visible={showManageEmergencyModal}
+          onClose={() => setShowManageEmergencyModal(false)}
+        />
+      </ResponsiveContainer>
     </SafeAreaView>
   );
 };
@@ -386,51 +406,76 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 64 : 58,
+    height: Platform.OS === 'ios' ? 68 : 62,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: Colors.border,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 6,
+    paddingBottom: Platform.OS === 'ios' ? 14 : 6,
     paddingTop: 6,
+    paddingHorizontal: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 8,
   },
   navTab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  navTabActive: {
+    backgroundColor: 'transparent',
+  },
+  navTabEmergencyActive: {
+    backgroundColor: 'transparent',
+  },
+  navIconWrap: {
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 16,
+  },
+  navIconWrapActive: {
+    backgroundColor: Colors.primaryContainer,
+  },
+  navIconWrapEmergencyActive: {
+    backgroundColor: '#fee2e2',
   },
   emergencyIconWrap: {
     position: 'relative',
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 16,
   },
   emergencyTabDot: {
     position: 'absolute',
-    top: -2,
-    right: -3,
+    top: 2,
+    right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.emergency,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
   navLabel: {
-    fontSize: 10.5,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
     color: Colors.slateDim,
+    marginTop: 2,
   },
   navLabelActive: {
     color: Colors.primary,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   navLabelEmergencyActive: {
     color: Colors.emergency,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   emergencyTextPulsing: {
     color: Colors.emergencyDark,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });

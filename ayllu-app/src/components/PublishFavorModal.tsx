@@ -152,7 +152,12 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
-          {!!submitError && <Text accessibilityRole="alert" style={{ color: '#b91c1c', padding: 12 }}>{submitError}</Text>}
+          {!!submitError && (
+            <View style={styles.errorBanner}>
+              <MaterialIcons name="error-outline" size={16} color={Colors.emergencyDark} />
+              <Text accessibilityRole="alert" style={styles.errorBannerText}>{submitError}</Text>
+            </View>
+          )}
           {/* Top Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -422,7 +427,24 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                   </View>
                 </TouchableOpacity>
 
-                {contactChannel==='whatsapp' && <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{checked:sharePhone}} onPress={()=>setSharePhone(!sharePhone)} style={{padding:12}}><Text>{sharePhone?'☑':'☐'} Autorizo publicar mi teléfono para contacto por WhatsApp.</Text></TouchableOpacity>}
+                {contactChannel === 'whatsapp' && (
+                  <TouchableOpacity
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: sharePhone }}
+                    onPress={() => setSharePhone(!sharePhone)}
+                    style={[styles.consentBox, sharePhone && styles.consentBoxChecked]}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons
+                      name={sharePhone ? "check-box" : "check-box-outline-blank"}
+                      size={20}
+                      color={sharePhone ? Colors.primary : Colors.slateDim}
+                    />
+                    <Text style={styles.consentText}>
+                      Autorizo publicar mi número de teléfono ({user.phone}) para que vecinos autenticados me contacten directamente por WhatsApp.
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 {/* Scope Note */}
                 <View style={styles.scopeBox}>
                   <MaterialIcons name="near-me" size={16} color={Colors.primary} />
@@ -833,5 +855,43 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+  },
+  errorBannerText: {
+    fontSize: 12,
+    color: Colors.emergencyDark,
+    fontWeight: '600',
+    flex: 1,
+  },
+  consentBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: Colors.surfaceSubtle,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginVertical: 8,
+  },
+  consentBoxChecked: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  consentText: {
+    fontSize: 11.5,
+    color: Colors.secondary,
+    lineHeight: 16,
+    flex: 1,
   },
 });

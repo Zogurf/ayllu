@@ -125,37 +125,45 @@ export const EmergencyDashboardScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text accessibilityRole="alert" style={{padding:8}}>{notice || sharedError}</Text>
+      {!!(notice || sharedError) && (
+        <View style={styles.topNoticeBanner}>
+          <MaterialIcons name="info-outline" size={16} color={Colors.primaryDark} />
+          <Text accessibilityRole="alert" style={styles.topNoticeText}>{notice || sharedError}</Text>
+        </View>
+      )}
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Module Header / Role Authorization Badge (RF-18) */}
         <View style={styles.headerCard}>
           <View style={styles.headerTopRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <View style={[styles.roleBadge, isAuthorized ? styles.roleBadgeAuth : styles.roleBadgeNormal]}>
                 <MaterialIcons 
-                  name={isAuthorized ? "security" : "person"} 
+                  name={isAuthorized ? "security" : "shield"} 
                   size={14} 
-                  color={isAuthorized ? Colors.tertiary : Colors.secondary} 
+                  color={isAuthorized ? Colors.tertiary : Colors.primary} 
                 />
                 <Text style={[styles.roleBadgeText, isAuthorized ? styles.roleBadgeTextAuth : styles.roleBadgeTextNormal]}>
-                  {isAuthorized ? 'Rol: Coordinador Autorizado' : `Rol: ${user.role.toUpperCase()} (Vista Protegida)`}
+                  {isAuthorized ? 'Rol: Coordinador / Brigadista' : `Rol: ${user.role.toUpperCase()} (Vista Protegida)`}
                 </Text>
               </View>
-              <Text style={styles.headerTitle}>Tablero de Emergencias Barrial</Text>
+              <Text style={styles.headerTitle}>Tablero de Auxilio y Emergencias</Text>
+              <Text style={styles.headerDesc}>
+                Monitoreo barrial rápido, asignación de brigadas y auxilio a familias vulnerables.
+              </Text>
             </View>
 
-            <View style={styles.lockIconWrap}>
-              <MaterialIcons name="lock" size={18} color={isAuthorized ? Colors.tertiary : Colors.primary} />
+            <View style={[styles.lockIconWrap, isAuthorized && styles.lockIconWrapAuth]}>
+              <MaterialIcons name={isAuthorized ? "admin-panel-settings" : "lock"} size={18} color={isAuthorized ? Colors.tertiary : Colors.primary} />
             </View>
           </View>
 
           {/* Privacy Notice (RF-18 / RNF-12) */}
           <View style={styles.privacyNoticeRow}>
-            <MaterialIcons name="verified-user" size={15} color={Colors.primary} />
-            <Text style={styles.privacyNoticeText} numberOfLines={1}>
+            <MaterialIcons name="privacy-tip" size={15} color={Colors.primary} />
+            <Text style={styles.privacyNoticeText} numberOfLines={2}>
               {isAuthorized 
-                ? 'La consulta de datos privados requiere autorización del servidor'
-                : 'Direcciones exactas y teléfonos protegidos por privacidad'}
+                ? 'Acceso auditado: La consulta de direcciones exactas y teléfonos queda registrada con tu firma.'
+                : 'Privacidad protegida: Las direcciones y teléfonos de personas en riesgo están resguardados.'}
             </Text>
           </View>
 
@@ -163,25 +171,33 @@ export const EmergencyDashboardScreen: React.FC = () => {
           <View style={[styles.modeCard, emergencyMode.isActive ? styles.modeCardActive : styles.modeCardInactive]}>
             <View style={styles.modeCardTop}>
               <View style={styles.modeLeft}>
-                <View style={[styles.modePulse, emergencyMode.isActive && styles.modePulseActive]} />
+                <View style={[styles.modePulse, emergencyMode.isActive ? styles.modePulseActive : styles.modePulseInactive]} />
                 <Text style={[styles.modeStatusText, emergencyMode.isActive ? styles.modeActiveText : styles.modeInactiveText]}>
-                  {emergencyMode.isActive ? 'MODO EMERGENCIA ACTIVO' : 'MODO COTIDIANO ACTIVO'}
+                  {emergencyMode.isActive ? 'MODO EMERGENCIA ACTIVO' : 'MONITOREO PREVENTIVO ACTIVO'}
                 </Text>
               </View>
-              <Text style={styles.modeZoneText}>{emergencyMode.affectedNeighborhood}</Text>
+              <Text style={styles.modeZoneText}>{emergencyMode.affectedNeighborhood || user.neighborhood}</Text>
             </View>
 
             <View style={styles.modeCardBottom}>
               <Text style={styles.modeTimestampText}>
-                {emergencyMode.isActive ? `Iniciado: ${emergencyMode.activatedAt}` : 'Comunidad en calma'}
+                {emergencyMode.isActive
+                  ? `Evento: ${emergencyMode.emergencyType} · Desde: ${emergencyMode.activatedAt}`
+                  : 'Comunidad en calma · Red vecinal lista para responder'}
               </Text>
               {isAuthorized && (
                 <TouchableOpacity accessibilityRole="button"
-                  style={styles.manageEmergencyBtn}
+                  style={[styles.manageEmergencyBtn, emergencyMode.isActive && styles.manageEmergencyBtnActive]}
                   onPress={() => setShowManageModal(true)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.manageEmergencyBtnText}>
+                  <MaterialIcons
+                    name={emergencyMode.isActive ? "settings" : "warning-amber"}
+                    size={14}
+                    color={emergencyMode.isActive ? Colors.emergencyDark : Colors.primaryDark}
+                    style={{ marginRight: 3 }}
+                  />
+                  <Text style={[styles.manageEmergencyBtnText, emergencyMode.isActive && styles.manageEmergencyBtnTextActive]}>
                     {emergencyMode.isActive ? 'Gestionar / Cerrar' : 'Activar Emergencia'}
                   </Text>
                 </TouchableOpacity>
@@ -193,18 +209,22 @@ export const EmergencyDashboardScreen: React.FC = () => {
         {/* Metrics Grid (RF-19) */}
         <View style={styles.metricsGrid}>
           <View style={styles.metricCard}>
+            <MaterialIcons name="analytics" size={16} color={Colors.secondaryMuted} style={styles.metricIcon} />
             <Text style={styles.metricVal}>{totalCount}</Text>
             <Text style={styles.metricLbl}>Totales</Text>
           </View>
-          <View style={[styles.metricCard, { borderColor: '#fca5a5' }]}>
+          <View style={[styles.metricCard, styles.metricCardPending]}>
+            <MaterialIcons name="error-outline" size={16} color={Colors.emergency} style={styles.metricIcon} />
             <Text style={[styles.metricVal, { color: Colors.emergency }]}>{pendingCount}</Text>
             <Text style={[styles.metricLbl, { color: Colors.emergencyDark }]}>Pendientes</Text>
           </View>
-          <View style={[styles.metricCard, { borderColor: '#bfdbfe' }]}>
+          <View style={[styles.metricCard, styles.metricCardAttention]}>
+            <MaterialIcons name="autorenew" size={16} color={Colors.primary} style={styles.metricIcon} />
             <Text style={[styles.metricVal, { color: Colors.primary }]}>{attentionCount}</Text>
             <Text style={[styles.metricLbl, { color: Colors.primaryDark }]}>En Atención</Text>
           </View>
-          <View style={[styles.metricCard, { borderColor: '#bbf7d0' }]}>
+          <View style={[styles.metricCard, styles.metricCardResolved]}>
+            <MaterialIcons name="check-circle-outline" size={16} color={Colors.success} style={styles.metricIcon} />
             <Text style={[styles.metricVal, { color: Colors.success }]}>{resolvedCount}</Text>
             <Text style={[styles.metricLbl, { color: Colors.success }]}>Resueltos</Text>
           </View>
@@ -561,20 +581,54 @@ export const EmergencyDashboardScreen: React.FC = () => {
 
         {activeTab === 'trazabilidad' && canCoordinate && (
           <View style={styles.tabContent}>
-            <Text style={styles.auditIntro}>Registro de acciones de emergencia. No incluye nombres, teléfonos ni direcciones privadas.</Text>
-            {emergencyAuditEvents.length === 0 ? <Text style={styles.auditEmpty}>Aún no hay acciones registradas.</Text> : emergencyAuditEvents.map(event => {
-              const labels: Record<string,string> = {
-                report_status_changed: `Estado: ${event.details.from ?? 'nuevo'} → ${event.details.to ?? ''}`,
-                brigade_assigned: `Brigada: ${event.details.to || 'sin asignación'}`,
-                private_report_viewed: 'Consulta de información privada',
-                emergency_mode_activated: `Modo de emergencia activado${event.details.emergency_type ? `: ${event.details.emergency_type}` : ''}`,
-                emergency_mode_closed: 'Modo de emergencia cerrado',
-              };
-              return <View key={event.id} style={styles.auditCard}>
-                <Text style={styles.auditTitle}>{labels[event.eventType] ?? 'Acción de emergencia'}</Text>
-                <Text style={styles.auditMeta}>{event.reportId ? `Reporte ${event.reportId.slice(0,8)} · ` : ''}{new Date(event.createdAt).toLocaleString()} · Usuario {event.actorId.slice(0,8)}</Text>
-              </View>;
-            })}
+            <View style={styles.auditIntroBox}>
+              <MaterialIcons name="security" size={16} color={Colors.primary} />
+              <Text style={styles.auditIntro}>
+                Registro inmutable de trazabilidad (RNF-12). Audita cambios de estado, intervenciones y visualizaciones sin exponer datos personales protegidos.
+              </Text>
+            </View>
+            {emergencyAuditEvents.length === 0 ? (
+              <EmptyCommunityState
+                title="Sin acciones de emergencia registradas"
+                description="Aquí se mostrará el historial inmutable de cambios de estado y brigadas asignadas durante las emergencias."
+                actionLabel="Volver a reportes"
+                onAction={() => setActiveTab('reportes')}
+              />
+            ) : (
+              emergencyAuditEvents.map(event => {
+                const eventIcons: Record<string, any> = {
+                  report_status_changed: 'swap-horiz',
+                  brigade_assigned: 'shield',
+                  private_report_viewed: 'visibility',
+                  emergency_mode_activated: 'warning',
+                  emergency_mode_closed: 'check-circle',
+                };
+                const labels: Record<string, string> = {
+                  report_status_changed: `Estado: ${event.details.from ?? 'nuevo'} → ${event.details.to ?? ''}`,
+                  brigade_assigned: `Brigada: ${event.details.to || 'sin asignación'}`,
+                  private_report_viewed: 'Consulta de información privada (Auditoría)',
+                  emergency_mode_activated: `Modo de emergencia activado${event.details.emergency_type ? `: ${event.details.emergency_type}` : ''}`,
+                  emergency_mode_closed: 'Modo de emergencia cerrado / Retorno a calma',
+                };
+                const iconName = eventIcons[event.eventType] || 'history';
+                return (
+                  <View key={event.id} style={styles.auditCard}>
+                    <View style={styles.auditCardHeader}>
+                      <View style={styles.auditIconCircle}>
+                        <MaterialIcons name={iconName} size={16} color={Colors.primaryDark} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.auditTitle}>{labels[event.eventType] ?? 'Acción de emergencia'}</Text>
+                        <Text style={styles.auditMeta}>
+                          {event.reportId ? `Reporte #${event.reportId.slice(0, 8)} · ` : ''}
+                          {new Date(event.createdAt).toLocaleString()} · Actor: {event.actorId.slice(0, 8)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
         )}
       </ScrollView>
@@ -674,6 +728,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  topNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dbeafe',
+  },
+  topNoticeText: {
+    fontSize: 12,
+    color: Colors.primaryDark,
+    fontWeight: '600',
+    flex: 1,
+  },
   scroll: {
     flex: 1,
   },
@@ -722,6 +792,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.secondary,
   },
+  headerDesc: {
+    fontSize: 11.5,
+    color: Colors.secondaryMuted,
+    marginTop: 4,
+    lineHeight: 16,
+  },
   lockIconWrap: {
     width: 32,
     height: 32,
@@ -729,6 +805,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  lockIconWrapAuth: {
+    backgroundColor: '#ffedd5',
   },
   privacyNoticeRow: {
     flexDirection: 'row',
@@ -779,6 +858,9 @@ const styles = StyleSheet.create({
   modePulseActive: {
     backgroundColor: Colors.emergency,
   },
+  modePulseInactive: {
+    backgroundColor: Colors.success,
+  },
   modeStatusText: {
     fontSize: 11,
     fontWeight: '800',
@@ -810,13 +892,24 @@ const styles = StyleSheet.create({
   },
   manageEmergencyBtn: {
     backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  manageEmergencyBtnActive: {
+    backgroundColor: '#fee2e2',
+    borderColor: '#fca5a5',
   },
   manageEmergencyBtnText: {
     fontSize: 10.5,
     fontWeight: '700',
+    color: Colors.primaryDark,
+  },
+  manageEmergencyBtnTextActive: {
     color: Colors.emergencyDark,
   },
   metricsGrid: {
@@ -834,6 +927,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  metricIcon: {
+    marginBottom: 4,
+  },
+  metricCardPending: {
+    borderColor: '#fca5a5',
+    backgroundColor: '#fff5f5',
+  },
+  metricCardAttention: {
+    borderColor: '#bfdbfe',
+    backgroundColor: '#f0f7ff',
+  },
+  metricCardResolved: {
+    borderColor: '#bbf7d0',
+    backgroundColor: '#f0fdf4',
   },
   metricVal: {
     fontSize: 16,
@@ -885,11 +993,45 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 28,
   },
-  auditIntro: { fontSize: 12, color: Colors.secondaryMuted, marginBottom: 10 },
+  auditIntroBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  auditIntro: {
+    fontSize: 11.5,
+    color: Colors.primaryDark,
+    lineHeight: 16,
+    flex: 1,
+  },
   auditEmpty: { fontSize: 13, color: Colors.secondaryMuted, paddingVertical: 18, textAlign: 'center' },
-  auditCard: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, marginBottom: 8 },
-  auditTitle: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
-  auditMeta: { fontSize: 10.5, color: Colors.secondaryMuted, marginTop: 5 },
+  auditCard: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  auditCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  auditIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  auditTitle: { fontSize: 12.5, fontWeight: '700', color: Colors.secondary },
+  auditMeta: { fontSize: 10.5, color: Colors.secondaryMuted, marginTop: 2 },
   newReportBtn: {
     flexDirection: 'row',
     alignItems: 'center',

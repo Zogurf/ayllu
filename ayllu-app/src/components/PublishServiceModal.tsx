@@ -101,11 +101,6 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
-          {!!submitError && <Text accessibilityRole="alert" style={styles.submitError}>{submitError}</Text>}
-          <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{checked:sharePhone}} onPress={()=>setSharePhone(!sharePhone)} style={{padding:12}}><Text>{sharePhone?'☑':'☐'} Autorizo compartir el teléfono de mi perfil con vecinos del distrito.</Text></TouchableOpacity>
-          <Text style={{ color: Colors.secondaryMuted, fontSize: 12, lineHeight: 18, paddingVertical: 8 }}>
-            Se publicará en {user.neighborhood}. Podrán verlo cuentas de tu distrito.
-          </Text>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -114,13 +109,20 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               </View>
               <View>
                 <Text style={styles.title}>Ofrecer Oficio o Servicio</Text>
-                <Text style={styles.subtitle}>Directorio comunitario</Text>
+                <Text style={styles.subtitle}>Directorio comunitario de {user.neighborhood}</Text>
               </View>
             </View>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar publicación de servicio" style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
+
+          {!!submitError && (
+            <View style={styles.errorBanner}>
+              <MaterialIcons name="error-outline" size={16} color={Colors.emergencyDark} />
+              <Text accessibilityRole="alert" style={styles.errorBannerText}>{submitError}</Text>
+            </View>
+          )}
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
             {/* Category selection */}
@@ -198,6 +200,30 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               keyboardType="phone-pad"
               maxLength={18}
             />
+
+            <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: sharePhone }}
+              onPress={() => setSharePhone(!sharePhone)}
+              style={[styles.consentBox, sharePhone && styles.consentBoxChecked]}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons
+                name={sharePhone ? "check-box" : "check-box-outline-blank"}
+                size={20}
+                color={sharePhone ? Colors.primary : Colors.slateDim}
+              />
+              <Text style={styles.consentText}>
+                Autorizo compartir el teléfono de mi perfil con vecinos autenticados del distrito.
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.scopeNoticeBox}>
+              <MaterialIcons name="share-location" size={16} color={Colors.primary} />
+              <Text style={styles.scopeNoticeText}>
+                Se publicará en {user.neighborhood}. Podrán consultarlo cuentas del distrito.
+              </Text>
+            </View>
           </ScrollView>
 
           {/* Action button */}
@@ -335,6 +361,59 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
   },
   submitError: { color: Colors.emergencyDark, backgroundColor: '#fef2f2', borderRadius: 8, padding: 10, marginBottom: 8, fontSize: 12, lineHeight: 18 },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  errorBannerText: {
+    fontSize: 12,
+    color: Colors.emergencyDark,
+    fontWeight: '600',
+    flex: 1,
+  },
+  consentBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: Colors.surfaceSubtle,
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginTop: 12,
+  },
+  consentBoxChecked: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  consentText: {
+    fontSize: 11.5,
+    color: Colors.secondary,
+    lineHeight: 16,
+    flex: 1,
+  },
+  scopeNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 10,
+  },
+  scopeNoticeText: {
+    fontSize: 11,
+    color: Colors.primaryDark,
+    fontWeight: '500',
+    flex: 1,
+  },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
