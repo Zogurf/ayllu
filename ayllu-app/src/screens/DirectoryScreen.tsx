@@ -88,8 +88,87 @@ export const DirectoryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text accessibilityRole="alert" style={{padding:8}}>{notice || sharedError}</Text>
-      <Modal visible={!!editService} transparent onRequestClose={()=>setEditService(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#fff'}}><Text>Editar servicio</Text><TextInput value={editService?.title??''} maxLength={160} onChangeText={title=>setEditService(s=>s?{...s,title}:null)} accessibilityLabel="Título del servicio"/><TextInput value={editService?.description??''} maxLength={500} multiline onChangeText={description=>setEditService(s=>s?{...s,description}:null)} accessibilityLabel="Descripción del servicio"/><Text>{notice}</Text><TouchableOpacity accessibilityRole="button" onPress={()=>{if(editService) void saveService(editService).then(()=>setEditService(null)).catch(e=>setNotice(e.message));}}><Text>Guardar</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" onPress={()=>setEditService(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
+      {!!(notice || sharedError) && (
+        <View style={styles.topNoticeBanner}>
+          <MaterialIcons name="info-outline" size={16} color={Colors.primaryDark} />
+          <Text accessibilityRole="alert" style={styles.topNoticeText}>{notice || sharedError}</Text>
+        </View>
+      )}
+
+      {/* Modal para editar servicio (Civic Horizon Style) */}
+      {editService && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setEditService(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.dragHandle} />
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Editar Servicio Barrial</Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Cerrar edición del servicio"
+                  onPress={() => setEditService(null)}
+                >
+                  <MaterialIcons name="close" size={20} color={Colors.slateDim} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.inputFieldLabel}>Título del servicio (hasta 160 caracteres)</Text>
+              <TextInput
+                value={editService.title}
+                maxLength={160}
+                onChangeText={title => setEditService(s => s ? { ...s, title } : null)}
+                accessibilityLabel="Título del servicio"
+                style={styles.modalTextInput}
+                placeholder="Ej. Carpintería y refacciones en madera"
+                placeholderTextColor={Colors.slateDim}
+              />
+
+              <Text style={[styles.inputFieldLabel, { marginTop: 12 }]}>Descripción detallada (hasta 500 caracteres)</Text>
+              <TextInput
+                value={editService.description}
+                maxLength={500}
+                multiline
+                numberOfLines={3}
+                onChangeText={description => setEditService(s => s ? { ...s, description } : null)}
+                accessibilityLabel="Descripción del servicio"
+                style={[styles.modalTextInput, styles.modalTextArea]}
+                placeholder="Describe tu experiencia y los trabajos que realizas..."
+                placeholderTextColor={Colors.slateDim}
+              />
+
+              {!!notice && <Text accessibilityRole="alert" style={styles.modalAlertText}>{notice}</Text>}
+
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={styles.modalCancelBtn}
+                  onPress={() => setEditService(null)}
+                >
+                  <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  style={styles.modalSaveBtn}
+                  onPress={() => {
+                    if (editService) {
+                      void saveService(editService)
+                        .then(() => {
+                          setEditService(null);
+                          setNotice('Servicio actualizado con éxito.');
+                        })
+                        .catch(e => setNotice(e instanceof Error ? e.message : 'Error al guardar.'));
+                    }
+                  }}
+                >
+                  <MaterialIcons name="check" size={18} color="#ffffff" />
+                  <Text style={styles.modalSaveBtnText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
       {/* Segmented Switch (RF-06 vs RF-10) */}
       <View style={styles.switchWrapper}>
         <View style={styles.switchContainer}>
@@ -234,9 +313,66 @@ export const DirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
-                    {service.isOfflinePending && <Text>Pendiente de confirmación del servidor.</Text>}
-                    {syncQueue.filter(q=>q.ownerUserId===user.id && q.status==='error' && (q.payload.id===service.id || q.payload.serviceId===service.id)).map(q=><TouchableOpacity accessibilityRole="button" key={q.id} onPress={()=>{void synchronizeQueue(true);}}><Text accessibilityRole="alert">{q.errorMessage} · Reintentar</Text></TouchableOpacity>)}
-                    {service.authorId===user.id && <View style={{flexDirection:'row',gap:16,padding:12}}><TouchableOpacity accessibilityRole="button" onPress={()=>setEditService({...service})}><Text>Editar</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" onPress={()=>{if(confirmRemove!==service.id){setConfirmRemove(service.id);return;} void saveService(service,'delete').catch(e=>setNotice(e.message));}}><Text>{confirmRemove===service.id?'Confirmar retiro':'Retirar'}</Text></TouchableOpacity>{confirmRemove===service.id && <TouchableOpacity accessibilityRole="button" onPress={()=>setConfirmRemove(null)}><Text>Cancelar</Text></TouchableOpacity>}</View>}
+                    {service.isOfflinePending && (
+                      <View style={styles.offlinePendingBadge}>
+                        <MaterialIcons name="cloud-queue" size={13} color={Colors.warningText} />
+                        <Text style={styles.offlinePendingText}>Pendiente de confirmación del servidor</Text>
+                      </View>
+                    )}
+                    {syncQueue
+                      .filter(q => q.ownerUserId === user.id && q.status === 'error' && (q.payload.id === service.id || q.payload.serviceId === service.id))
+                      .map(q => (
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          key={q.id}
+                          style={styles.syncErrorRetryBanner}
+                          onPress={() => { void synchronizeQueue(true); }}
+                        >
+                          <MaterialIcons name="sync-problem" size={14} color={Colors.emergencyDark} />
+                          <Text accessibilityRole="alert" style={styles.syncErrorRetryText}>{q.errorMessage} · Reintentar</Text>
+                        </TouchableOpacity>
+                      ))}
+                    {service.authorId === user.id && (
+                      <View style={styles.authorActionsRow}>
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          style={styles.authorEditBtn}
+                          onPress={() => setEditService({ ...service })}
+                        >
+                          <MaterialIcons name="edit" size={13} color={Colors.primary} />
+                          <Text style={styles.authorActionText}>Editar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          style={[styles.authorDeleteBtn, confirmRemove === service.id && styles.authorDeleteBtnConfirm]}
+                          onPress={() => {
+                            if (confirmRemove !== service.id) {
+                              setConfirmRemove(service.id);
+                              return;
+                            }
+                            void saveService(service, 'delete').catch(e => setNotice(e instanceof Error ? e.message : 'Error al retirar.'));
+                          }}
+                        >
+                          <MaterialIcons
+                            name="delete-outline"
+                            size={13}
+                            color={confirmRemove === service.id ? '#ffffff' : Colors.emergencyDark}
+                          />
+                          <Text style={[styles.authorDeleteText, confirmRemove === service.id && styles.authorDeleteTextConfirm]}>
+                            {confirmRemove === service.id ? 'Confirmar retiro' : 'Retirar'}
+                          </Text>
+                        </TouchableOpacity>
+                        {confirmRemove === service.id && (
+                          <TouchableOpacity
+                            accessibilityRole="button"
+                            style={styles.authorCancelRemoveBtn}
+                            onPress={() => setConfirmRemove(null)}
+                          >
+                            <Text style={styles.authorCancelRemoveText}>Cancelar</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
                     {/* Description */}
                     <Text style={styles.cardDesc} numberOfLines={2}>
                       {service.description}
@@ -1270,5 +1406,166 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     color: Colors.secondaryMuted,
+  },
+  topNoticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#bfdbfe',
+  },
+  topNoticeText: {
+    fontSize: 12,
+    color: Colors.primaryDark,
+    fontWeight: '600',
+    flex: 1,
+  },
+  inputFieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.secondary,
+    marginBottom: 6,
+  },
+  modalTextInput: {
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: Colors.secondary,
+  },
+  modalTextArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  modalAlertText: {
+    color: Colors.emergencyDark,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.secondaryMuted,
+  },
+  modalSaveBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  modalSaveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  offlinePendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  offlinePendingText: {
+    fontSize: 11,
+    color: Colors.warningText,
+    fontWeight: '600',
+  },
+  syncErrorRetryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginVertical: 4,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  syncErrorRetryText: {
+    fontSize: 11,
+    color: Colors.emergencyDark,
+    fontWeight: '600',
+  },
+  authorActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  authorEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: Colors.surfaceSubtle,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  authorDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#fee2e2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  authorDeleteBtnConfirm: {
+    backgroundColor: Colors.emergency,
+    borderColor: Colors.emergency,
+  },
+  authorActionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  authorDeleteText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.emergencyDark,
+  },
+  authorDeleteTextConfirm: {
+    color: '#ffffff',
+  },
+  authorCancelRemoveBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  authorCancelRemoveText: {
+    fontSize: 11,
+    color: Colors.slateDim,
+    fontWeight: '600',
   },
 });
