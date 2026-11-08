@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
+import { AylluLogo } from './AylluLogo';
 
 interface TutorialModalProps {
   visible: boolean;
@@ -24,9 +25,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ visible, onClose }
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
-              <View style={styles.iconCircle}>
-                <MaterialIcons name="diversity-3" size={20} color={Colors.primary} />
-              </View>
+              <AylluLogo size={36} rounded />
               <View>
                 <Text style={styles.title}>Conoce Ayllu</Text>
                 <Text style={styles.subtitle}>Tu red hiperlocal de cooperación mutua</Text>

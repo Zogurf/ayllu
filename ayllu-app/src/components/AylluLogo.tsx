@@ -27,7 +27,7 @@ export const AylluLogo: React.FC<AylluLogoProps> = ({
   const imageSource =
     variant === 'dark'
       ? require('../../assets/ayllu-logo-dark.jpg')
-      : require('../../assets/ayllu-logo.jpg');
+      : require('../../assets/ayllu-logo.png');
 
   return (
     <View

@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { getAuthRedirectUrl, signInWithGoogle } from '../lib/socialAuth';
 import { Colors } from '../theme/colors';
+import { AylluLogo } from './AylluLogo';
 
 export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callbackError }) => {
   const [socialError, setSocialError] = useState('');
@@ -115,9 +116,7 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
-        <View style={styles.icon}>
-          <MaterialIcons name="diversity-3" size={28} color={Colors.primary} />
-        </View>
+        <AylluLogo size={56} rounded />
         <Text style={styles.title}>{isRecoveringPassword ? 'Restablecer contraseña' : isCreatingAccount ? 'Crear cuenta Ayllu' : 'Inicia sesión en Ayllu'}</Text>
         <Text style={styles.subtitle}>{isRecoveringPassword ? 'Te enviaremos un enlace seguro a tu correo.' : 'Accede con tu cuenta de Google o tu correo.'}</Text>
 
