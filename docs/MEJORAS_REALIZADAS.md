@@ -1,6 +1,6 @@
 # Mejoras realizadas en Ayllu
 
-Este documento detalla los archivos modificados en la rama `codex/mejoras-ayllu` para que el equipo pueda ubicar cada cambio y continuar el trabajo.
+Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu` para que el equipo pueda ubicar cada cambio y continuar el trabajo.
 
 ## Backend y base de datos
 
@@ -46,4 +46,4 @@ Este documento detalla los archivos modificados en la rama `codex/mejoras-ayllu`
 2. Probar permisos, consentimiento y sincronización con dos cuentas y dos dispositivos.
 3. Revisar especialmente el acceso a datos privados, cambios de cuenta con borradores y reintentos offline antes de usar datos reales.
 
-La implementación está en el commit `35ae8c8` de `codex/mejoras-ayllu`. La migración nueva no se ha aplicado a un proyecto Supabase desde este entorno.
+La implementación principal está en el commit `35ae8c8`; el documento de cambios se añadió en `ac49f44`. Ambos están incluidos en `ventu/mejoras-ayllu`. La migración nueva no se ha aplicado a un proyecto Supabase desde este entorno.
