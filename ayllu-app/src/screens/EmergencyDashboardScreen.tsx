@@ -26,12 +26,12 @@ export const EmergencyDashboardScreen: React.FC = () => {
     filteredCriticalResources,
     addCriticalResource,
     emergencyMode,
-    user, canCoordinate, sharedError, readPrivateReport
+    user, canCoordinate, sharedError, readPrivateReport, emergencyAuditEvents
   } = useApp();
 
   const [privateData,setPrivateData]=useState<Record<string,Record<string,string>>>({});
   const [notice,setNotice]=useState('');
-  const [activeTab, setActiveTab] = useState<'reportes' | 'recursos'>('reportes');
+  const [activeTab, setActiveTab] = useState<'reportes' | 'recursos' | 'trazabilidad'>('reportes');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   
   // Modals
@@ -238,6 +238,13 @@ export const EmergencyDashboardScreen: React.FC = () => {
               Recursos críticos
             </Text>
           </TouchableOpacity>
+          {canCoordinate && <TouchableOpacity
+            style={[styles.subTab, activeTab === 'trazabilidad' && styles.subTabActive]}
+            onPress={() => setActiveTab('trazabilidad')}
+          >
+            <MaterialIcons name="history" size={16} color={activeTab === 'trazabilidad' ? Colors.primary : Colors.secondaryMuted} />
+            <Text style={[styles.subTabText, activeTab === 'trazabilidad' && styles.subTabTextActive]}>Trazabilidad</Text>
+          </TouchableOpacity>}
         </View>
 
         {/* ======================================================== */}
@@ -527,6 +534,25 @@ export const EmergencyDashboardScreen: React.FC = () => {
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        {activeTab === 'trazabilidad' && canCoordinate && (
+          <View style={styles.tabContent}>
+            <Text style={styles.auditIntro}>Registro de acciones de emergencia. No incluye nombres, teléfonos ni direcciones privadas.</Text>
+            {emergencyAuditEvents.length === 0 ? <Text style={styles.auditEmpty}>Aún no hay acciones registradas.</Text> : emergencyAuditEvents.map(event => {
+              const labels: Record<string,string> = {
+                report_status_changed: `Estado: ${event.details.from ?? 'nuevo'} → ${event.details.to ?? ''}`,
+                brigade_assigned: `Brigada: ${event.details.to || 'sin asignación'}`,
+                private_report_viewed: 'Consulta de información privada',
+                emergency_mode_activated: `Modo de emergencia activado${event.details.emergency_type ? `: ${event.details.emergency_type}` : ''}`,
+                emergency_mode_closed: 'Modo de emergencia cerrado',
+              };
+              return <View key={event.id} style={styles.auditCard}>
+                <Text style={styles.auditTitle}>{labels[event.eventType] ?? 'Acción de emergencia'}</Text>
+                <Text style={styles.auditMeta}>{event.reportId ? `Reporte ${event.reportId.slice(0,8)} · ` : ''}{new Date(event.createdAt).toLocaleString()} · Usuario {event.actorId.slice(0,8)}</Text>
+              </View>;
+            })}
           </View>
         )}
       </ScrollView>
@@ -837,6 +863,11 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 28,
   },
+  auditIntro: { fontSize: 12, color: Colors.secondaryMuted, marginBottom: 10 },
+  auditEmpty: { fontSize: 13, color: Colors.secondaryMuted, paddingVertical: 18, textAlign: 'center' },
+  auditCard: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, marginBottom: 8 },
+  auditTitle: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  auditMeta: { fontSize: 10.5, color: Colors.secondaryMuted, marginTop: 5 },
   newReportBtn: {
     flexDirection: 'row',
     alignItems: 'center',

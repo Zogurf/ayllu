@@ -13,7 +13,8 @@ import {
   SyncQueueItem, 
   ContentReport,
   FavorStatus,
-  EmergencyStatus
+  EmergencyStatus,
+  EmergencyAuditEvent
 } from '../types';
 import { OfflineStorage, redactEmergencyReport } from '../storage/offlineStorage';
 import { fetchShared, rpc } from '../services/shared';
@@ -75,6 +76,7 @@ interface AppContextType {
 
   // Emergency Reports & Sensitive Data
   emergencyReports: EmergencyReport[];
+  emergencyAuditEvents: EmergencyAuditEvent[];
   filteredEmergencyReports: EmergencyReport[];
   addEmergencyReport: (report: Omit<EmergencyReport, 'id' | 'code' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<void>;
   updateEmergencyReportStatus: (reportId: string, status: EmergencyStatus, assignedBrigade?: string) => Promise<void>;
@@ -115,6 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [emergencyReports, setEmergencyReports] = useState<EmergencyReport[]>(supabase ? [] : INITIAL_EMERGENCY_REPORTS.map(redactEmergencyReport));
   const [criticalResources, setCriticalResources] = useState<CriticalResource[]>(supabase ? [] : INITIAL_CRITICAL_RESOURCES);
   const [contentReports, setContentReports] = useState<ContentReport[]>([]);
+  const [emergencyAuditEvents, setEmergencyAuditEvents] = useState<EmergencyAuditEvent[]>([]);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
 
   const [favorLimit, setFavorLimit] = useState(50);
@@ -166,7 +169,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (supabase && ((updates.id && updates.id !== user.id) || (updates.neighborhoodId && updates.neighborhoodId !== user.neighborhoodId))) {
       setFavorRevision(current => current + 1);
       setFavorLimit(50); setHasMoreFavors(true); setCanCoordinate(false);
-      setServices([]); setFavors([]); setEmergencyReports([]); setCriticalResources([]); setContentReports([]);
+      setServices([]); setFavors([]); setEmergencyReports([]); setCriticalResources([]); setContentReports([]); setEmergencyAuditEvents([]);
       setEmergencyMode({...INITIAL_EMERGENCY_MODE,isActive:false});
     }
     const updated = { ...user, ...updates };
@@ -368,7 +371,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const p=q.payload as {serviceId:string;action:string}; const service=byId.get(p.serviceId);
           if (service) { service.avalesUserIds=service.avalesUserIds.filter(id=>id!==user.id); if(p.action==='add') service.avalesUserIds.push(user.id); service.avalesCount=service.avalesUserIds.length; }
         }
-        setServices([...byId.values()]); setCriticalResources(data.resources); setContentReports(data.moderation); setEmergencyMode(data.mode); setCanCoordinate(data.canCoordinate);
+        setServices([...byId.values()]); setCriticalResources(data.resources); setContentReports(data.moderation); setEmergencyMode(data.mode); setCanCoordinate(data.canCoordinate); setEmergencyAuditEvents(data.auditEvents);
         setEmergencyReports(current=>[...current.filter(r=>ownQueue.some(q=>q.type==='emergency_report' && q.payload.reportId===r.id)),...data.reports]);
         setSharedError('');
       } catch(error) { if(active) setSharedError(error && typeof error==='object' && 'message' in error ? String(error.message) : 'No se pudo actualizar la comunidad.'); }
@@ -620,6 +623,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateFavorStatus,
         removeFavor,
         emergencyReports,
+        emergencyAuditEvents,
         filteredEmergencyReports,
         addEmergencyReport,
         updateEmergencyReportStatus,

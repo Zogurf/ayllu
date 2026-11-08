@@ -218,3 +218,12 @@ export interface EmergencyModeState {
   activatedAt: string;
   activatedBy: string;
 }
+
+export interface EmergencyAuditEvent {
+  id: number;
+  reportId: string | null;
+  actorId: string;
+  eventType: string;
+  details: Record<string, string | null>;
+  createdAt: string;
+}

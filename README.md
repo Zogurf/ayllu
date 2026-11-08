@@ -36,9 +36,9 @@ Las pantallas y los flujos visuales de los módulos están implementados en dist
 | Directorio y contactos | Contactos de emergencia semilla; servicios autenticados consultados por distrito | Fuente administrable para contactos y validación real de proveedores y vigencia |
 | Servicios y avales | RPC autenticados, RLS por distrito, aval único por usuario y cola persistente; requiere migración `202611080004` | Aplicar migración y validar con dos cuentas en Supabase |
 | Favores | Muro compartido por distrito, cola offline, edición/estados/retiro y permisos por autor | Aplicar migraciones pendientes y comprobar en dos dispositivos |
-| Emergencias y recursos | Reportes/estados compartidos; consulta privada autorizada; modo, recursos y denuncias vía RPC | Aplicar migración `202611080004`; falta auditoría de acciones de emergencia y validación operativa |
+| Emergencias y recursos | Reportes/estados compartidos; consulta privada autorizada; modo, recursos, denuncias y bitácora de acciones | Aplicar migraciones `202611080004` y `202611080005`; validar operativamente |
 | Mensajería | Conversaciones persistentes, RLS por participante y recibos de entrega/lectura; requiere migración `202611080004` | Aplicar migración y probar con dos cuentas |
-| Moderación | Denuncias y ocultamiento/restauración compartidos; decisiones registran autor, motivo y fecha | Aplicar migración; completar historial de cambios de emergencia y validación de roles |
+| Moderación | Denuncias y ocultamiento/restauración compartidos; decisiones registran autor, motivo y fecha | Aplicar migración y validar roles |
 | Offline y sincronización | Cola persistente con reintentos y aislamiento por cuenta para reportes, favores, servicios y avales | Configurar proyecto/credenciales y validar reinicio/reconexión en dispositivos reales |
 
 Los formularios limitan longitudes, validan celulares peruanos, comprueban edades entre 0 y 125 y requieren cantidades positivas para recursos. Los mensajes de confirmación indican cuándo el registro solo quedó guardado en el dispositivo.
@@ -53,7 +53,7 @@ Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proye
 
 ### Base de datos y backend (siguiente etapa)
 
-La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. El código incluye Auth, perfiles, barrios y RPC para reportes, favores, servicios, avales, recursos, emergencias, conversaciones y moderación. Aplica las migraciones en orden; `202611080004_shared_services_moderation_resources.sql` agrega los flujos compartidos recientes. Deben validarse en un proyecto de pruebas antes de usarlos con datos reales.
+La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. El código incluye Auth, perfiles, barrios y RPC para reportes, favores, servicios, avales, recursos, emergencias, conversaciones y moderación. Aplica las migraciones en orden; `202611080004_shared_services_moderation_resources.sql` agrega los flujos compartidos y `202611080005_emergency_audit_trail.sql` incorpora trazabilidad de emergencias. Deben validarse en un proyecto de pruebas antes de usarlos con datos reales.
 
 Sigue [SUPABASE_SETUP.md](SUPABASE_SETUP.md) para crear el proyecto, aplicar migraciones, configurar Auth, guardar las variables y probar el flujo. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
 

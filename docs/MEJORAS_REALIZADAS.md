@@ -4,6 +4,11 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 
 ## Backend y base de datos
 
+- `supabase/migrations/202611080005_emergency_audit_trail.sql`
+  - Crea una bitácora append-only de estados, asignaciones, lecturas autorizadas de datos privados y activación/cierre del modo de emergencia.
+  - Guarda actor, barrio, reporte, fecha y metadatos mínimos; no duplica nombres, edades, teléfonos ni direcciones.
+  - Restringe la lectura a coordinadores y administradores del barrio mediante RLS. Debe definirse la retención para el entorno de despliegue.
+
 - `supabase/migrations/202611080004_shared_services_moderation_resources.sql`
   - Añade tablas y políticas RLS para servicios locales, avales, recursos críticos, modo de emergencia, denuncias, historial de moderación y conversaciones.
   - Añade RPC para publicar/editar/retirar servicios, dar o quitar avales, guardar recursos, activar/cerrar emergencias, cambiar estados de reportes, consultar información privada autorizada, denunciar y moderar contenido.
@@ -23,13 +28,15 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 - `ayllu-app/src/storage/mockData.ts`
   - Marca como no verificados los servicios de demostración.
 - `ayllu-app/src/services/shared.ts`
-  - Incluye el estado de moderación al convertir reportes recibidos del servidor.
+  - Incluye la lectura de los últimos 100 eventos de trazabilidad del barrio.
 - `ayllu-app/src/context/AppContext.tsx`
   - Excluye del tablero los reportes ocultos por moderación.
 - `ayllu-app/src/types/index.ts`
   - Añade el campo opcional de visibilidad para reportes de emergencia.
 - `ayllu-app/src/screens/EmergencyDashboardScreen.tsx`
   - Muestra los datos privados y la edad usando los campos devueltos por el RPC autorizado.
+- `ayllu-app/src/types/index.ts` y `ayllu-app/src/context/AppContext.tsx`
+  - Tipan y distribuyen los eventos de auditoría a las pantallas autorizadas.
 
 ## Guías del proyecto
 
