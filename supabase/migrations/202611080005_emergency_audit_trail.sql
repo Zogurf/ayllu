@@ -18,6 +18,10 @@ create policy "coordinators can read emergency audit" on public.emergency_audit_
     public.has_community_role(neighborhood_id,array['coordinador','admin']::public.app_role[])
   );
 
+-- Private report reads must pass through the audited RPC; direct PostgREST
+-- SELECT would otherwise bypass the audit event written by that RPC.
+revoke select on public.emergency_report_private from authenticated,anon;
+
 create or replace function public.set_emergency_mode(p_neighborhood_id uuid,p_active boolean,p_type text)
 returns void language plpgsql security definer set search_path = '' as $$
 declare prior public.emergency_modes%rowtype;

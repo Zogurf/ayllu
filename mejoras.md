@@ -60,7 +60,8 @@ Criterio de cierre: ningún flujo anuncia un mensaje enviado sin confirmación; 
 - [x] Conectar recursos compartidos con validación de cantidad y control de versión.
 - [x] Implementar la consulta autorizada de datos privados desde el tablero mediante RPC.
 - [x] Agregar bitácora de cambios de estado, asignaciones, activación/cierre del modo y acceso a datos privados. La vista está limitada a coordinadores/administradores y no copia información sensible. Falta definir conservación/eliminación y validar en Supabase.
-- [ ] Verificar rechazo de accesos directos no autorizados a tablas y RPC antes de considerar un uso fuera de la demostración.
+- [x] Revocar en la migración el `SELECT` directo de la tabla privada para que la lectura de datos sensibles pase por el RPC que registra la consulta.
+- [ ] Validar en Supabase con sesiones de vecino, coordinador y administrador que RLS y RPC rechacen roles y barrios no autorizados.
 
 Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuenta vecina no obtiene direcciones ni teléfonos privados mediante consultas directas.
 

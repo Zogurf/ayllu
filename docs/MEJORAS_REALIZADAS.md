@@ -8,6 +8,7 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
   - Crea una bitácora append-only de estados, asignaciones, lecturas autorizadas de datos privados y activación/cierre del modo de emergencia.
   - Guarda actor, barrio, reporte, fecha y metadatos mínimos; no duplica nombres, edades, teléfonos ni direcciones.
   - Restringe la lectura a coordinadores y administradores del barrio mediante RLS. Debe definirse la retención para el entorno de despliegue.
+  - Revoca el `SELECT` directo de `emergency_report_private` para que las consultas privadas queden registradas por el RPC autorizado.
 
 - `supabase/migrations/202611080004_shared_services_moderation_resources.sql`
   - Añade tablas y políticas RLS para servicios locales, avales, recursos críticos, modo de emergencia, denuncias, historial de moderación y conversaciones.
@@ -52,5 +53,6 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 1. Aplicar las migraciones en un proyecto Supabase de pruebas con `npx supabase db push --dry-run --remote` y luego `npx supabase db push --remote`.
 2. Probar permisos, consentimiento y sincronización con dos cuentas y dos dispositivos.
 3. Revisar especialmente el acceso a datos privados, cambios de cuenta con borradores y reintentos offline antes de usar datos reales.
+4. Validar con sesiones reales que vecinos y coordinadores de otros barrios no puedan llamar los RPC ni leer la tabla privada o la bitácora.
 
 La implementación principal está en el commit `35ae8c8`; el documento de cambios se añadió en `ac49f44`. Ambos están incluidos en `ventu/mejoras-ayllu`. La migración nueva no se ha aplicado a un proyecto Supabase desde este entorno.
