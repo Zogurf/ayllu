@@ -6,7 +6,6 @@ import {
   Modal, 
   TouchableOpacity, 
   TextInput, 
-  Alert 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -32,17 +31,17 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
   const [selectedType, setSelectedType] = useState(emergencyMode.emergencyType || EMERGENCY_TYPES[0]);
   const [customDetails, setCustomDetails] = useState('');
 
-  const handleSave = () => {
+  const [error,setError]=useState('');
+  const [saving,setSaving]=useState(false);
+  const handleSave = async () => {
+    if(saving) return; setSaving(true); setError('');
+    try {
     const finalType = customDetails.trim() ? `${selectedType} - ${customDetails.trim()}` : selectedType;
-    toggleEmergencyMode(isActive, user.neighborhood, finalType);
+    await toggleEmergencyMode(isActive, user.neighborhood, finalType);
+    onClose();
+    } catch(e) {setError(e && typeof e==='object' && 'message' in e?String(e.message):'No se pudo guardar.');}
+    finally {setSaving(false);}
 
-    Alert.alert(
-      'Gestión de emergencias',
-      isActive 
-        ? `Modo Emergencia ACTIVADO para ${user.neighborhood}. Se priorizarán recursos y reportes críticos en la pantalla principal.` 
-        : `Modo Emergencia DESACTIVADO para ${user.neighborhood}. Retomando Modo Cotidiano.`,
-      [{ text: 'Entendido', onPress: onClose }]
-    );
   };
 
   return (
@@ -51,6 +50,7 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
+<Text accessibilityRole="alert">{error}</Text>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -140,7 +140,7 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
           <View style={styles.footer}>
             <TouchableOpacity 
               style={[styles.submitBtn, isActive ? styles.submitBtnAlert : styles.submitBtnNormal]} 
-              onPress={handleSave}
+              onPress={handleSave} disabled={saving}
             >
               <MaterialIcons name="save" size={18} color="#ffffff" />
               <Text style={styles.submitBtnText}>

@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
               activeOpacity={0.7}
             >
               <Text style={styles.locationText} numberOfLines={1}>
-                {user.neighborhood}
+                {user.activePlaceLabel ? `${user.activePlaceLabel} · ` : ''}{user.activePlaceAddress ? `${user.activePlaceAddress} · ` : ''}{user.neighborhood}
               </Text>
               <MaterialIcons name="arrow-drop-down" size={18} color={Colors.slateDim} />
             </TouchableOpacity>

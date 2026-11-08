@@ -31,13 +31,15 @@ const SERVICE_CATEGORIES: { id: ServiceCategory; label: string; icon: keyof type
 ];
 
 export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visible, onClose }) => {
-  const { user, addService, isOnline } = useApp();
+  const { user, addService } = useApp();
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<ServiceCategory>('gasfiteria');
   const [description, setDescription] = useState('');
   const [addressApprox, setAddressApprox] = useState('');
   const [phone, setPhone] = useState(user.phone || '');
+  const [sharePhone,setSharePhone]=useState(false);
+  const [submitError,setSubmitError]=useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -47,7 +49,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
       return;
     }
     const normalizedPhone = normalizePeruMobilePhone(phone);
-    if (!normalizedPhone) {
+    if (sharePhone && !normalizedPhone) {
       Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
@@ -60,34 +62,21 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
         category,
         categoryLabel: catObj ? catObj.label : 'General',
         providerName: user.nickname,
-        providerPhone: normalizedPhone,
+        providerPhone: sharePhone ? normalizedPhone ?? '' : '',
+        sharePhone,
         neighborhood: user.neighborhood,
         addressApprox: addressApprox.trim() || `Barrio ${user.neighborhood}`,
         description: description.trim(),
         avatarUrl: user.avatarUrl,
       });
     } catch (error) {
-      Alert.alert('No se guardó el servicio', error instanceof Error ? error.message : 'No se pudo guardar el servicio en este dispositivo.');
+      setSubmitError(error instanceof Error ? error.message : 'No se pudo guardar el servicio.');
       setIsSubmitting(false);
       return;
     }
 
-    const msg = isOnline
-      ? 'Guardado en este dispositivo. Aún no se publicó en el directorio compartido.'
-      : 'Guardado en este dispositivo, sin conexión. Aún no llegó al directorio compartido.';
+    setTitle(''); setDescription(''); setAddressApprox(''); setIsSubmitting(false); onClose();
 
-    Alert.alert('Directorio Local', msg, [
-      {
-        text: 'Aceptar',
-        onPress: () => {
-          setTitle('');
-          setDescription('');
-          setAddressApprox('');
-          setIsSubmitting(false);
-          onClose();
-        },
-      },
-    ]);
   };
 
   return (
@@ -96,6 +85,8 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
+          <Text accessibilityRole="alert">{submitError}</Text>
+          <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{checked:sharePhone}} onPress={()=>setSharePhone(!sharePhone)} style={{padding:12}}><Text>{sharePhone?'☑':'☐'} Autorizo compartir el teléfono de mi perfil con vecinos del distrito.</Text></TouchableOpacity>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>

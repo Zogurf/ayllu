@@ -13,11 +13,14 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
-import { UserRole } from '../types';
+import { SavedPlace, UserRole } from '../types';
+import { SavedPlacesModal } from '../components/SavedPlacesModal';
 import { saveCommunityProfile } from '../lib/communityProfile';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
 import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
 import { supabase } from '../lib/supabase';
+import * as Location from 'expo-location';
+import { MessagingInboxModal } from '../components/MessagingInboxModal';
 
 interface ProfileScreenProps {
   onOpenTutorial: () => void;
@@ -33,6 +36,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
     syncQueue, 
     synchronizeQueue, 
     removeSyncQueueItem,
+    canCoordinate,
     contentReports,
     hideContentItem,
     resetDemoData 
@@ -42,6 +46,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
   const [nickname, setNickname] = useState(user.nickname);
   const [phone, setPhone] = useState(user.phone);
   const [showNeighborhoodModal, setShowNeighborhoodModal] = useState(false);
+  const [showSavedPlaces, setShowSavedPlaces] = useState(false);
+  const [gpsError, setGpsError] = useState('');
+  const [showInbox, setShowInbox] = useState(false);
 
   const handleSaveName = () => {
     if (!isReasonableText(nickname, 80)) {
@@ -71,27 +78,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
     Alert.alert('Perfil Actualizado', 'Tus datos vecinales han sido guardados.');
   };
 
-  const handleGpsToggle = (value: boolean) => {
-    if (value) {
-      Alert.alert(
-        'Permiso de ubicación GPS',
-        'Ayllu solo utilizará tus coordenadas para calcular distancias aproximadas dentro de tu red vecinal o adjuntarlas a un reporte de auxilio crítico si tú lo decides. Tu ubicación exacta jamás se hace pública ni se guarda en servidores externos.',
-        [
-          { text: 'Denegar', style: 'cancel' },
-          { 
-            text: 'Autorizar', 
-            onPress: () => {
-              updateProfile({ 
-                gpsEnabled: true,
-                coords: undefined // Coordinates require a real device location, never a fixed city.
-              });
-            }
-          }
-        ]
-      );
-    } else {
-      updateProfile({ gpsEnabled: false });
-    }
+  const handleGpsToggle = (enabled: boolean) => {
+    setGpsError('');
+    if (!enabled) { updateProfile({ gpsEnabled: false, coords: undefined }); return; }
+    Alert.alert('Ubicación GPS', 'Ayllu usará la ubicación mientras utilizas la app para calcular distancias aproximadas. Las coordenadas se guardan en este dispositivo y no se publican.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Permitir', onPress: () => { void (async () => {
+        try {
+          const permission = await Location.requestForegroundPermissionsAsync();
+          if (!permission.granted) throw new Error('Permite el acceso a la ubicación mientras usas Ayllu.');
+          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+          updateProfile({ gpsEnabled: true, coords });
+        } catch (error) {
+          setGpsError(error instanceof Error ? error.message : 'No se pudo obtener la ubicación.');
+          updateProfile({ gpsEnabled: false, coords: undefined });
+        }
+      })(); } },
+    ]);
+  };
+  const distanceFromCurrent = (place: SavedPlace) => {
+    if (!user.coords || !place.coords) return undefined;
+    const rad=(value:number)=>value*Math.PI/180;
+    const dLat=rad(place.coords.latitude-user.coords.latitude),dLon=rad(place.coords.longitude-user.coords.longitude);
+    const a=Math.sin(dLat/2)**2+Math.cos(rad(user.coords.latitude))*Math.cos(rad(place.coords.latitude))*Math.sin(dLon/2)**2;
+    return Math.round(6371000*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
   };
 
   const handleManualSync = async () => {
@@ -198,13 +209,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
         {/* Coverage Scope Switcher (RF-03) */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Radio de Cobertura Geográfica</Text>
+            <Text style={styles.sectionTitle}>Alcance y direcciones guardadas</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
             Selecciona el alcance para filtrar pedidos de ayuda y servicios en tu comunidad:
           </Text>
 
           {/* Scope 1 */}
+          {supabase && <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={() => setShowInbox(true)}
+          >
+            <MaterialIcons name="chat" size={18} color={Colors.primary} />
+            <Text style={styles.signOutBtnText}>Mensajes</Text>
+          </TouchableOpacity>}
           <TouchableOpacity
             style={[styles.scopeOption, user.coverageScope === 1 && styles.scopeOptionActive]}
             onPress={() => setCoverageScope(1)}
@@ -225,25 +243,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             />
           </TouchableOpacity>
 
-          {/* Scope 2 */}
-          <TouchableOpacity
-            style={[styles.scopeOption, user.coverageScope === 2 && styles.scopeOptionActive]}
-            onPress={() => setCoverageScope(2)}
-          >
-            <View style={styles.scopeLeft}>
-              <View style={[styles.scopeIcon, user.coverageScope === 2 && styles.scopeIconActive]}>
-                <MaterialIcons name="holiday-village" size={18} color={user.coverageScope === 2 ? Colors.primary : Colors.slateDim} />
-              </View>
-              <View>
-                <Text style={styles.scopeTitle}>Barrios Colindantes</Text>
-                <Text style={styles.scopeDesc}>+ Lucrepata, Tandapata y San Cristóbal</Text>
-              </View>
-            </View>
-            <MaterialIcons
-              name={user.coverageScope === 2 ? "check-circle" : "radio-button-unchecked"}
-              size={20}
-              color={user.coverageScope === 2 ? Colors.primary : Colors.border}
-            />
+          {/* Saved addresses replace adjacent-neighborhood expansion. */}
+          <TouchableOpacity style={[styles.scopeOption, showSavedPlaces && styles.scopeOptionActive]} onPress={() => setShowSavedPlaces(true)}>
+            <View style={styles.scopeLeft}><View style={[styles.scopeIcon, { backgroundColor: Colors.primaryContainer }]}><MaterialIcons name="bookmark" size={18} color={Colors.primary}/></View><View><Text style={styles.scopeTitle}>Mis direcciones</Text><Text style={styles.scopeDesc}>{user.savedPlaces?.length ?? 0} guardadas · {user.activePlaceId ? user.savedPlaces?.find(place=>place.id===user.activePlaceId)?.label ?? user.neighborhood : user.neighborhood}</Text></View></View>
+            <MaterialIcons name="chevron-right" size={20} color={Colors.primary}/>
           </TouchableOpacity>
 
           {/* Scope 3 */}
@@ -278,6 +281,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                 <Text style={styles.gpsSubtitle}>
                   Solo calcula cercanía estimada. La app funciona normalmente si se desactiva.
                 </Text>
+                {gpsError ? <Text accessibilityRole="alert" style={{ color: Colors.emergencyDark }}>{gpsError}</Text> : user.gpsEnabled && user.coords ? <Text style={styles.gpsSubtitle}>Ubicación obtenida. Distancias a direcciones guardadas:</Text> : null}
+                {user.gpsEnabled && user.coords && (user.savedPlaces ?? []).filter(place=>place.coords).map(place=><Text key={place.id} style={styles.gpsSubtitle}>{place.label}: {distanceFromCurrent(place)} m</Text>)}
               </View>
             </View>
             <Switch
@@ -380,7 +385,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
         </View>
 
         {/* CONTENT MODERATION PANEL (RF-21) - Visible to Admin & Coordinator */}
-        {(user.role === 'admin' || user.role === 'coordinador') && (
+        {canCoordinate && (
           <View style={styles.sectionCard}>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Bandeja de Moderación Comunitaria</Text>
@@ -405,16 +410,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                   <Text style={styles.modReason}>Motivo: {rep.reason}</Text>
                   <Text style={styles.modDetails}>{rep.details}</Text>
 
-                  {rep.status !== 'hidden' && (
+                  {rep.itemType !== 'emergency_report' && (
                     <TouchableOpacity
                       style={styles.hideContentBtn}
                       onPress={() => {
-                        hideContentItem(rep.itemId, rep.itemType);
-                        Alert.alert('Moderación', 'El contenido ha sido ocultado del muro público.');
+                        void hideContentItem(rep.itemId, rep.itemType, rep.status!=='hidden', rep.reason).then(()=>Alert.alert('Moderación','Decisión confirmada por el servidor.')).catch(e=>Alert.alert('No se pudo moderar',e.message));
                       }}
                     >
                       <MaterialIcons name="visibility-off" size={14} color="#ffffff" />
-                      <Text style={styles.hideContentText}>Ocultar Contenido Denunciado</Text>
+                      <Text style={styles.hideContentText}>{rep.status==='hidden'?'Restaurar contenido':'Ocultar contenido denunciado'}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -467,10 +471,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
       </ScrollView>
 
       {/* Neighborhood Selection Modal (RF-01, RF-05) */}
+      <SavedPlacesModal
+        visible={showSavedPlaces}
+        places={user.savedPlaces ?? []}
+        activePlaceId={user.activePlaceId}
+        onClose={() => setShowSavedPlaces(false)}
+        onAdd={(place: SavedPlace) => updateProfile({ savedPlaces: [...(user.savedPlaces ?? []), place] })}
+        onDelete={(id: string) => updateProfile({ savedPlaces: (user.savedPlaces ?? []).filter(place => place.id !== id) })}
+        onSelect={(place: SavedPlace) => { updateProfile({ region: place.region, province: place.province, district: place.district, districtUbigeo: place.districtUbigeo, neighborhood: place.neighborhood, neighborhoodId: place.neighborhoodId, activePlaceId: place.id, activePlaceLabel: place.label, activePlaceAddress: place.addressLine, ...(supabase ? { role: 'vecino' as const } : {}) }); setCoverageScope(1); }}
+      />
       <NeighborhoodModal
         visible={showNeighborhoodModal}
         onClose={() => setShowNeighborhoodModal(false)}
       />
+      <MessagingInboxModal visible={showInbox} onClose={() => setShowInbox(false)} />
     </View>
   );
 };

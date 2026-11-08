@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
-  TextInput, 
-  ScrollView, 
-  Alert 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -51,6 +51,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
   const [durationInfo, setDurationInfo] = useState('Fin de semana');
   const [contactChannel, setContactChannel] = useState<ContactChannel>('ayllu');
   const [isUrgent, setIsUrgent] = useState(false);
+  const [sharePhone, setSharePhone] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
@@ -89,6 +90,7 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
+    if (contactChannel === 'whatsapp' && !sharePhone) { setSubmitError('Autoriza compartir tu teléfono para usar WhatsApp.'); return; }
     setIsSubmitting(true);
     setSubmitError('');
     const catObj = CATEGORIES.find(c => c.id === category);
@@ -101,7 +103,8 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
         mode,
         authorId: user.id,
         authorName: user.nickname,
-        authorPhone: user.phone,
+        authorPhone: contactChannel === 'whatsapp' && sharePhone ? user.phone : '',
+        sharePhone,
         neighborhood: user.neighborhood,
         durationInfo,
         contactChannel,
@@ -203,10 +206,10 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     style={[styles.modeButton, mode === 'ofrezco' && styles.modeButtonActive]}
                     onPress={() => setMode('ofrezco')}
                   >
-                    <MaterialIcons 
-                      name="handshake" 
-                      size={18} 
-                      color={mode === 'ofrezco' ? Colors.primary : Colors.secondaryMuted} 
+                    <MaterialIcons
+                      name="handshake"
+                      size={18}
+                      color={mode === 'ofrezco' ? Colors.primary : Colors.secondaryMuted}
                     />
                     <Text style={[styles.modeButtonText, mode === 'ofrezco' && styles.modeButtonTextActive]}>
                       Ofrecer ayuda
@@ -217,10 +220,10 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     style={[styles.modeButton, mode === 'solicito' && styles.modeButtonActive]}
                     onPress={() => setMode('solicito')}
                   >
-                    <MaterialIcons 
-                      name="support" 
-                      size={18} 
-                      color={mode === 'solicito' ? Colors.primary : Colors.secondaryMuted} 
+                    <MaterialIcons
+                      name="support"
+                      size={18}
+                      color={mode === 'solicito' ? Colors.primary : Colors.secondaryMuted}
                     />
                     <Text style={[styles.modeButtonText, mode === 'solicito' && styles.modeButtonTextActive]}>
                       Pedir auxilio
@@ -260,10 +263,10 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                   style={[styles.urgencyToggle, isUrgent && styles.urgencyToggleActive]}
                   onPress={() => setIsUrgent(!isUrgent)}
                 >
-                  <MaterialIcons 
-                    name={isUrgent ? "check-box" : "check-box-outline-blank"} 
-                    size={20} 
-                    color={isUrgent ? Colors.emergency : Colors.slateDim} 
+                  <MaterialIcons
+                    name={isUrgent ? "check-box" : "check-box-outline-blank"}
+                    size={20}
+                    color={isUrgent ? Colors.emergency : Colors.slateDim}
                   />
                   <Text style={[styles.urgencyText, isUrgent && styles.urgencyTextActive]}>
                     Marcar como necesidad prioritaria / urgente
@@ -365,9 +368,9 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     color={contactChannel === 'ayllu' ? Colors.primary : Colors.slateDim}
                   />
                   <View style={styles.channelInfo}>
-                    <Text style={styles.channelTitle}>Mensajería interna Ayllu (Recomendado)</Text>
+                    <Text style={styles.channelTitle}>Sin teléfono público (chat no disponible)</Text>
                     <Text style={styles.channelDesc}>
-                      Protege tu número de teléfono personal frente a desconocidos.
+                      Puedes publicar sin teléfono. La mensajería interna todavía no permite contactar.
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -386,18 +389,19 @@ export const PublishFavorModal: React.FC<PublishFavorModalProps> = ({ visible, o
                     color={contactChannel === 'whatsapp' ? Colors.primary : Colors.slateDim}
                   />
                   <View style={styles.channelInfo}>
-                    <Text style={styles.channelTitle}>WhatsApp verificado vecinal</Text>
+                    <Text style={styles.channelTitle}>WhatsApp vecinal</Text>
                     <Text style={styles.channelDesc}>
-                      Solo visible para vecinos autenticados en el barrio.
+                      Tu teléfono será visible para cuentas autenticadas de tu distrito.
                     </Text>
                   </View>
                 </TouchableOpacity>
 
+                {contactChannel==='whatsapp' && <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{checked:sharePhone}} onPress={()=>setSharePhone(!sharePhone)} style={{padding:12}}><Text>{sharePhone?'☑':'☐'} Autorizo publicar mi teléfono para contacto por WhatsApp.</Text></TouchableOpacity>}
                 {/* Scope Note */}
                 <View style={styles.scopeBox}>
                   <MaterialIcons name="near-me" size={16} color={Colors.primary} />
                   <Text style={styles.scopeText}>
-                    Alcance visible: {user.neighborhood} (aprox. 450 m a la redonda)
+                    Alcance visible: {user.neighborhood}
                   </Text>
                 </View>
               </View>

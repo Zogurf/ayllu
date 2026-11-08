@@ -26,9 +26,11 @@ export const EmergencyDashboardScreen: React.FC = () => {
     filteredCriticalResources,
     addCriticalResource,
     emergencyMode,
-    user 
+    user, canCoordinate, sharedError, readPrivateReport
   } = useApp();
 
+  const [privateData,setPrivateData]=useState<Record<string,Record<string,string>>>({});
+  const [notice,setNotice]=useState('');
   const [activeTab, setActiveTab] = useState<'reportes' | 'recursos'>('reportes');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   
@@ -46,7 +48,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
   const [isSavingResource, setIsSavingResource] = useState(false);
   const [savingReportId, setSavingReportId] = useState<string | null>(null);
 
-  const isAuthorized = user.role === 'coordinador' || user.role === 'admin';
+  const isAuthorized = canCoordinate;
 
   // Metrics
   const totalCount = filteredEmergencyReports.length;
@@ -73,7 +75,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
     setSavingReportId(report.id);
     try {
       await updateEmergencyReportStatus(report.id, newStatus);
-      Alert.alert('Tablero Actualizado', `Estado del reporte ${report.code} guardado como "${newStatus.toUpperCase()}" en este dispositivo.`);
+      Alert.alert('Tablero Actualizado', `Estado del reporte ${report.code} guardado como "${newStatus.toUpperCase()}" en el servidor.`);
     } catch (error) {
       Alert.alert('No se actualizó el reporte', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
     } finally {
@@ -116,12 +118,13 @@ export const EmergencyDashboardScreen: React.FC = () => {
     setResQuantity('');
     setResLocation('');
     setShowAddResourceModal(false);
-    Alert.alert('Recurso guardado', 'El recurso quedó guardado en este dispositivo. Aún no está publicado en un servidor compartido.');
+    Alert.alert('Recurso guardado', 'El recurso quedó guardado en el servidor. Aún no está publicado en un servidor compartido.');
     setIsSavingResource(false);
   };
 
   return (
     <View style={styles.container}>
+      <Text accessibilityRole="alert" style={{padding:8}}>{notice || sharedError}</Text>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Module Header / Role Authorization Badge (RF-18) */}
         <View style={styles.headerCard}>
@@ -150,7 +153,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
             <MaterialIcons name="verified-user" size={15} color={Colors.primary} />
             <Text style={styles.privacyNoticeText} numberOfLines={1}>
               {isAuthorized 
-                ? 'Acceso a datos sensibles y dirección exacta habilitado'
+                ? 'La consulta de datos privados requiere autorización del servidor'
                 : 'Direcciones exactas y teléfonos protegidos por privacidad'}
             </Text>
           </View>
@@ -296,7 +299,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                         <View style={styles.offlineAlertRow}>
                           <MaterialIcons name="cloud-queue" size={14} color={Colors.warningText} />
                           <Text style={styles.offlineAlertText}>
-                            Guardado sin conexión en este dispositivo. Aún no ha llegado a los coordinadores.
+                            Guardado sin conexión en el servidor. Aún no ha llegado a los coordinadores.
                           </Text>
                         </View>
                       )}
@@ -343,22 +346,23 @@ export const EmergencyDashboardScreen: React.FC = () => {
                       {/* SENSITIVE DATA CONTAINER (RF-18 / RNF-12) */}
                       {/* ======================================================== */}
                       <View style={[styles.sensitiveBox, isAuthorized ? styles.sensitiveBoxAuth : styles.sensitiveBoxMasked]}>
-                        {isAuthorized && report.beneficiaryName && report.exactAddress ? (
+                        {isAuthorized ? (
                           // COORDINATOR / ADMIN VIEW (FULL DATA)
                           <View style={styles.sensitiveFull}>
+                          <TouchableOpacity onPress={()=>{void readPrivateReport(report.id).then(data=>setPrivateData(current=>({...current,[report.id]:data}))).catch(e=>setNotice(e.message));}}><Text>Consultar datos privados (acceso registrado)</Text></TouchableOpacity>
                             <View style={styles.sensitiveTopRow}>
                               <View style={{ flex: 1 }}>
                                 <Text style={styles.beneficiaryLabel}>Beneficiario(a) Protegido(a):</Text>
                                 <Text style={styles.beneficiaryName}>
-                                  {report.beneficiaryName} {report.beneficiaryAge ? `(${report.beneficiaryAge} años)` : ''}
+                                  {privateData[report.id]?.beneficiary_name ?? 'Datos privados no consultados'} {report.beneficiaryAge ? `(${report.beneficiaryAge} años)` : ''}
                                 </Text>
                                 <Text style={styles.beneficiaryAddress}>
-                                  📍 {report.exactAddress}
+                                  📍 {privateData[report.id]?.exact_address ?? ''}
                                 </Text>
                               </View>
                               <TouchableOpacity
                                 style={styles.callBeneficiaryBtn}
-                                onPress={() => handleCall(report.contactPhone)}
+                                onPress={() => handleCall(privateData[report.id]?.contact_phone ?? '')}
                               >
                                 <MaterialIcons name="call" size={16} color="#ffffff" />
                                 <Text style={styles.callBeneficiaryText}>Llamar</Text>
@@ -367,9 +371,9 @@ export const EmergencyDashboardScreen: React.FC = () => {
 
                             <View style={styles.phoneRow}>
                               <MaterialIcons name="phone-iphone" size={14} color={Colors.primary} />
-                              <Text style={styles.phoneText}>{report.contactPhone}</Text>
+                              <Text style={styles.phoneText}>{privateData[report.id]?.contact_phone ?? ''}</Text>
                               <View style={styles.verifiedTag}>
-                                <Text style={styles.verifiedTagText}>Verificado por vecino</Text>
+                                <Text style={styles.verifiedTagText}>Declarado por vecino</Text>
                               </View>
                             </View>
                           </View>
@@ -379,7 +383,7 @@ export const EmergencyDashboardScreen: React.FC = () => {
                             <View style={styles.maskedTopRow}>
                               <MaterialIcons name="lock" size={16} color={Colors.slateDim} />
                               <Text style={styles.maskedTitle}>
-                                {isAuthorized ? 'Datos privados no cargados en esta demo' : 'Ubicación general protegida'}
+                                {isAuthorized ? 'Datos privados no consultados' : 'Ubicación general protegida'}
                               </Text>
                             </View>
                             <Text style={styles.maskedAddress}>

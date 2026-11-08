@@ -6,7 +6,6 @@ import {
   Modal, 
   TouchableOpacity, 
   TextInput, 
-  Alert 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -39,8 +38,12 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
   const [selectedReason, setSelectedReason] = useState(REPORT_REASONS[0]);
   const [details, setDetails] = useState('');
 
-  const handleSubmit = () => {
-    addContentReport({
+  const [error,setError]=useState('');
+  const [saving,setSaving]=useState(false);
+  const handleSubmit = async () => {
+    if(saving) return; setSaving(true); setError('');
+    try {
+    await addContentReport({
       itemId,
       itemType,
       reportedItemTitle: itemTitle,
@@ -49,19 +52,10 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
       details: details.trim() || 'Reportado por vecino vigilante de la comunidad.',
     });
 
-    Alert.alert(
-      'Reporte registrado',
-      'Gracias por cuidar la confianza vecinal. Los coordinadores y administradores revisarán el contenido de inmediato.',
-      [
-        {
-          text: 'Aceptar',
-          onPress: () => {
-            setDetails('');
-            onClose();
-          },
-        },
-      ]
-    );
+    setDetails(''); onClose();
+    } catch(e) {setError(e && typeof e==='object' && 'message' in e?String(e.message):'No se pudo guardar.');}
+    finally {setSaving(false);}
+
   };
 
   return (
@@ -70,6 +64,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
+<Text accessibilityRole="alert">{error}</Text>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
@@ -121,7 +116,7 @@ export const ContentReportModal: React.FC<ContentReportModalProps> = ({
           />
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={saving}>
               <MaterialIcons name="check" size={18} color="#ffffff" />
               <Text style={styles.submitBtnText}>Enviar Reporte a Moderación</Text>
             </TouchableOpacity>

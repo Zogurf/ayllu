@@ -14,7 +14,7 @@ export function mergeFavorFeed(
     if (item.type !== 'favor' || item.ownerUserId !== ownerId) continue;
     const payload = item.payload as CommunityFavor & { action?: string };
     if (payload.action === 'delete') feed.delete(payload.id);
-    else feed.set(payload.id, { ...payload, authorId: ownerId, isOfflinePending: true });
+    else feed.set(payload.id, { ...payload, version:(payload.version ?? 0)+1, authorId: ownerId, isOfflinePending: true });
   }
   return [...feed.values()].filter(favor => !favor.isHidden)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

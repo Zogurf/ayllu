@@ -8,13 +8,13 @@ import {
   TextInput, 
   Image, 
   Linking, 
-  Alert,
   Modal 
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { LocalService, EmergencyContact } from '../types';
+import { supabase } from '../lib/supabase';
 import { INITIAL_EMERGENCY_CONTACTS } from '../storage/mockData';
 import { PublishServiceModal } from '../components/PublishServiceModal';
 import { ContentReportModal } from '../components/ContentReportModal';
@@ -30,7 +30,7 @@ const FILTER_CATEGORIES: { id: string; label: string }[] = [
 ];
 
 export const DirectoryScreen: React.FC = () => {
-  const { filteredServices, toggleAval, user } = useApp();
+  const { filteredServices, toggleAval, user, sharedError, saveService, syncQueue, synchronizeQueue } = useApp();
 
   const [activeTab, setActiveTab] = useState<'oficios' | 'emergencias'>('oficios');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +41,8 @@ export const DirectoryScreen: React.FC = () => {
   const [detailService, setDetailService] = useState<LocalService | null>(null);
   const [reportService, setReportService] = useState<LocalService | null>(null);
   const [protocolContact, setProtocolContact] = useState<EmergencyContact | null>(null);
+  const [pendingCall, setPendingCall] = useState<{ phone: string; label: string } | null>(null);
+  const [callError, setCallError] = useState('');
 
   // Filtered services
   const displayedServices = filteredServices.filter(s => {
@@ -54,17 +56,40 @@ export const DirectoryScreen: React.FC = () => {
     return matchesSearch && matchesCat;
   });
 
-  const handleAval = (service: LocalService) => {
-    const res = toggleAval(service.id);
-    Alert.alert('Visto bueno vecinal', res.message);
+  const [notice,setNotice]=useState('');
+  const [editService,setEditService]=useState<LocalService|null>(null);
+  const [confirmRemove,setConfirmRemove]=useState<string|null>(null);
+  const handleAval = async (service: LocalService) => {
+    try { const res=await toggleAval(service.id); setNotice(res.message); }
+    catch(error) {setNotice(error instanceof Error ? error.message : 'No se pudo guardar el aval.');}
   };
 
-  const handleCall = (phone: string) => {
-    Linking.openURL(`tel:${phone}`);
+  const handleCall = (phone: string, label = phone) => {
+    const normalizedPhone = phone.replace(/[^\d+]/g, '');
+    if (!normalizedPhone) {
+      setCallError('Este contacto no tiene un número de teléfono válido.');
+      setPendingCall({ phone: '', label });
+      return;
+    }
+    setCallError('');
+    setPendingCall({ phone: normalizedPhone, label });
+  };
+
+  const confirmCall = async () => {
+    if (!pendingCall?.phone) return;
+    try {
+      await Linking.openURL(`tel:${pendingCall.phone}`);
+      setPendingCall(null);
+      setCallError('');
+    } catch {
+      setCallError('No se pudo abrir la aplicación Teléfono en este dispositivo.');
+    }
   };
 
   return (
     <View style={styles.container}>
+      <Text accessibilityRole="alert" style={{padding:8}}>{notice || sharedError}</Text>
+      <Modal visible={!!editService} transparent onRequestClose={()=>setEditService(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#fff'}}><Text>Editar servicio</Text><TextInput value={editService?.title??''} maxLength={160} onChangeText={title=>setEditService(s=>s?{...s,title}:null)} accessibilityLabel="Título del servicio"/><TextInput value={editService?.description??''} maxLength={500} multiline onChangeText={description=>setEditService(s=>s?{...s,description}:null)} accessibilityLabel="Descripción del servicio"/><Text>{notice}</Text><TouchableOpacity onPress={()=>{if(editService) void saveService(editService).then(()=>setEditService(null)).catch(e=>setNotice(e.message));}}><Text>Guardar</Text></TouchableOpacity><TouchableOpacity onPress={()=>setEditService(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
       {/* Segmented Switch (RF-06 vs RF-10) */}
       <View style={styles.switchWrapper}>
         <View style={styles.switchContainer}>
@@ -212,6 +237,9 @@ export const DirectoryScreen: React.FC = () => {
                       </View>
                     </View>
 
+                    {service.isOfflinePending && <Text>Pendiente de confirmación del servidor.</Text>}
+                    {syncQueue.filter(q=>q.ownerUserId===user.id && q.status==='error' && (q.payload.id===service.id || q.payload.serviceId===service.id)).map(q=><TouchableOpacity key={q.id} onPress={()=>{void synchronizeQueue(true);}}><Text accessibilityRole="alert">{q.errorMessage} · Reintentar</Text></TouchableOpacity>)}
+                    {service.authorId===user.id && <View style={{flexDirection:'row',gap:16,padding:12}}><TouchableOpacity onPress={()=>setEditService({...service})}><Text>Editar</Text></TouchableOpacity><TouchableOpacity onPress={()=>{if(confirmRemove!==service.id){setConfirmRemove(service.id);return;} void saveService(service,'delete').catch(e=>setNotice(e.message));}}><Text>{confirmRemove===service.id?'Confirmar retiro':'Retirar'}</Text></TouchableOpacity>{confirmRemove===service.id && <TouchableOpacity onPress={()=>setConfirmRemove(null)}><Text>Cancelar</Text></TouchableOpacity>}</View>}
                     {/* Description */}
                     <Text style={styles.cardDesc} numberOfLines={2}>
                       {service.description}
@@ -260,7 +288,7 @@ export const DirectoryScreen: React.FC = () => {
             <View style={styles.disclaimerBox}>
               <MaterialIcons name="info-outline" size={15} color={Colors.slateDim} />
               <Text style={styles.disclaimerText}>
-                Los avales son otorgados por vecinos del mismo barrio o colindantes. No constituyen una garantía legal ni técnica de calidad o seguridad.
+                Los avales son otorgados por vecinos del mismo barrio. No constituyen una garantía legal ni técnica de calidad o seguridad.
               </Text>
             </View>
           </View>
@@ -285,9 +313,26 @@ export const DirectoryScreen: React.FC = () => {
             </View>
           </View>
 
+          <View style={styles.nationalEmergencyCard}>
+            <Text style={styles.nationalEmergencyTitle}>Líneas de emergencia en Perú</Text>
+            <Text style={styles.nationalEmergencyDesc}>
+              La central única 911 sigue en implementación; su primera etapa está prevista para Lima y Callao. Mientras no se confirme que está operativa, usa las líneas activas de cada entidad.
+            </Text>
+            <View style={styles.nationalEmergencyActions}>
+              <TouchableOpacity style={styles.nationalEmergencyButton} onPress={() => handleCall('105', 'Policía Nacional (105)')}>
+                <MaterialIcons name="local-police" size={17} color="#ffffff" />
+                <Text style={styles.nationalEmergencyButtonText}>Policía · 105</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.nationalEmergencyButton} onPress={() => handleCall('116', 'Bomberos (116)')}>
+                <MaterialIcons name="local-fire-department" size={17} color="#ffffff" />
+                <Text style={styles.nationalEmergencyButtonText}>Bomberos · 116</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {/* Emergency Contacts List */}
           <View style={styles.cardsContainer}>
-            {INITIAL_EMERGENCY_CONTACTS.map(contact => (
+            {(supabase ? [] : INITIAL_EMERGENCY_CONTACTS).map(contact => (
               <View key={contact.id} style={styles.emergencyCard}>
                 <View style={styles.emergencyCardHeader}>
                   <View style={styles.emergencyProfile}>
@@ -341,7 +386,7 @@ export const DirectoryScreen: React.FC = () => {
                       styles.callBtn,
                       contact.isOfficial ? styles.callBtnOfficial : styles.callBtnBrigade,
                     ]}
-                    onPress={() => handleCall(contact.phone)}
+                    onPress={() => handleCall(contact.phone, contact.name)}
                     activeOpacity={0.8}
                   >
                     <MaterialIcons name="call" size={16} color="#ffffff" />
@@ -488,6 +533,27 @@ export const DirectoryScreen: React.FC = () => {
           itemType="service"
         />
       )}
+
+      <Modal visible={!!pendingCall} transparent animationType="fade" onRequestClose={() => setPendingCall(null)}>
+        <View style={styles.callConsentOverlay}>
+          <View style={styles.callConsentCard}>
+            <MaterialIcons name="call" size={28} color={Colors.emergency} />
+            <Text style={styles.callConsentTitle}>¿Permites abrir Teléfono?</Text>
+            <Text style={styles.callConsentText}>
+              Ayllu abrirá el marcador con {pendingCall?.label} ({pendingCall?.phone}). No iniciará la llamada por sí sola; confirma la llamada en la aplicación Teléfono.
+            </Text>
+            {!!callError && <Text accessibilityRole="alert" style={styles.callConsentError}>{callError}</Text>}
+            <View style={styles.callConsentActions}>
+              <TouchableOpacity style={styles.callConsentCancel} onPress={() => { setPendingCall(null); setCallError(''); }}>
+                <Text style={styles.callConsentCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={!pendingCall?.phone} style={[styles.callConsentAllow, !pendingCall?.phone && { opacity: 0.5 }]} onPress={() => { void confirmCall(); }}>
+                <Text style={styles.callConsentAllowText}>Permitir y continuar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -825,6 +891,47 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
     marginTop: 1,
   },
+  nationalEmergencyCard: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  nationalEmergencyTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.secondary,
+  },
+  nationalEmergencyDesc: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.secondaryMuted,
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  nationalEmergencyActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  nationalEmergencyButton: {
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 10,
+    backgroundColor: Colors.emergency,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  nationalEmergencyButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   emergencyCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
@@ -942,6 +1049,67 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  callConsentOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+  },
+  callConsentCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    padding: 20,
+    alignItems: 'center',
+  },
+  callConsentTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.secondary,
+    marginTop: 10,
+  },
+  callConsentText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.secondaryMuted,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  callConsentError: {
+    color: Colors.emergencyDark,
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  callConsentActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    width: '100%',
+  },
+  callConsentCancel: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.surfaceSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callConsentCancelText: {
+    color: Colors.secondary,
+    fontWeight: '700',
+  },
+  callConsentAllow: {
+    flex: 1.3,
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: Colors.emergency,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callConsentAllowText: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
   protocolBtn: {
     flex: 1,

@@ -6,6 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  TextInput,
+  Modal,
   RefreshControl
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -13,8 +15,8 @@ import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { CommunityFavor, FavorStatus } from '../types';
 import { PublishFavorModal } from '../components/PublishFavorModal';
-import * as WebBrowser from 'expo-web-browser';
 import { ContentReportModal } from '../components/ContentReportModal';
+import { ContactActionModal } from '../components/ContactActionModal';
 
 const FILTER_TAGS = [
   { id: 'all', label: 'Todos' },
@@ -27,14 +29,16 @@ const FILTER_TAGS = [
 ];
 
 export const FavoresScreen: React.FC = () => {
-  const { filteredFavors, updateFavorStatus, removeFavor, refreshFavors, favorsError, user, addFavor } = useApp();
+  const { filteredFavors, updateFavorStatus, removeFavor, refreshFavors, favorsError, user, addFavor, editFavor, syncQueue, synchronizeQueue, hasMoreFavors, loadMoreFavors } = useApp();
 
+  const [editing, setEditing] = useState<CommunityFavor | null>(null);
   const [actionError, setActionError] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState('all');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [reportFavor, setReportFavor] = useState<CommunityFavor | null>(null);
+  const [contactFavor, setContactFavor] = useState<CommunityFavor | null>(null);
 
   // Filter favors
   const displayedFavors = filteredFavors.filter(f => {
@@ -69,12 +73,14 @@ export const FavoresScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={()=>setEditing(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#ffffff'}}><Text>Editar favor</Text><TextInput accessibilityLabel="Título del favor" value={editing?.title ?? ''} maxLength={160} onChangeText={title=>setEditing(current=>current?{...current,title}:null)} style={{padding:12,borderWidth:1}}/><TextInput accessibilityLabel="Descripción del favor" value={editing?.description ?? ''} multiline maxLength={500} onChangeText={description=>setEditing(current=>current?{...current,description}:null)} style={{padding:12,borderWidth:1}}/><Text accessibilityRole="alert">{actionError}</Text><TouchableOpacity disabled={busy} onPress={()=>{void runAction(async()=>{if(editing) await editFavor(editing.id,editing.title,editing.description);setEditing(null);});}}><Text>Guardar cambios</Text></TouchableOpacity><TouchableOpacity onPress={()=>setEditing(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={busy} onRefresh={() => { void runAction(refreshFavors); }} />}>
         {!!(actionError || favorsError) && <Text accessibilityRole="alert" style={{ padding: 16, color: '#b91c1c' }}>{actionError || favorsError}</Text>}
         <TouchableOpacity disabled={busy} onPress={() => { void runAction(refreshFavors); }} style={{ padding: 12 }}>
           <Text style={{ color: Colors.primary }}>Actualizar muro</Text>
         </TouchableOpacity>
+        {hasMoreFavors && <TouchableOpacity disabled={busy} onPress={()=>{void loadMoreFavors();}} style={{padding:12}}><Text>Cargar más favores</Text></TouchableOpacity>}
         {/* Banner Solidario Filosófico Ayllu (RF-11) */}
         <View style={styles.bannerContainer}>
           <View style={styles.bannerTopRow}>
@@ -186,6 +192,7 @@ export const FavoresScreen: React.FC = () => {
             </View>
           ) : (
             displayedFavors.map(favor => {
+              const syncError = syncQueue.find(q=>q.ownerUserId===user.id && q.type==='favor' && q.payload.id===favor.id && q.status==='error');
               const isAuthor = favor.authorId === user.id;
 
               return (
@@ -200,6 +207,7 @@ export const FavoresScreen: React.FC = () => {
                     </View>
                   )}
 
+                  {syncError && <View style={{padding:12}}><Text accessibilityRole="alert">{syncError.errorMessage}</Text><TouchableOpacity onPress={()=>{void runAction(async()=>{await synchronizeQueue(true);});}}><Text>Reintentar sincronización</Text></TouchableOpacity></View>}
                   {/* Header: Author, Verification, Neighborhood, Status */}
                   <View style={styles.favorHeader}>
                     <View style={styles.authorProfile}>
@@ -274,14 +282,7 @@ export const FavoresScreen: React.FC = () => {
                         <TouchableOpacity
                           style={styles.respondBtn}
                           onPress={() => {
-                            if (favor.contactChannel === 'ayllu') {
-                              setActionError('La mensajería interna aún no está disponible. El favor sí está publicado en el muro.');
-                            } else {
-                              const phone = favor.authorPhone.replace(/\D/g, '');
-                              if (!phone) { setActionError('Esta publicación no tiene teléfono de contacto.'); return; }
-                              void WebBrowser.openBrowserAsync(`https://wa.me/${phone}?text=${encodeURIComponent(`Hola, me interesa tu favor: ${favor.title}`)}`)
-                                .catch(() => setActionError('No se pudo abrir WhatsApp.'));
-                            }
+                            setContactFavor(favor);
                           }}
                           activeOpacity={0.8}
                         >
@@ -307,6 +308,8 @@ export const FavoresScreen: React.FC = () => {
                       // Author management controls (RF-12)
                       <View style={styles.authorActionsRow}>
                         {confirmRemove !== favor.id && <>
+                          <TouchableOpacity disabled={busy} onPress={()=>setEditing({...favor})} style={styles.authorStatusBtn}><Text>Editar</Text></TouchableOpacity>
+                          {favor.status!=='cerrada' && <TouchableOpacity disabled={busy} onPress={()=>handleStatusChange(favor,'cerrada')} style={styles.authorStatusBtn}><Text>Cerrar</Text></TouchableOpacity>}
                           {favor.id.startsWith('fav-') && <TouchableOpacity disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
                             <Text style={styles.authorStatusText}>Compartir</Text>
                           </TouchableOpacity>}
@@ -365,6 +368,16 @@ export const FavoresScreen: React.FC = () => {
         visible={showPublishModal}
         onClose={() => setShowPublishModal(false)}
       />
+
+      {contactFavor && <ContactActionModal
+        visible={!!contactFavor}
+        onClose={() => setContactFavor(null)}
+        favorId={contactFavor.id}
+        targetName={contactFavor.authorName}
+        targetItemTitle={contactFavor.title}
+        channel={contactFavor.contactChannel}
+        phone={contactFavor.authorPhone}
+      />}
 
       {/* Report Modal */}
       {reportFavor && (

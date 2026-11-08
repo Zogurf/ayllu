@@ -12,6 +12,10 @@ export interface Neighborhood {
   isAdjacent?: boolean; // Whether adjacent to San Blas
 }
 
+export interface SavedPlace {
+  id: string; label: string; addressLine: string; region: string; province: string; district: string; districtUbigeo: string; neighborhood: string; neighborhoodId?: string; coords?: { latitude: number; longitude: number };
+}
+
 export interface UserProfile {
   id: string;
   nickname: string;
@@ -29,6 +33,10 @@ export interface UserProfile {
   };
   role: UserRole;
   coverageScope: CoverageScope;
+  savedPlaces?: SavedPlace[];
+  activePlaceId?: string;
+  activePlaceLabel?: string;
+  activePlaceAddress?: string;
   avatarUrl: string;
   isRegistered: boolean;
 }
@@ -43,6 +51,8 @@ export type ServiceCategory =
   | 'otros';
 
 export interface LocalService {
+  authorId?: string;
+  sharePhone?: boolean;
   id: string;
   title: string;
   category: ServiceCategory;
@@ -90,6 +100,8 @@ export type FavorStatus = 'disponible' | 'resuelta' | 'cerrada';
 export type ContactChannel = 'ayllu' | 'whatsapp';
 
 export interface CommunityFavor {
+  version?: number;
+  sharePhone?: boolean;
   id: string;
   title: string;
   description: string;
@@ -156,6 +168,7 @@ export type CriticalResourceType =
   | 'herramientas';
 
 export interface CriticalResource {
+  version?: number;
   id: string;
   name: string;
   type: CriticalResourceType;
@@ -179,6 +192,9 @@ export interface SyncQueueItem {
   createdAt: string;
   status: 'pending' | 'synced' | 'error';
   errorMessage?: string;
+  attempts?: number;
+  nextAttemptAt?: string;
+  retryable?: boolean;
   title: string;
 }
 

@@ -23,8 +23,19 @@ export async function submitQueuedItem(item: SyncQueueItem): Promise<void> {
     const { data, error } = await supabase.rpc('sync_community_favor', {
       p_operation_id: item.id, p_favor: payload, p_action: payload.action ?? 'save',
     });
-    if (error) throw new Error(error.message);
+    if (error) throw Object.assign(new Error(error.message), {code:error.code});
     if (data !== payload.id) throw new Error('El servidor no confirmó el favor.');
+    return;
+  }
+
+  if (item.type === 'service_post' || item.type === 'aval') {
+    const p = item.payload as Record<string, unknown>;
+    const service = item.type === 'service_post';
+    const { data, error } = await supabase.rpc(service ? 'sync_local_service' : 'sync_service_endorsement', service
+      ? { p_operation_id: item.id, p_service: p, p_action: p.action ?? 'save' }
+      : { p_operation_id: item.id, p_service_id: p.serviceId, p_active: p.action === 'add' });
+    if (error) throw Object.assign(new Error(error.message), {code:error.code});
+    if (data !== (service ? p.id : p.serviceId)) throw new Error('El servidor no confirmó el servicio.');
     return;
   }
 
@@ -73,6 +84,6 @@ export async function submitQueuedItem(item: SyncQueueItem): Promise<void> {
     },
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw Object.assign(new Error(error.message), {code:error.code});
   if (data !== reportId) throw new Error('El servidor no confirmó el mismo identificador del reporte.');
 }
