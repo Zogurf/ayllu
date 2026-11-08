@@ -35,10 +35,11 @@ Las pantallas y los flujos visuales de los módulos están implementados en dist
 | Registro y perfil | Perfil local persistido; Auth por correo/contraseña, recuperación de contraseña y reenvío de confirmación con Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo; los retornos de correo requieren configurar Supabase |
 | Directorio y contactos | Contactos de emergencia semilla; servicios autenticados consultados por distrito | Fuente administrable para contactos y validación real de proveedores y vigencia |
 | Servicios y avales | RPC autenticados, RLS por distrito, aval único por usuario y cola persistente; requiere migración `202611080004` | Aplicar migración y validar con dos cuentas en Supabase |
-| Favores | Muro compartido por distrito, cola offline, edición/estados/retiro y permisos por autor | Aplicar migraciones pendientes y comprobar en dos dispositivos |
+| Favores | Muro compartido por distrito, cola offline, edición/estados/retiro, paginación por bloques y actualización Realtime con sondeo de respaldo | Aplicar migraciones pendientes `202611080006` y `202611080007`; comprobar en dos dispositivos |
 | Emergencias y recursos | Reportes/estados compartidos; consulta privada autorizada; modo, recursos, denuncias y bitácora de acciones | Aplicar migraciones `202611080004` y `202611080005`; validar operativamente |
 | Mensajería | Conversaciones persistentes, RLS por participante y recibos de entrega/lectura; requiere migración `202611080004` | Aplicar migración y probar con dos cuentas |
 | Moderación | Denuncias y ocultamiento/restauración compartidos; decisiones registran autor, motivo y fecha | Aplicar migración y validar roles |
+| Protección anti-spam | Límites por cuenta para favores, servicios, denuncias, mensajes y reportes de emergencia | Aplicar migración `202611080006` al proyecto Supabase |
 | Offline y sincronización | Cola persistente con reintentos y aislamiento por cuenta para reportes, favores, servicios y avales | Configurar proyecto/credenciales y validar reinicio/reconexión en dispositivos reales |
 
 Los formularios limitan longitudes, validan celulares peruanos, comprueban edades entre 0 y 125 y requieren cantidades positivas para recursos. Los mensajes de confirmación indican cuándo el registro solo quedó guardado en el dispositivo.

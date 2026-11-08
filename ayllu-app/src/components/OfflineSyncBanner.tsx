@@ -47,24 +47,24 @@ export const OfflineSyncBanner: React.FC = () => {
     <View style={[styles.container, isOnline ? styles.syncedContainer : styles.offlineContainer]}>
       <View style={styles.contentRow}>
         <View style={styles.iconWrapper}>
-          <MaterialIcons 
-            name={isOnline ? (pendingCount > 0 ? "sync" : "cloud-done") : "wifi-off"} 
-            size={18} 
-            color={isOnline ? Colors.primaryDark : Colors.warningText} 
+          <MaterialIcons
+            name={isOnline ? (pendingCount > 0 ? "sync" : "cloud-done") : "wifi-off"}
+            size={18}
+            color={isOnline ? Colors.primaryDark : Colors.warningText}
           />
         </View>
 
         <View style={styles.textWrapper}>
           <Text style={styles.titleText}>
             {syncFeedback ? syncFeedback : (
-              !isOnline 
-                ? 'Modo sin internet activo' 
+              !isOnline
+                ? 'Modo sin internet activo'
                 : `${pendingCount} elemento(s) pendientes de subir`
             )}
           </Text>
           <Text style={styles.subtitleText}>
-            {!isOnline 
-              ? (pendingCount > 0 
+            {!isOnline
+              ? (pendingCount > 0
                   ? `${pendingCount} acción(es) solo en este dispositivo; no han llegado al servidor.`
                   : `Caché disponible. Última confirmación del servidor: ${lastSyncTime || 'ninguna todavía'}`)
               : syncQueue.some(item => item.status === 'error')
@@ -76,8 +76,8 @@ export const OfflineSyncBanner: React.FC = () => {
 
         {/* Sync Action Button */}
         {isOnline && pendingCount > 0 && (
-          <TouchableOpacity 
-            style={styles.syncButton} 
+          <TouchableOpacity accessibilityRole="button"
+            style={styles.syncButton}
             onPress={handleManualSync}
             disabled={isSyncing}
           >

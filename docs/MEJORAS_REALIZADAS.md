@@ -4,6 +4,12 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 
 ## Backend y base de datos
 
+- `supabase/migrations/202611080006_rate_limits.sql`
+  - Añade límites por autor: favores 10 por hora, servicios 5 por hora, denuncias 20 por hora, mensajes 60 cada 10 minutos y reportes de emergencia 10 por hora.
+  - No cuenta como nuevo un reintento de una fila cuyo identificador ya existe.
+- `supabase/migrations/202611080007_realtime_favors.sql`
+  - Agrega `community_favors` a la publicación `supabase_realtime` cuando la publicación está disponible.
+
 - `supabase/migrations/202611080005_emergency_audit_trail.sql`
   - Crea una bitácora append-only de estados, asignaciones, lecturas autorizadas de datos privados y activación/cierre del modo de emergencia.
   - Guarda actor, barrio, reporte, fecha y metadatos mínimos; no duplica nombres, edades, teléfonos ni direcciones.
@@ -18,6 +24,22 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
   - Comprueba en el servidor el consentimiento antes de publicar el teléfono para contacto por WhatsApp.
 
 ## Aplicación
+
+- `ayllu-app/src/utils/dialog.ts`
+  - Añade `notify` y `confirmAction` para mostrar avisos y confirmaciones en web y móvil.
+  - En móvil los avisos no son cancelables por gesto/tecla atrás, para no ejecutar acciones asociadas a su cierre accidental.
+- `ayllu-app/src/screens/ProfileScreen.tsx`, `ayllu-app/src/screens/OnboardingScreen.tsx`, `ayllu-app/src/screens/EmergencyDashboardScreen.tsx` y `ayllu-app/src/components/ReportVulnerabilityModal.tsx`
+  - Sustituye alertas incompatibles con web por los helpers; el consentimiento GPS y el reinicio de demostración usan confirmación.
+- Accesibilidad en `ayllu-app/src/components/ContactActionModal.tsx`, `ayllu-app/src/components/ContentReportModal.tsx`, `ayllu-app/src/components/EmergencyAlertBanner.tsx`, `ayllu-app/src/components/Header.tsx`, `ayllu-app/src/components/ManageEmergencyModal.tsx`, `ayllu-app/src/components/MessagingInboxModal.tsx`, `ayllu-app/src/components/NeighborhoodModal.tsx`, `ayllu-app/src/components/OfflineSyncBanner.tsx`, `ayllu-app/src/components/PasswordRecoveryScreen.tsx`, `ayllu-app/src/components/PublishFavorModal.tsx`, `ayllu-app/src/components/PublishServiceModal.tsx`, `ayllu-app/src/components/SavedPlacesModal.tsx`, `ayllu-app/src/components/SupabaseAuthScreen.tsx`, `ayllu-app/src/components/TutorialModal.tsx`, `ayllu-app/src/screens/DirectoryScreen.tsx` y `ayllu-app/src/screens/FavoresScreen.tsx`
+  - Añade roles de botón y etiquetas accesibles a controles táctiles y botones de solo icono.
+- `ayllu-app/src/context/AppContext.tsx` y `ayllu-app/src/screens/FavoresScreen.tsx`
+  - Actualiza el muro al recibir cambios Realtime, con espera breve para agrupar eventos; conserva el sondeo periódico como respaldo y la acción de paginación existente.
+- `ayllu-app/src/lib/ubigeo.ts`
+  - Vuelve a aplicar el alcance de barrios colindantes únicamente a la demo de Cusco.
+- `ayllu-app/package.json` y `ayllu-app/tests/rateLimit.test.cjs`
+  - Añade los comandos de `typecheck`/`test` y una prueba PGlite que cubre el límite de favores, el reintento idempotente y el aislamiento por cuenta.
+- `.github/workflows/ci.yml`
+  - Ejecuta instalación limpia, TypeScript, lint, pruebas y la comprobación de migraciones en push y pull request.
 
 - `ayllu-app/src/components/SupabaseAuthScreen.tsx`
   - Agrega solicitud de recuperación de contraseña y reenvío de confirmación; ambos muestran respuestas neutrales y validan el correo.
@@ -59,8 +81,18 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 ## Pendiente para continuar
 
 1. Aplicar las migraciones en un proyecto Supabase de pruebas con `npx supabase db push --dry-run --remote` y luego `npx supabase db push --remote`.
-2. Probar permisos, consentimiento y sincronización con dos cuentas y dos dispositivos.
-3. Revisar especialmente el acceso a datos privados, cambios de cuenta con borradores y reintentos offline antes de usar datos reales.
-4. Validar con sesiones reales que vecinos y coordinadores de otros barrios no puedan llamar los RPC ni leer la tabla privada o la bitácora.
+2. Probar Realtime con dos cuentas/dispositivos y confirmar que el sondeo respalda una interrupción.
+3. Probar permisos, consentimiento y sincronización con dos cuentas y dos dispositivos.
+4. Revisar especialmente el acceso a datos privados, cambios de cuenta con borradores y reintentos offline antes de usar datos reales.
+5. Validar el workflow de CI en GitHub y revisar el contraste, el foco y el teclado con tecnologías de asistencia.
 
-La implementación principal está en el commit `35ae8c8`; el documento de cambios se añadió en `ac49f44`. Ambos están incluidos en `ventu/mejoras-ayllu`. La migración nueva no se ha aplicado a un proyecto Supabase desde este entorno.
+## Verificación local de este paquete (8 de noviembre de 2026)
+
+- `npm run typecheck`: pasó.
+- `npm run lint`: pasó.
+- `npm test`: 23 de 23 pruebas pasaron, incluyendo límite de favores en PGlite y alcance colindante de Cusco.
+- `node scripts/check-favor-migrations.cjs`: pasó con todas las migraciones del repo aplicadas en PGlite.
+- No se ejecutó `npx supabase db push`; el proyecto remoto, Realtime con dos dispositivos y la app en navegador/móvil siguen pendientes.
+- `npm ci` informó 12 vulnerabilidades moderadas en dependencias; no se ejecutó `npm audit fix`.
+
+Los cambios históricos de servicios y moderación y el primer informe están registrados en los commits `35ae8c8` y `ac49f44`. Este paquete añade accesibilidad, diálogos compatibles con web, límites anti-spam, Realtime para favores y CI. Las migraciones `202611080006` y `202611080007` no se han aplicado al Supabase remoto desde este entorno.

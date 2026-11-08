@@ -164,7 +164,7 @@ export const AppNavigator: React.FC = () => {
   if (supabase && authLoading) {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   }
-  if (supabase && passwordRecovery && session) return <PasswordRecoveryScreen onComplete={() => setPasswordRecovery(false)} onCancel={() => { setPasswordRecovery(false); void supabase.auth.signOut(); }} />;
+  if (supabase && passwordRecovery && session) return <PasswordRecoveryScreen onComplete={() => setPasswordRecovery(false)} onCancel={() => { setPasswordRecovery(false); void supabase?.auth.signOut(); }} />;
   if (supabase && !session) return <SupabaseAuthScreen callbackError={authCallbackError} />;
   if (supabase && profileCheck === 'loading') {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;

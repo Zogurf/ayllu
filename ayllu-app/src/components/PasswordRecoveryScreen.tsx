@@ -40,7 +40,7 @@ export const PasswordRecoveryScreen: React.FC<{ onComplete: () => void; onCancel
         <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: saving, busy: saving }} style={[styles.button, saving && styles.disabled]} onPress={() => { void updatePassword(); }} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Guardar contraseña</Text>}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onCancel} disabled={saving}><Text style={styles.cancel}>Volver al acceso</Text></TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" onPress={onCancel} disabled={saving}><Text style={styles.cancel}>Volver al acceso</Text></TouchableOpacity>
       </View>
     </ScrollView>
   </KeyboardAvoidingView>;

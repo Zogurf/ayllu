@@ -73,13 +73,13 @@ const LocationForm: React.FC<NeighborhoodModalProps> = ({ visible, onClose, onSe
               <Text style={styles.title}>Tu ubicación en Perú</Text>
               <Text style={styles.subtitle}>{location ? `${location.region} · ${location.province} · ${location.district}` : 'Selecciona departamento, provincia y distrito'}</Text>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose} disabled={saving} accessibilityLabel="Cerrar modal">
+            <TouchableOpacity accessibilityRole="button" style={styles.closeButton} onPress={onClose} disabled={saving} accessibilityLabel="Cerrar modal">
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
           <View style={styles.steps}>
             {(['department', 'province', 'district', 'neighborhood'] as const).map(target => (
-              <TouchableOpacity key={target} disabled={saving || (target === 'province' && !department) || (target === 'district' && !province) || (target === 'neighborhood' && !district)} onPress={() => changeStep(target)}>
+              <TouchableOpacity accessibilityRole="button" key={target} disabled={saving || (target === 'province' && !department) || (target === 'district' && !province) || (target === 'neighborhood' && !district)} onPress={() => changeStep(target)}>
                 <Text style={[styles.step, target === step && styles.activeStep]}>{labels[target]}</Text>
               </TouchableOpacity>
             ))}
@@ -91,7 +91,7 @@ const LocationForm: React.FC<NeighborhoodModalProps> = ({ visible, onClose, onSe
               <TextInput accessibilityLabel="Barrio o sector" style={[styles.searchBox, { color: Colors.secondary }]} value={neighborhood} onChangeText={setNeighborhood} placeholder="Ej.: Los Olivos, Sector 2" placeholderTextColor={Colors.slateDim} maxLength={120} editable={!saving} />
               {district === LEGACY_CUSCO_UBIGEO && (
                 <View style={styles.steps}>
-                  {INITIAL_NEIGHBORHOODS.map(n => <TouchableOpacity key={n.id} disabled={saving} onPress={() => setNeighborhood(n.name)}><Text style={styles.step}>{n.name}</Text></TouchableOpacity>)}
+                  {INITIAL_NEIGHBORHOODS.map(n => <TouchableOpacity accessibilityRole="button" key={n.id} disabled={saving} onPress={() => setNeighborhood(n.name)}><Text style={styles.step}>{n.name}</Text></TouchableOpacity>)}
                 </View>
               )}
               <TouchableOpacity accessibilityRole="button" style={styles.saveButton} disabled={saving} onPress={() => { void handleSave(); }}>

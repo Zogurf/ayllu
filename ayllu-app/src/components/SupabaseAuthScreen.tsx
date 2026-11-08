@@ -179,17 +179,17 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
         {!!formError && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>{formError}</Text>}
         {!!formNotice && <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{formNotice}</Text>}
 
-        <TouchableOpacity style={styles.submitButton} onPress={isRecoveringPassword ? () => { void sendAccountEmail('recovery'); } : handleSubmit} disabled={busy}>
+        <TouchableOpacity accessibilityRole="button" style={styles.submitButton} onPress={isRecoveringPassword ? () => { void sendAccountEmail('recovery'); } : handleSubmit} disabled={busy}>
           {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isRecoveringPassword ? 'Enviar enlace' : isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
         </TouchableOpacity>
 
-        {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity onPress={() => { setFormError(''); setFormNotice(''); setIsRecoveringPassword(true); }} disabled={busy}>
+        {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity accessibilityRole="button" onPress={() => { setFormError(''); setFormNotice(''); setIsRecoveringPassword(true); }} disabled={busy}>
           <Text style={styles.toggleText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>}
-        {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity onPress={() => { void sendAccountEmail('confirmation'); }} disabled={busy}>
+        {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity accessibilityRole="button" onPress={() => { void sendAccountEmail('confirmation'); }} disabled={busy}>
           <Text style={styles.toggleText}>Reenviar correo de confirmación</Text>
         </TouchableOpacity>}
-        <TouchableOpacity onPress={() => { if (isRecoveringPassword) { setIsRecoveringPassword(false); } else { setIsCreatingAccount(value => !value); } setShowPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
+        <TouchableOpacity accessibilityRole="button" onPress={() => { if (isRecoveringPassword) { setIsRecoveringPassword(false); } else { setIsCreatingAccount(value => !value); } setShowPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
           <Text style={styles.toggleText}>
             {isRecoveringPassword ? 'Volver a iniciar sesión' : isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
           </Text>

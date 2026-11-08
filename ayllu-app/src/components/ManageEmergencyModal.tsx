@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -62,35 +62,35 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
                 <Text style={styles.subtitle}>Autoridad: {user.nickname} ({user.role})</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar gestión de emergencia" style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
 
           {/* Switch Active / Inactive */}
           <View style={styles.stateSelector}>
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.stateOption, !isActive && styles.stateOptionActiveNormal]}
               onPress={() => setIsActive(false)}
             >
-              <MaterialIcons 
-                name="check-circle" 
-                size={18} 
-                color={!isActive ? Colors.success : Colors.slateDim} 
+              <MaterialIcons
+                name="check-circle"
+                size={18}
+                color={!isActive ? Colors.success : Colors.slateDim}
               />
               <Text style={[styles.stateOptionText, !isActive && styles.stateOptionTextActive]}>
                 Modo Cotidiano
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={[styles.stateOption, isActive && styles.stateOptionActiveEmergency]}
               onPress={() => setIsActive(true)}
             >
-              <MaterialIcons 
-                name="warning" 
-                size={18} 
-                color={isActive ? Colors.emergency : Colors.slateDim} 
+              <MaterialIcons
+                name="warning"
+                size={18}
+                color={isActive ? Colors.emergency : Colors.slateDim}
               />
               <Text style={[styles.stateOptionText, isActive && styles.stateEmergencyTextActive]}>
                 Modo Emergencia SOS
@@ -105,7 +105,7 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
                 {EMERGENCY_TYPES.map(t => {
                   const isSel = selectedType === t;
                   return (
-                    <TouchableOpacity
+                    <TouchableOpacity accessibilityRole="button"
                       key={t}
                       style={[styles.typeChip, isSel && styles.typeChipActive]}
                       onPress={() => setSelectedType(t)}
@@ -138,8 +138,8 @@ export const ManageEmergencyModal: React.FC<ManageEmergencyModalProps> = ({ visi
 
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity 
-              style={[styles.submitBtn, isActive ? styles.submitBtnAlert : styles.submitBtnNormal]} 
+            <TouchableOpacity accessibilityRole="button"
+              style={[styles.submitBtn, isActive ? styles.submitBtnAlert : styles.submitBtnNormal]}
               onPress={handleSave} disabled={saving}
             >
               <MaterialIcons name="save" size={18} color="#ffffff" />

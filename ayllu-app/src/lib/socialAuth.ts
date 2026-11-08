@@ -30,6 +30,7 @@ export async function completeAuthCallback(url: string): Promise<'recovery' | nu
   if (error || errorCode) {
     clearWebCallback();
     if (errorCode === 'otp_expired') throw new Error('El enlace venció o ya fue utilizado. Solicita uno nuevo desde Ayllu.');
+    if (error === 'access_denied') throw new Error('No se pudo autorizar el acceso con el proveedor. Inténtalo otra vez.');
     throw new Error('No se pudo completar el enlace de acceso. Solicita uno nuevo e inténtalo otra vez.');
   }
   const code = params.get('code');

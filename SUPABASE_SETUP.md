@@ -17,7 +17,7 @@ npx supabase db push --dry-run --remote
 npx supabase db push --remote
 ```
 
-El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es importante: sin esa opción, el CLI puede apuntar al stack local de Docker. `db push` aplica en orden las migraciones de `supabase/migrations/`: perfiles, ubigeos, favores, `202611080004_shared_services_moderation_resources.sql` para directorio, recursos, moderación, emergencias y chat, y `202611080005_emergency_audit_trail.sql` para la bitácora de emergencias. Revisa el `dry-run` antes de aplicar. Evita crear o modificar estas tablas manualmente en el Dashboard; conserva los cambios en migraciones.
+El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es importante: sin esa opción, el CLI puede apuntar al stack local de Docker. `db push` aplica en orden las migraciones de `supabase/migrations/`: perfiles, ubigeos, favores, `202611080004_shared_services_moderation_resources.sql` para directorio, recursos, moderación, emergencias y chat, `202611080005_emergency_audit_trail.sql` para la bitácora, `202611080006_rate_limits.sql` para límites anti-spam y `202611080007_realtime_favors.sql` para la suscripción del muro. Revisa el `dry-run` antes de aplicar. Evita crear o modificar estas tablas manualmente en el Dashboard; conserva los cambios en migraciones.
 
 ## 3. Configurar Auth
 
@@ -88,7 +88,7 @@ Revisa el archivo generado antes de incorporarlo a imports; hoy el cliente usa t
 
 ## Muro de favores compartido
 
-`202611080003_community_favors.sql` crea `community_favors` y el RPC `sync_community_favor`; `202611080004_shared_services_moderation_resources.sql` agrega los flujos compartidos y `202611080005_emergency_audit_trail.sql` registra cambios de estado, asignaciones, lecturas autorizadas de datos privados y activación/cierre del modo. Requieren todas las migraciones anteriores y se aplican juntas con `npx supabase db push --remote`. La bitácora no almacena nombres, edades, teléfonos ni direcciones; solo coordinadores y administradores del barrio pueden consultarla. La migración revoca la lectura directa de la tabla privada para que las consultas pasen por el RPC auditado. La política de conservación debe definirse para el despliegue.
+`202611080003_community_favors.sql` crea `community_favors` y el RPC `sync_community_favor`; las migraciones `202611080004` y `202611080005` agregan flujos compartidos y trazabilidad de emergencias; `202611080006` limita publicaciones por usuario; y `202611080007` habilita Realtime para favores. Se aplican en orden con `npx supabase db push --remote`. Revisa primero `npx supabase db push --dry-run --remote`. Realtime requiere que Supabase habilite la publicación `supabase_realtime`; si no está disponible, el sondeo de 30 segundos sigue actualizando el muro. Los límites se prueban localmente en PGlite, pero estas migraciones todavía no se han aplicado al proyecto remoto. La bitácora no almacena nombres, edades, teléfonos ni direcciones y solo coordinadores/administradores del barrio pueden consultarla. La política de conservación debe definirse para el despliegue.
 
 Los usuarios autenticados pueden leer publicaciones de su distrito; el filtro de la app mantiene el alcance de barrio seleccionado. Solo el autor puede editar, cambiar estado o retirar. La identidad y el barrio se obtienen del perfil del servidor. El teléfono solo se comparte con autorización explícita al elegir WhatsApp; el canal interno no publica el teléfono.
 

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  TextInput, 
-  Image, 
-  Linking, 
-  Modal 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  Linking,
+  Modal
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -35,7 +35,7 @@ export const DirectoryScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'oficios' | 'emergencias'>('oficios');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  
+
   // Modals
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [detailService, setDetailService] = useState<LocalService | null>(null);
@@ -46,12 +46,12 @@ export const DirectoryScreen: React.FC = () => {
 
   // Filtered services
   const displayedServices = filteredServices.filter(s => {
-    const matchesSearch = 
+    const matchesSearch =
       s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.providerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.neighborhood.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesCat = selectedCategory === 'all' || s.category === selectedCategory;
     return matchesSearch && matchesCat;
   });
@@ -89,11 +89,11 @@ export const DirectoryScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text accessibilityRole="alert" style={{padding:8}}>{notice || sharedError}</Text>
-      <Modal visible={!!editService} transparent onRequestClose={()=>setEditService(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#fff'}}><Text>Editar servicio</Text><TextInput value={editService?.title??''} maxLength={160} onChangeText={title=>setEditService(s=>s?{...s,title}:null)} accessibilityLabel="Título del servicio"/><TextInput value={editService?.description??''} maxLength={500} multiline onChangeText={description=>setEditService(s=>s?{...s,description}:null)} accessibilityLabel="Descripción del servicio"/><Text>{notice}</Text><TouchableOpacity onPress={()=>{if(editService) void saveService(editService).then(()=>setEditService(null)).catch(e=>setNotice(e.message));}}><Text>Guardar</Text></TouchableOpacity><TouchableOpacity onPress={()=>setEditService(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
+      <Modal visible={!!editService} transparent onRequestClose={()=>setEditService(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#fff'}}><Text>Editar servicio</Text><TextInput value={editService?.title??''} maxLength={160} onChangeText={title=>setEditService(s=>s?{...s,title}:null)} accessibilityLabel="Título del servicio"/><TextInput value={editService?.description??''} maxLength={500} multiline onChangeText={description=>setEditService(s=>s?{...s,description}:null)} accessibilityLabel="Descripción del servicio"/><Text>{notice}</Text><TouchableOpacity accessibilityRole="button" onPress={()=>{if(editService) void saveService(editService).then(()=>setEditService(null)).catch(e=>setNotice(e.message));}}><Text>Guardar</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" onPress={()=>setEditService(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
       {/* Segmented Switch (RF-06 vs RF-10) */}
       <View style={styles.switchWrapper}>
         <View style={styles.switchContainer}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.switchTab, activeTab === 'oficios' && styles.switchTabActive]}
             onPress={() => setActiveTab('oficios')}
           >
@@ -112,7 +112,7 @@ export const DirectoryScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={[styles.switchTab, activeTab === 'emergencias' && styles.switchTabActive]}
             onPress={() => setActiveTab('emergencias')}
           >
@@ -150,13 +150,13 @@ export const DirectoryScreen: React.FC = () => {
                 onChangeText={setSearchQuery}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Borrar búsqueda" onPress={() => setSearchQuery('')}>
                   <MaterialIcons name="cancel" size={16} color={Colors.slateDim} />
                 </TouchableOpacity>
               )}
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity accessibilityRole="button"
               style={styles.addButton}
               onPress={() => setShowPublishModal(true)}
               activeOpacity={0.8}
@@ -175,7 +175,7 @@ export const DirectoryScreen: React.FC = () => {
             {FILTER_CATEGORIES.map(cat => {
               const isSel = selectedCategory === cat.id;
               return (
-                <TouchableOpacity
+                <TouchableOpacity accessibilityRole="button"
                   key={cat.id}
                   style={[styles.chip, isSel && styles.chipActive]}
                   onPress={() => setSelectedCategory(cat.id)}
@@ -223,10 +223,10 @@ export const DirectoryScreen: React.FC = () => {
 
                       {/* RF-08 Avales Pill */}
                       <View style={[styles.avalBadge, userHasAvaled && styles.avalBadgeActive]}>
-                        <MaterialIcons 
-                          name="recommend" 
-                          size={14} 
-                          color={userHasAvaled ? Colors.primaryDark : Colors.primary} 
+                        <MaterialIcons
+                          name="recommend"
+                          size={14}
+                          color={userHasAvaled ? Colors.primaryDark : Colors.primary}
                         />
                         <Text style={[styles.avalBadgeText, userHasAvaled && styles.avalBadgeTextActive]}>
                           {service.avalesCount} Avales
@@ -235,8 +235,8 @@ export const DirectoryScreen: React.FC = () => {
                     </View>
 
                     {service.isOfflinePending && <Text>Pendiente de confirmación del servidor.</Text>}
-                    {syncQueue.filter(q=>q.ownerUserId===user.id && q.status==='error' && (q.payload.id===service.id || q.payload.serviceId===service.id)).map(q=><TouchableOpacity key={q.id} onPress={()=>{void synchronizeQueue(true);}}><Text accessibilityRole="alert">{q.errorMessage} · Reintentar</Text></TouchableOpacity>)}
-                    {service.authorId===user.id && <View style={{flexDirection:'row',gap:16,padding:12}}><TouchableOpacity onPress={()=>setEditService({...service})}><Text>Editar</Text></TouchableOpacity><TouchableOpacity onPress={()=>{if(confirmRemove!==service.id){setConfirmRemove(service.id);return;} void saveService(service,'delete').catch(e=>setNotice(e.message));}}><Text>{confirmRemove===service.id?'Confirmar retiro':'Retirar'}</Text></TouchableOpacity>{confirmRemove===service.id && <TouchableOpacity onPress={()=>setConfirmRemove(null)}><Text>Cancelar</Text></TouchableOpacity>}</View>}
+                    {syncQueue.filter(q=>q.ownerUserId===user.id && q.status==='error' && (q.payload.id===service.id || q.payload.serviceId===service.id)).map(q=><TouchableOpacity accessibilityRole="button" key={q.id} onPress={()=>{void synchronizeQueue(true);}}><Text accessibilityRole="alert">{q.errorMessage} · Reintentar</Text></TouchableOpacity>)}
+                    {service.authorId===user.id && <View style={{flexDirection:'row',gap:16,padding:12}}><TouchableOpacity accessibilityRole="button" onPress={()=>setEditService({...service})}><Text>Editar</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" onPress={()=>{if(confirmRemove!==service.id){setConfirmRemove(service.id);return;} void saveService(service,'delete').catch(e=>setNotice(e.message));}}><Text>{confirmRemove===service.id?'Confirmar retiro':'Retirar'}</Text></TouchableOpacity>{confirmRemove===service.id && <TouchableOpacity accessibilityRole="button" onPress={()=>setConfirmRemove(null)}><Text>Cancelar</Text></TouchableOpacity>}</View>}
                     {/* Description */}
                     <Text style={styles.cardDesc} numberOfLines={2}>
                       {service.description}
@@ -244,7 +244,7 @@ export const DirectoryScreen: React.FC = () => {
 
                     {/* Actions */}
                     <View style={styles.cardActions}>
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button"
                         style={[styles.avalActionBtn, userHasAvaled && styles.avalActionBtnActive]}
                         onPress={() => handleAval(service)}
                         activeOpacity={0.7}
@@ -259,7 +259,7 @@ export const DirectoryScreen: React.FC = () => {
                         </Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button"
                         style={styles.detailsBtn}
                         onPress={() => setDetailService(service)}
                         activeOpacity={0.7}
@@ -268,7 +268,7 @@ export const DirectoryScreen: React.FC = () => {
                         <MaterialIcons name="arrow-forward" size={14} color="#ffffff" />
                       </TouchableOpacity>
 
-                      <TouchableOpacity
+                      <TouchableOpacity accessibilityRole="button"
                         style={styles.reportBtn}
                         onPress={() => setReportService(service)}
                         accessibilityLabel="Reportar servicio"
@@ -316,11 +316,11 @@ export const DirectoryScreen: React.FC = () => {
               La central única 911 sigue en implementación; su primera etapa está prevista para Lima y Callao. Mientras no se confirme que está operativa, usa las líneas activas de cada entidad.
             </Text>
             <View style={styles.nationalEmergencyActions}>
-              <TouchableOpacity style={styles.nationalEmergencyButton} onPress={() => handleCall('105', 'Policía Nacional (105)')}>
+              <TouchableOpacity accessibilityRole="button" style={styles.nationalEmergencyButton} onPress={() => handleCall('105', 'Policía Nacional (105)')}>
                 <MaterialIcons name="local-police" size={17} color="#ffffff" />
                 <Text style={styles.nationalEmergencyButtonText}>Policía · 105</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.nationalEmergencyButton} onPress={() => handleCall('116', 'Bomberos (116)')}>
+              <TouchableOpacity accessibilityRole="button" style={styles.nationalEmergencyButton} onPress={() => handleCall('116', 'Bomberos (116)')}>
                 <MaterialIcons name="local-fire-department" size={17} color="#ffffff" />
                 <Text style={styles.nationalEmergencyButtonText}>Bomberos · 116</Text>
               </TouchableOpacity>
@@ -378,7 +378,7 @@ export const DirectoryScreen: React.FC = () => {
 
                 {/* Call & Protocol Actions */}
                 <View style={styles.emergencyActions}>
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     style={[
                       styles.callBtn,
                       contact.isOfficial ? styles.callBtnOfficial : styles.callBtnBrigade,
@@ -392,7 +392,7 @@ export const DirectoryScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     style={styles.protocolBtn}
                     onPress={() => setProtocolContact(contact)}
                     activeOpacity={0.8}
@@ -415,10 +415,10 @@ export const DirectoryScreen: React.FC = () => {
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
               <View style={styles.dragHandle} />
-              
+
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Ficha de Proveedor Barrial</Text>
-                <TouchableOpacity onPress={() => setDetailService(null)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar detalle del servicio" onPress={() => setDetailService(null)}>
                   <MaterialIcons name="close" size={20} color={Colors.slateDim} />
                 </TouchableOpacity>
               </View>
@@ -450,8 +450,8 @@ export const DirectoryScreen: React.FC = () => {
               <Text style={styles.detailDescText}>{detailService.description}</Text>
 
               <View style={styles.modalActionsRow}>
-                <TouchableOpacity 
-                  style={styles.modalAvalBtn} 
+                <TouchableOpacity accessibilityRole="button"
+                  style={styles.modalAvalBtn}
                   onPress={() => {
                     handleAval(detailService);
                     setDetailService(null);
@@ -461,8 +461,8 @@ export const DirectoryScreen: React.FC = () => {
                   <Text style={styles.modalAvalText}>Dar Visto Bueno</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={styles.modalCallBtn} 
+                <TouchableOpacity accessibilityRole="button"
+                  style={styles.modalCallBtn}
                   onPress={() => handleCall(detailService.providerPhone)}
                 >
                   <MaterialIcons name="call" size={18} color="#ffffff" />
@@ -484,7 +484,7 @@ export const DirectoryScreen: React.FC = () => {
               <View style={styles.dragHandle} />
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Protocolo de Respuesta</Text>
-                <TouchableOpacity onPress={() => setProtocolContact(null)}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar protocolo de emergencia" onPress={() => setProtocolContact(null)}>
                   <MaterialIcons name="close" size={20} color={Colors.slateDim} />
                 </TouchableOpacity>
               </View>
@@ -499,7 +499,7 @@ export const DirectoryScreen: React.FC = () => {
                 </Text>
               </View>
 
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 style={[styles.modalCallBtn, { marginTop: 14 }]}
                 onPress={() => {
                   handleCall(protocolContact.phone);
@@ -541,10 +541,10 @@ export const DirectoryScreen: React.FC = () => {
             </Text>
             {!!callError && <Text accessibilityRole="alert" style={styles.callConsentError}>{callError}</Text>}
             <View style={styles.callConsentActions}>
-              <TouchableOpacity style={styles.callConsentCancel} onPress={() => { setPendingCall(null); setCallError(''); }}>
+              <TouchableOpacity accessibilityRole="button" style={styles.callConsentCancel} onPress={() => { setPendingCall(null); setCallError(''); }}>
                 <Text style={styles.callConsentCancelText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity disabled={!pendingCall?.phone} style={[styles.callConsentAllow, !pendingCall?.phone && { opacity: 0.5 }]} onPress={() => { void confirmCall(); }}>
+              <TouchableOpacity accessibilityRole="button" disabled={!pendingCall?.phone} style={[styles.callConsentAllow, !pendingCall?.phone && { opacity: 0.5 }]} onPress={() => { void confirmCall(); }}>
                 <Text style={styles.callConsentAllowText}>Permitir y continuar</Text>
               </TouchableOpacity>
             </View>

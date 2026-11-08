@@ -414,6 +414,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => { active = false; clearInterval(timer); };
   }, [refreshFavors, lastSyncTime, favorRevision]);
 
+  // Realtime: cuando otra cuenta cambia un favor del distrito, se actualiza el muro sin esperar al sondeo.
+  // El sondeo de 30 s se conserva como respaldo si la conexión Realtime falla.
+  const refreshFavorsRef = useRef(refreshFavors);
+  useEffect(() => { refreshFavorsRef.current = refreshFavors; }, [refreshFavors]);
+  const realtimeDistrict = resolveProfileUbigeo(user);
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !isOnline || !isHydrated || !realtimeDistrict) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const channel = client
+      .channel(`favors:${realtimeDistrict}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'community_favors', filter: `district_ubigeo=eq.${realtimeDistrict}` },
+        () => {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => { void refreshFavorsRef.current(); }, 400);
+        },
+      )
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      void client.removeChannel(channel);
+    };
+  }, [isOnline, isHydrated, realtimeDistrict]);
+
   const loadMoreFavors = async () => { setFavorLimit(current=>current+50); };
 
   const persistFavorChange = async (favor: CommunityFavor, action: 'save' | 'delete' = 'save') => {

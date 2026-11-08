@@ -73,14 +73,14 @@ export const FavoresScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={()=>setEditing(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#ffffff'}}><Text>Editar favor</Text><TextInput accessibilityLabel="Título del favor" value={editing?.title ?? ''} maxLength={160} onChangeText={title=>setEditing(current=>current?{...current,title}:null)} style={{padding:12,borderWidth:1}}/><TextInput accessibilityLabel="Descripción del favor" value={editing?.description ?? ''} multiline maxLength={500} onChangeText={description=>setEditing(current=>current?{...current,description}:null)} style={{padding:12,borderWidth:1}}/><Text accessibilityRole="alert">{actionError}</Text><TouchableOpacity disabled={busy} onPress={()=>{void runAction(async()=>{if(editing) await editFavor(editing.id,editing.title,editing.description);setEditing(null);});}}><Text>Guardar cambios</Text></TouchableOpacity><TouchableOpacity onPress={()=>setEditing(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
+      <Modal visible={!!editing} transparent animationType="slide" onRequestClose={()=>setEditing(null)}><View style={{flex:1,justifyContent:'center',padding:24,backgroundColor:'#ffffff'}}><Text>Editar favor</Text><TextInput accessibilityLabel="Título del favor" value={editing?.title ?? ''} maxLength={160} onChangeText={title=>setEditing(current=>current?{...current,title}:null)} style={{padding:12,borderWidth:1}}/><TextInput accessibilityLabel="Descripción del favor" value={editing?.description ?? ''} multiline maxLength={500} onChangeText={description=>setEditing(current=>current?{...current,description}:null)} style={{padding:12,borderWidth:1}}/><Text accessibilityRole="alert">{actionError}</Text><TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>{void runAction(async()=>{if(editing) await editFavor(editing.id,editing.title,editing.description);setEditing(null);});}}><Text>Guardar cambios</Text></TouchableOpacity><TouchableOpacity accessibilityRole="button" onPress={()=>setEditing(null)}><Text>Cancelar</Text></TouchableOpacity></View></Modal>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={busy} onRefresh={() => { void runAction(refreshFavors); }} />}>
         {!!(actionError || favorsError) && <Text accessibilityRole="alert" style={{ padding: 16, color: '#b91c1c' }}>{actionError || favorsError}</Text>}
-        <TouchableOpacity disabled={busy} onPress={() => { void runAction(refreshFavors); }} style={{ padding: 12 }}>
+        <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => { void runAction(refreshFavors); }} style={{ padding: 12 }}>
           <Text style={{ color: Colors.primary }}>Actualizar muro</Text>
         </TouchableOpacity>
-        {hasMoreFavors && <TouchableOpacity disabled={busy} onPress={()=>{void loadMoreFavors();}} style={{padding:12}}><Text>Cargar más favores</Text></TouchableOpacity>}
+        {hasMoreFavors && <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>{void loadMoreFavors();}} style={{padding:12}}><Text>Cargar más favores</Text></TouchableOpacity>}
         {/* Banner Solidario Filosófico Ayllu (RF-11) */}
         <View style={styles.bannerContainer}>
           <View style={styles.bannerTopRow}>
@@ -112,7 +112,7 @@ export const FavoresScreen: React.FC = () => {
 
         {/* Main CTA Button & Impact Metrics */}
         <View style={styles.actionSection}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button"
             style={styles.publishMainBtn}
             onPress={() => setShowPublishModal(true)}
             activeOpacity={0.85}
@@ -154,7 +154,7 @@ export const FavoresScreen: React.FC = () => {
             const isSel = selectedTag === tag.id;
             const isUrgent = tag.id === 'urgent';
             return (
-              <TouchableOpacity
+              <TouchableOpacity accessibilityRole="button"
                 key={tag.id}
                 style={[
                   styles.tagPill,
@@ -207,7 +207,7 @@ export const FavoresScreen: React.FC = () => {
                     </View>
                   )}
 
-                  {syncError && <View style={{padding:12}}><Text accessibilityRole="alert">{syncError.errorMessage}</Text><TouchableOpacity onPress={()=>{void runAction(async()=>{await synchronizeQueue(true);});}}><Text>Reintentar sincronización</Text></TouchableOpacity></View>}
+                  {syncError && <View style={{padding:12}}><Text accessibilityRole="alert">{syncError.errorMessage}</Text><TouchableOpacity accessibilityRole="button" onPress={()=>{void runAction(async()=>{await synchronizeQueue(true);});}}><Text>Reintentar sincronización</Text></TouchableOpacity></View>}
                   {/* Header: Author, Verification, Neighborhood, Status */}
                   <View style={styles.favorHeader}>
                     <View style={styles.authorProfile}>
@@ -279,7 +279,7 @@ export const FavoresScreen: React.FC = () => {
                   <View style={styles.favorActions}>
                     {!isAuthor ? (
                       <>
-                        <TouchableOpacity
+                        <TouchableOpacity accessibilityRole="button"
                           style={styles.respondBtn}
                           onPress={() => {
                             setContactFavor(favor);
@@ -296,7 +296,7 @@ export const FavoresScreen: React.FC = () => {
                           </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity
+                        <TouchableOpacity accessibilityRole="button"
                           style={styles.reportIconBtn}
                           onPress={() => setReportFavor(favor)}
                           accessibilityLabel="Reportar publicación"
@@ -308,12 +308,12 @@ export const FavoresScreen: React.FC = () => {
                       // Author management controls (RF-12)
                       <View style={styles.authorActionsRow}>
                         {confirmRemove !== favor.id && <>
-                          <TouchableOpacity disabled={busy} onPress={()=>setEditing({...favor})} style={styles.authorStatusBtn}><Text>Editar</Text></TouchableOpacity>
-                          {favor.status!=='cerrada' && <TouchableOpacity disabled={busy} onPress={()=>handleStatusChange(favor,'cerrada')} style={styles.authorStatusBtn}><Text>Cerrar</Text></TouchableOpacity>}
-                          {favor.id.startsWith('fav-') && <TouchableOpacity disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
+                          <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>setEditing({...favor})} style={styles.authorStatusBtn}><Text>Editar</Text></TouchableOpacity>
+                          {favor.status!=='cerrada' && <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={()=>handleStatusChange(favor,'cerrada')} style={styles.authorStatusBtn}><Text>Cerrar</Text></TouchableOpacity>}
+                          {favor.id.startsWith('fav-') && <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.authorStatusBtn} onPress={() => publishDraft(favor)}>
                             <Text style={styles.authorStatusText}>Compartir</Text>
                           </TouchableOpacity>}
-                          <TouchableOpacity
+                          <TouchableOpacity accessibilityRole="button"
                             disabled={busy || favor.id.startsWith('fav-')}
                             style={styles.authorStatusBtn}
                             onPress={() =>

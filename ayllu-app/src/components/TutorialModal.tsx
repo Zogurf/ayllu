@@ -32,8 +32,8 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ visible, onClose }
                 <Text style={styles.subtitle}>Tu red hiperlocal de cooperación mutua</Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={styles.closeButton} 
+            <TouchableOpacity accessibilityRole="button"
+              style={styles.closeButton}
               onPress={onClose}
               accessibilityLabel="Cerrar tutorial"
             >
@@ -92,8 +92,8 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ visible, onClose }
 
           {/* Action button */}
           <View style={styles.footer}>
-            <TouchableOpacity 
-              style={styles.actionButton} 
+            <TouchableOpacity accessibilityRole="button"
+              style={styles.actionButton}
               onPress={onClose}
               activeOpacity={0.8}
             >

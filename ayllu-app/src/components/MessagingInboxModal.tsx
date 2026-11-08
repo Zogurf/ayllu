@@ -80,9 +80,9 @@ export const MessagingInboxModal: React.FC<{ visible: boolean; onClose: () => vo
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={() => { setSelected(null); onClose(); }}>
     <View style={styles.overlay}><View style={styles.sheet}>
       <View style={styles.header}>
-        {selected && <TouchableOpacity onPress={() => setSelected(null)} accessibilityLabel="Volver a conversaciones"><MaterialIcons name="arrow-back" size={22} color={Colors.secondary}/></TouchableOpacity>}
+        {selected && <TouchableOpacity accessibilityRole="button" onPress={() => setSelected(null)} accessibilityLabel="Volver a conversaciones"><MaterialIcons name="arrow-back" size={22} color={Colors.secondary}/></TouchableOpacity>}
         <Text style={styles.title}>{selected?.title ?? 'Mensajes'}</Text>
-        <TouchableOpacity onPress={() => { setSelected(null); onClose(); }} accessibilityLabel="Cerrar"><MaterialIcons name="close" size={22} color={Colors.slateDim}/></TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" onPress={() => { setSelected(null); onClose(); }} accessibilityLabel="Cerrar"><MaterialIcons name="close" size={22} color={Colors.slateDim}/></TouchableOpacity>
       </View>
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {selected ? <>
@@ -92,8 +92,8 @@ export const MessagingInboxModal: React.FC<{ visible: boolean; onClose: () => vo
             {message.sender_id === userId && <Text style={styles.status}>{readAt && readAt >= message.created_at ? 'Leído' : deliveredAt && deliveredAt >= message.created_at ? 'Entregado' : 'Enviado'}</Text>}
           </View>)}
         </ScrollView>
-        <View style={styles.compose}><TextInput value={draft} onChangeText={setDraft} placeholder="Escribe un mensaje" maxLength={2000} style={styles.input}/><TouchableOpacity onPress={() => { void send(); }} accessibilityLabel="Enviar mensaje"><MaterialIcons name="send" size={22} color={Colors.primary}/></TouchableOpacity></View>
-      </> : <ScrollView style={styles.thread}>{conversations.length ? conversations.map((conversation) => <TouchableOpacity key={conversation.id} style={styles.row} onPress={() => { setError(''); setSelected(conversation); }}><MaterialIcons name="chat-bubble-outline" size={20} color={Colors.primary}/><View style={{flex:1}}><Text style={styles.title}>{conversation.title || 'Favor vecinal'}</Text><Text style={styles.subtitle}>{conversation.author_id === userId ? 'Conversación sobre tu favor' : 'Tu solicitud de apoyo'}</Text></View><MaterialIcons name="chevron-right" size={22} color={Colors.slateDim}/></TouchableOpacity>) : <Text style={styles.subtitle}>Todavía no tienes conversaciones.</Text>}</ScrollView>}
+        <View style={styles.compose}><TextInput value={draft} onChangeText={setDraft} placeholder="Escribe un mensaje" maxLength={2000} style={styles.input}/><TouchableOpacity accessibilityRole="button" onPress={() => { void send(); }} accessibilityLabel="Enviar mensaje"><MaterialIcons name="send" size={22} color={Colors.primary}/></TouchableOpacity></View>
+      </> : <ScrollView style={styles.thread}>{conversations.length ? conversations.map((conversation) => <TouchableOpacity accessibilityRole="button" key={conversation.id} style={styles.row} onPress={() => { setError(''); setSelected(conversation); }}><MaterialIcons name="chat-bubble-outline" size={20} color={Colors.primary}/><View style={{flex:1}}><Text style={styles.title}>{conversation.title || 'Favor vecinal'}</Text><Text style={styles.subtitle}>{conversation.author_id === userId ? 'Conversación sobre tu favor' : 'Tu solicitud de apoyo'}</Text></View><MaterialIcons name="chevron-right" size={22} color={Colors.slateDim}/></TouchableOpacity>) : <Text style={styles.subtitle}>Todavía no tienes conversaciones.</Text>}</ScrollView>}
     </View></View>
   </Modal>;
 };

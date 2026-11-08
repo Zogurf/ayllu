@@ -46,7 +46,7 @@ Criterio de cierre: dos cuentas ven los mismos servicios y conteos; un reintento
 - [x] Revisar `ContactActionModal.tsx`: consulta RPC reales de conversación y mensaje; no muestra una confirmación simulada. Falta prueba de extremo a extremo.
 - [x] Usar la utilidad común de WhatsApp para normalizar el número y mostrar errores; el RPC exige consentimiento para publicar el teléfono.
 - [x] Quitar la etiqueta «verificado» de servicios sin verificación real.
-- [ ] Quitar la etiqueta de teléfono o contacto «verificado» donde no exista una verificación real.
+- [x] Etiqueta «verificado» retirada de WhatsApp en `PublishFavorModal` y de los servicios de demostración.
 
 Criterio de cierre: ningún flujo anuncia un mensaje enviado sin confirmación; el teléfono no se publica cuando se elige contacto interno.
 
@@ -70,32 +70,32 @@ Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuen
 - [x] Guardar denuncias en Supabase y crear una bandeja compartida por ámbito territorial.
 - [x] Permitir ocultar y restaurar contenido con permisos comprobados en el servidor.
 - [x] Registrar motivo, moderador y fecha de cada decisión de moderación, y reflejarla en las lecturas del muro.
-- [ ] Definir límites de publicación y denuncia para reducir spam y abuso.
+- [x] Límites de publicación y denuncia en servidor (migración `202611080006_rate_limits.sql`, con prueba `tests/rateLimit.test.cjs`). Falta aplicarla al proyecto Supabase y ajustar los valores.
 
 ## Prioridad 3: cuenta, ubicación y experiencia de uso
 
 - [x] Implementar recuperación de contraseña con enlace PKCE, formulario de cambio al volver a la app y reenvío de confirmación.
 - [ ] Probar los retornos y envíos de correo en móvil y web con Supabase configurado y proveedor SMTP listo.
 - [x] Mostrar errores y confirmaciones de correo/contraseña dentro del formulario de login y registro.
-- [ ] Revisar los usos restantes de `Alert.alert` en otros flujos que no ofrecen una experiencia equivalente en web. Las validaciones de publicación de favores y servicios ya aparecen dentro del formulario.
+- [x] `Alert.alert` reemplazado por `notify`/`confirmAction` (`src/utils/dialog.ts`), que funcionan en web y móvil.
 - [ ] Validar Google OAuth en Android, iOS y web con la configuración y las compilaciones correspondientes.
 - [ ] Implementar verificación de teléfono si se seguirá ofreciendo como «verificado». Definir por separado qué significa verificar identidad.
-- [ ] Implementar permisos y lectura real de GPS opcional. Actualmente no se guardan coordenadas obtenidas del dispositivo.
+- [x] Permisos y lectura de GPS opcional implementados en `ProfileScreen` y `SavedPlacesModal`; las coordenadas se guardan solo en el dispositivo. Falta probar en dispositivos reales.
 - [ ] Calcular distancias solo con ubicaciones válidas; revisar distancias y métricas de ejemplo de otros módulos.
-- [ ] Definir barrios colindantes fuera de la demostración de Cusco; el catálogo Ubigeo no aporta límites ni adyacencia de barrios.
+- [ ] Definir barrios colindantes fuera de la demostración de Cusco; el catálogo Ubigeo no aporta límites ni adyacencia de barrios. (El alcance «colindantes» vuelve a funcionar para la demo de Cusco.)
 - [x] Agregar edición del contenido de un favor mediante RPC; falta comprobarla en Supabase.
 - [x] Exponer en la interfaz la acción de cerrar un favor (`cerrada`), además de resolver y reabrir.
-- [ ] Añadir paginación al muro: hoy la consulta carga como máximo 500 favores y no permite acceder a páginas anteriores.
-- [ ] Evaluar actualizaciones mediante Realtime; actualmente el muro se consulta cada 30 segundos y mediante el botón Actualizar muro.
-- [ ] Revisar accesibilidad, foco, teclado, tamaños de texto y zonas táctiles en las pantallas principales.
+- [x] Paginación del muro con «Cargar más favores» (`loadMoreFavors`, de 50 en 50). Pendiente: paginación por cursor en vez de ampliar el límite.
+- [x] Actualización del muro por Realtime (suscripción en `AppContext` + migración `202611080007_realtime_favors.sql`); el sondeo de 30 s queda como respaldo. Falta aplicar la migración y probar con dos dispositivos.
+- [ ] Revisar accesibilidad: se agregaron roles `button` y etiquetas accesibles a controles de las pantallas indicadas en `docs/MEJORAS_REALIZADAS.md`. Falta revisar foco, teclado, tamaños de texto, contraste y zonas táctiles con un lector de pantalla real.
 
 ## Prioridad 4: fiabilidad y entrega
 
-- [ ] Añadir reintentos con espera progresiva y distinguir errores temporales de errores que requieren corregir un borrador o volver a iniciar sesión.
+- [x] Reintentos con espera progresiva (hasta 5 min) y distinción entre errores temporales y permanentes en `AppContext.synchronizeQueue`.
 - [ ] Definir resolución de conflictos cuando varios dispositivos modifican una publicación de la misma cuenta sin conexión.
 - [ ] Revisar el aislamiento de todos los datos locales al cambiar de cuenta, cerrar sesión o cambiar de barrio, sin perder operaciones pendientes.
 - [ ] Generar y usar tipos TypeScript del esquema de Supabase para tablas y RPC.
-- [ ] Automatizar TypeScript, lint, pruebas de lógica y pruebas SQL en integración continua. Existen pruebas locales de ubicación, OAuth, favores y permisos SQL.
+- [x] Integración continua en `.github/workflows/ci.yml` (typecheck, lint, pruebas y revisión de migraciones). Falta comprobar su primera ejecución en GitHub.
 - [ ] Agregar pruebas de interfaz para login/registro, publicación, cambio de cuenta y reconexión en web y móvil.
 - [ ] Configurar un entorno de pruebas separado de producción y un procedimiento de despliegue y recuperación de migraciones.
 - [ ] Comprobar copias de seguridad y restauración; registrar errores sin incluir contraseñas, tokens ni información privada de reportes.
@@ -104,7 +104,7 @@ Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuen
 
 ## Documentación por actualizar
 
-- [x] Actualizar `README.md` y `SUPABASE_SETUP.md` para describir los flujos sincronizados y la migración `202611080004`; queda aplicarla al proyecto.
+- [x] Actualizar `README.md` y `SUPABASE_SETUP.md` para documentar las migraciones `202611080004` a `202611080007`, límites anti-spam y Realtime; quedan por aplicar al proyecto remoto.
 - [ ] Documentar por plataforma qué funciona offline, qué se comparte y qué necesita sesión o almacenamiento seguro nativo.
 - [ ] Preparar una guía de prueba con dos cuentas, dos barrios y dos distritos, incluyendo los resultados esperados y la versión de la app utilizada.
 

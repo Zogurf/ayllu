@@ -97,7 +97,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
                 <Text style={styles.subtitle}>Directorio comunitario</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="Cerrar publicación de servicio" style={styles.closeButton} onPress={onClose}>
               <MaterialIcons name="close" size={20} color={Colors.slateDim} />
             </TouchableOpacity>
           </View>
@@ -109,7 +109,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
               {SERVICE_CATEGORIES.map(cat => {
                 const isSelected = category === cat.id;
                 return (
-                  <TouchableOpacity
+                  <TouchableOpacity accessibilityRole="button"
                     key={cat.id}
                     style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
                     onPress={() => setCategory(cat.id)}
@@ -182,7 +182,7 @@ export const PublishServiceModal: React.FC<PublishServiceModalProps> = ({ visibl
 
           {/* Action button */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={isSubmitting}>
+            <TouchableOpacity accessibilityRole="button" style={styles.submitBtn} onPress={handleSubmit} disabled={isSubmitting}>
               <MaterialIcons name={isSubmitting ? 'hourglass-top' : 'add-circle'} size={18} color="#ffffff" />
               <Text style={styles.submitBtnText}>{isSubmitting ? 'Guardando…' : 'Guardar servicio'}</Text>
             </TouchableOpacity>

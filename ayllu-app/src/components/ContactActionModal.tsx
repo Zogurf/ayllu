@@ -98,7 +98,7 @@ export const ContactActionModal: React.FC<ContactActionModalProps> = ({ visible,
     <View style={styles.overlay}><View style={styles.sheet}>
       <View style={styles.header}>
         <View style={styles.headerTitleRow}><View style={styles.iconCircle}><MaterialIcons name="chat" size={20} color={Colors.primary}/></View><View style={{flex:1}}><Text style={styles.title}>Contactar a {targetName}</Text><Text style={styles.subtitle} numberOfLines={1}>{targetItemTitle}</Text></View></View>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose} accessibilityLabel="Cerrar"><MaterialIcons name="close" size={20} color={Colors.slateDim}/></TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" style={styles.closeButton} onPress={onClose} accessibilityLabel="Cerrar"><MaterialIcons name="close" size={20} color={Colors.slateDim}/></TouchableOpacity>
       </View>
       <View style={styles.channelBadge}><MaterialIcons name={channel === 'ayllu' ? 'security' : 'phone'} size={16} color={Colors.primaryDark}/><Text style={styles.channelText}>{channel === 'ayllu' ? 'Mensajería interna privada' : `WhatsApp vecinal (${phone || 'Directo'})`}</Text></View>
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -106,7 +106,7 @@ export const ContactActionModal: React.FC<ContactActionModalProps> = ({ visible,
       <Text style={styles.label}>Mensaje solidario</Text>
       <TextInput style={styles.textArea} placeholder={`Hola ${targetName}, me interesa coordinar este favor vecinal...`} placeholderTextColor={Colors.slateDim} value={message} onChangeText={setMessage} multiline maxLength={2000}/>
       <View style={styles.ethicsBox}><MaterialIcons name="handshake" size={16} color={Colors.primary}/><Text style={styles.ethicsText}>Los favores en Ayllu son solidarios y libres de dinero (Principio Ayni).</Text></View>
-      <TouchableOpacity style={[styles.submitBtn, (busy || (channel === 'ayllu' && !conversationId)) && { opacity: 0.55 }]} onPress={() => { void send(); }} disabled={busy || (channel === 'ayllu' && !conversationId)}><MaterialIcons name="send" size={18} color="#fff"/><Text style={styles.submitBtnText}>{busy ? 'Enviando...' : channel === 'ayllu' ? 'Enviar mensaje' : 'Abrir WhatsApp'}</Text></TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" style={[styles.submitBtn, (busy || (channel === 'ayllu' && !conversationId)) && { opacity: 0.55 }]} onPress={() => { void send(); }} disabled={busy || (channel === 'ayllu' && !conversationId)}><MaterialIcons name="send" size={18} color="#fff"/><Text style={styles.submitBtnText}>{busy ? 'Enviando...' : channel === 'ayllu' ? 'Enviar mensaje' : 'Abrir WhatsApp'}</Text></TouchableOpacity>
     </View></View>
   </Modal>;
 };
