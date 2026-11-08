@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from './sqliteDriver';
 import { PrivateEmergencyReportData, PrivateReportStorage } from './privateReportStorage';
 import {
   UserProfile,

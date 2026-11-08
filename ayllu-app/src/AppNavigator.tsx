@@ -7,6 +7,7 @@ import {
   Platform, 
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +20,8 @@ import { NeighborhoodModal } from './components/NeighborhoodModal';
 import { TutorialModal } from './components/TutorialModal';
 import { ManageEmergencyModal } from './components/ManageEmergencyModal';
 import { SupabaseAuthScreen } from './components/SupabaseAuthScreen';
+import { getLocation } from './lib/ubigeo';
+import { completeAuthCallback } from './lib/socialAuth';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
@@ -44,6 +47,7 @@ export const AppNavigator: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [profileCheck, setProfileCheck] = useState<'loading' | 'missing' | 'exists' | 'error'>(supabase ? 'loading' : 'missing');
   const [profileError, setProfileError] = useState('');
+  const [authCallbackError, setAuthCallbackError] = useState('');
   const [profileRetry, setProfileRetry] = useState(0);
 
   useEffect(() => {
@@ -59,7 +63,20 @@ export const AppNavigator: React.FC = () => {
       setProfileError('');
       setProfileCheck(nextSession ? 'loading' : 'missing');
     });
-    void supabase.auth.getSession().then(({ data, error }) => {
+    const handleCallback = async (url: string | null | undefined) => {
+      if (!url) return;
+      try {
+        await completeAuthCallback(url);
+      } catch (error) {
+        if (mounted) setAuthCallbackError(error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+      }
+    };
+    const linkSubscription = Linking.addEventListener('url', ({ url }) => { void handleCallback(url); });
+    const client = supabase;
+    void (async () => {
+      await handleCallback(Platform.OS === 'web' ? window.location.href : await Linking.getInitialURL());
+      return client.auth.getSession();
+    })().then(({ data, error }) => {
       if (!mounted) return;
       if (error) setProfileError(error.message);
       setSession(data.session);
@@ -74,6 +91,7 @@ export const AppNavigator: React.FC = () => {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      linkSubscription.remove();
     };
   }, []);
 
@@ -91,12 +109,20 @@ export const AppNavigator: React.FC = () => {
           .maybeSingle();
         if (profileQueryError) throw profileQueryError;
         if (!profile) {
-          if (mounted) setProfileCheck('missing');
+          if (mounted) {
+            updateProfileRef.current({
+              id: session.user.id, nickname: '', phone: '', neighborhood: '', district: '', region: '',
+              province: undefined, districtUbigeo: undefined, neighborhoodId: undefined,
+              role: 'vecino', isRegistered: false, gpsEnabled: false, coords: undefined,
+              avatarUrl: '', coverageScope: 1,
+            });
+            setProfileCheck('missing');
+          }
           return;
         }
 
         const [neighborhoodResult, membershipResult] = await Promise.all([
-          supabase.from('neighborhoods').select('name, district, region').eq('id', profile.neighborhood_id).maybeSingle(),
+          supabase.from('neighborhoods').select('name, district, region, province, district_ubigeo').eq('id', profile.neighborhood_id).maybeSingle(),
           supabase.from('community_memberships').select('role').eq('user_id', session.user.id).eq('neighborhood_id', profile.neighborhood_id).maybeSingle(),
         ]);
         if (neighborhoodResult.error) throw neighborhoodResult.error;
@@ -109,6 +135,10 @@ export const AppNavigator: React.FC = () => {
           neighborhood: neighborhoodResult.data?.name ?? '',
           district: neighborhoodResult.data?.district ?? '',
           region: neighborhoodResult.data?.region ?? '',
+          province: neighborhoodResult.data?.province ?? undefined,
+          districtUbigeo: neighborhoodResult.data?.district_ubigeo ?? undefined,
+          neighborhoodId: profile.neighborhood_id,
+          ...getLocation(neighborhoodResult.data?.district_ubigeo ?? ''),
           role: membershipResult.data?.role ?? 'vecino',
           isRegistered: true,
         });
@@ -129,7 +159,7 @@ export const AppNavigator: React.FC = () => {
   if (supabase && authLoading) {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   }
-  if (supabase && !session) return <SupabaseAuthScreen />;
+  if (supabase && !session) return <SupabaseAuthScreen callbackError={authCallbackError} />;
   if (supabase && profileCheck === 'loading') {
     return <View style={styles.authLoading}><ActivityIndicator size="large" color={Colors.primary} /></View>;
   }
@@ -155,7 +185,7 @@ export const AppNavigator: React.FC = () => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar style="dark" />
-        <OnboardingScreen onComplete={() => { setForceOnboarding(false); setProfileCheck('exists'); }} />
+        <OnboardingScreen key={session?.user.id ?? 'demo'} onComplete={() => { setForceOnboarding(false); setProfileCheck('exists'); }} />
       </SafeAreaView>
     );
   }

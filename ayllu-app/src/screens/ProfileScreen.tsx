@@ -13,7 +13,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
-import { UserRole, CoverageScope } from '../types';
+import { UserRole } from '../types';
+import { saveCommunityProfile } from '../lib/communityProfile';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
 import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
 import { supabase } from '../lib/supabase';
@@ -55,13 +56,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
     if (supabase) {
       void (async () => {
         try {
-          const { error } = await supabase.rpc('complete_community_profile', {
-            p_nickname: nickname.trim(),
-            p_phone: normalizedPhone,
-            p_neighborhood_name: user.neighborhood,
-          });
-          if (error) throw error;
-          updateProfile({ nickname: nickname.trim(), phone: normalizedPhone });
+          const savedLocation = await saveCommunityProfile({ ...user, nickname: nickname.trim(), phone: normalizedPhone });
+          updateProfile({ ...savedLocation, nickname: nickname.trim(), phone: normalizedPhone });
           setIsEditingName(false);
           Alert.alert('Perfil actualizado', 'Tus datos vecinales se guardaron en la comunidad.');
         } catch (error) {
@@ -87,7 +83,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
             onPress: () => {
               updateProfile({ 
                 gpsEnabled: true,
-                coords: { latitude: -13.5167, longitude: -71.9781 } // Coordinates of Cusco San Blas
+                coords: undefined // Coordinates require a real device location, never a fixed city.
               });
             }
           }
@@ -135,7 +131,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
               </View>
               <Text style={styles.phoneText}>📞 {user.phone}</Text>
               <Text style={styles.locationSummary}>
-                Distrito de {user.district} · {user.region}
+                Distrito de {user.district} · {user.province ? `${user.province} · ` : ''}{user.region}
               </Text>
             </View>
           </View>
@@ -176,7 +172,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                     <Text style={styles.activeTagText}>Zona Activa</Text>
                   </View>
                 </View>
-                <Text style={styles.geoDetailText}>Distrito Cusco • Región Cusco</Text>
+                <Text style={styles.geoDetailText}>Distrito {user.district} • Región {user.region}</Text>
               </View>
             </View>
 
@@ -260,7 +256,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onOpenTutorial }) 
                 <MaterialIcons name="location-city" size={18} color={user.coverageScope === 3 ? Colors.primary : Colors.slateDim} />
               </View>
               <View>
-                <Text style={styles.scopeTitle}>Todo el Distrito de Cusco</Text>
+                <Text style={styles.scopeTitle}>Todo el distrito de {user.district}</Text>
                 <Text style={styles.scopeDesc}>Visibilidad en todos los sectores del distrito</Text>
               </View>
             </View>

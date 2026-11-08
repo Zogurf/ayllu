@@ -14,7 +14,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
-import { LocalService, EmergencyContact, ServiceCategory } from '../types';
+import { LocalService, EmergencyContact } from '../types';
 import { INITIAL_EMERGENCY_CONTACTS } from '../storage/mockData';
 import { PublishServiceModal } from '../components/PublishServiceModal';
 import { ContentReportModal } from '../components/ContentReportModal';

@@ -1,16 +1,35 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { signInWithGoogle } from '../lib/socialAuth';
 import { Colors } from '../theme/colors';
 
-export const SupabaseAuthScreen: React.FC = () => {
+export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callbackError }) => {
+  const [socialError, setSocialError] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const busy = isSubmitting || isGoogleSubmitting;
+
+  const handleGoogleSignIn = async () => {
+    if (busy) return;
+    setSocialError('');
+    setIsGoogleSubmitting(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      setSocialError(error instanceof Error ? error.message : 'Inténtalo nuevamente.');
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (busy) return;
     if (!supabase) return;
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || password.length < 8) {
@@ -36,14 +55,29 @@ export const SupabaseAuthScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <View style={styles.icon}>
           <MaterialIcons name="diversity-3" size={28} color={Colors.primary} />
         </View>
         <Text style={styles.title}>{isCreatingAccount ? 'Crear cuenta Ayllu' : 'Inicia sesión en Ayllu'}</Text>
-        <Text style={styles.subtitle}>Usa tu correo y contraseña para acceder a tu comunidad.</Text>
+        <Text style={styles.subtitle}>Accede con tu cuenta de Google o tu correo.</Text>
 
+        {(socialError || callbackError) ? <Text accessibilityRole="alert" style={styles.errorText}>{socialError || callbackError}</Text> : null}
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Continuar con Google"
+          accessibilityState={{ disabled: busy, busy: isGoogleSubmitting }}
+          style={[styles.socialButton, busy && styles.disabled]}
+          onPress={() => { void handleGoogleSignIn(); }}
+          disabled={busy}
+        >
+          {isGoogleSubmitting ? <ActivityIndicator color={Colors.primary} /> : (
+            <Text style={styles.socialText}>Continuar con Google</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.separator}>O usa tu correo electrónico</Text>
         <Text style={styles.label}>Correo electrónico</Text>
         <TextInput
           style={styles.input}
@@ -55,7 +89,7 @@ export const SupabaseAuthScreen: React.FC = () => {
           autoCapitalize="none"
           autoComplete="email"
           textContentType="emailAddress"
-          editable={!isSubmitting}
+          editable={!busy}
         />
         <Text style={styles.label}>Contraseña</Text>
         <TextInput
@@ -68,27 +102,33 @@ export const SupabaseAuthScreen: React.FC = () => {
           autoCapitalize="none"
           autoComplete={isCreatingAccount ? 'new-password' : 'password'}
           textContentType={isCreatingAccount ? 'newPassword' : 'password'}
-          editable={!isSubmitting}
+          editable={!busy}
           onSubmitEditing={handleSubmit}
         />
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={isSubmitting}>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={busy}>
           {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setIsCreatingAccount(value => !value)} disabled={isSubmitting}>
+        <TouchableOpacity onPress={() => setIsCreatingAccount(value => !value)} disabled={busy}>
           <Text style={styles.toggleText}>
             {isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
           </Text>
         </TouchableOpacity>
         <Text style={styles.footnote}>Al crear una cuenta, el perfil comienza con permisos de vecino. Un administrador podrá asignar otros roles.</Text>
       </View>
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', padding: 20 },
+  errorText: { color: Colors.emergencyDark, fontSize: 14, lineHeight: 20 },
+  socialButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border, borderRadius: 10 },
+  socialText: { color: Colors.secondary, fontWeight: '700', fontSize: 15 },
+  disabled: { opacity: 0.6 },
+  separator: { color: Colors.secondaryMuted, textAlign: 'center', fontSize: 12, marginVertical: 4 },
+  container: { flexGrow: 1, backgroundColor: Colors.background, justifyContent: 'center', padding: 20 },
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 24, gap: 12, borderWidth: 1, borderColor: Colors.border },
   icon: { width: 52, height: 52, borderRadius: 16, backgroundColor: Colors.primaryContainer, alignItems: 'center', justifyContent: 'center' },
   title: { color: Colors.secondary, fontSize: 24, fontWeight: '800', marginTop: 4 },

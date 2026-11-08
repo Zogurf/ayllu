@@ -7,15 +7,15 @@ import {
   TouchableOpacity, 
   TextInput, 
   Switch, 
-  Alert, 
-  Image 
+  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
 import { TutorialModal } from '../components/TutorialModal';
-import { INITIAL_NEIGHBORHOODS } from '../storage/mockData';
+import { getLocation, resolveProfileUbigeo } from '../lib/ubigeo';
+import { saveCommunityProfile } from '../lib/communityProfile';
 import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
 import { supabase } from '../lib/supabase';
 
@@ -26,6 +26,7 @@ interface OnboardingScreenProps {
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const { user, updateProfile } = useApp();
 
+  const selectedLocation = getLocation(resolveProfileUbigeo(user) ?? '');
   const [nickname, setNickname] = useState(user.nickname || '');
   const [phone, setPhone] = useState(user.phone || '');
   const [gpsEnabled, setGpsEnabled] = useState(false);
@@ -43,12 +44,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       Alert.alert('Teléfono inválido', 'Ingresa un celular peruano válido de 9 dígitos que empiece con 9.');
       return;
     }
-    if (!INITIAL_NEIGHBORHOODS.some(neighborhood => neighborhood.name === user.neighborhood)) {
-      Alert.alert('Barrio requerido', 'Selecciona un barrio o sector válido antes de continuar.');
+    if (!resolveProfileUbigeo(user) || !user.neighborhood.trim()) {
+      Alert.alert('Barrio requerido', 'Selecciona departamento, provincia, distrito y escribe tu barrio o sector.');
       return;
     }
 
     let authenticatedUserId: string | undefined;
+    let savedLocation = {};
     if (supabase) {
       try {
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -57,12 +59,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
           return;
         }
         authenticatedUserId = sessionData.session.user.id;
-        const { error } = await supabase.rpc('complete_community_profile', {
-          p_nickname: nickname.trim(),
-          p_phone: normalizedPhone,
-          p_neighborhood_name: user.neighborhood,
-        });
-        if (error) throw error;
+        savedLocation = await saveCommunityProfile({ ...user, nickname: nickname.trim(), phone: normalizedPhone });
       } catch (error) {
         Alert.alert('No se guardó el perfil', error instanceof Error ? error.message : 'Inténtalo nuevamente.');
         return;
@@ -70,12 +67,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     }
 
     updateProfile({
+      ...savedLocation,
       ...(authenticatedUserId ? { id: authenticatedUserId, role: 'vecino' as const } : {}),
       nickname: nickname.trim(),
       phone: normalizedPhone,
       gpsEnabled,
       isRegistered: true,
-      coords: gpsEnabled ? { latitude: -13.5167, longitude: -71.9781 } : undefined,
+      coords: undefined,
     });
 
     Alert.alert(
@@ -170,17 +168,21 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
           {/* Jerarquía Geográfica Obligatoria (RF-01) */}
           <View style={styles.geoHierarchySection}>
             <View style={styles.geoHierarchyHeader}>
-              <Text style={styles.geoHierarchyTitle}>Ubicación comunitaria fija</Text>
+              <Text style={styles.geoHierarchyTitle}>Tu ubicación en Perú</Text>
             </View>
 
             <View style={styles.geoGrid}>
               <View style={styles.geoBox}>
                 <Text style={styles.geoLabel}>REGIÓN</Text>
-                <Text style={styles.geoValue}>Cusco</Text>
+                <Text style={styles.geoValue}>{selectedLocation?.region ?? 'Seleccionar'}</Text>
+              </View>
+              <View style={styles.geoBox}>
+                <Text style={styles.geoLabel}>PROVINCIA</Text>
+                <Text style={styles.geoValue}>{selectedLocation?.province ?? 'Seleccionar'}</Text>
               </View>
               <View style={styles.geoBox}>
                 <Text style={styles.geoLabel}>DISTRITO</Text>
-                <Text style={styles.geoValue}>Cusco</Text>
+                <Text style={styles.geoValue}>{selectedLocation?.district ?? 'Seleccionar'}</Text>
               </View>
             </View>
 
@@ -195,8 +197,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                   <MaterialIcons name="location-city" size={18} color="#ffffff" />
                 </View>
                 <View>
-                  <Text style={styles.neighborhoodLabel}>Barrio / Sector asignado *</Text>
-                  <Text style={styles.neighborhoodSelectedText}>{user.neighborhood}</Text>
+                  <Text style={styles.neighborhoodLabel}>Ubicación y barrio / sector *</Text>
+                  <Text style={styles.neighborhoodSelectedText}>{user.neighborhood || 'Seleccionar ubicación'}</Text>
                 </View>
               </View>
               <MaterialIcons name="edit-location-alt" size={20} color={Colors.primary} />
@@ -249,6 +251,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       <NeighborhoodModal
         visible={showNeighborhoodModal}
         onClose={() => setShowNeighborhoodModal(false)}
+        onSelect={location => updateProfile({ ...location, neighborhoodId: undefined })}
       />
 
       {/* Tutorial Modal */}

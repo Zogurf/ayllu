@@ -6,6 +6,8 @@ export interface PrivateEmergencyReportData {
   title: string;
   description: string;
   neighborhood: string;
+  districtUbigeo?: string;
+  neighborhoodId?: string;
   priority: string;
   reportedBy: string;
   beneficiaryName: string;
@@ -28,6 +30,8 @@ export const PrivateReportStorage = {
       ['title', data.title],
       ['description', data.description],
       ['neighborhood', data.neighborhood],
+      ['districtUbigeo', data.districtUbigeo ?? ''],
+      ['neighborhoodId', data.neighborhoodId ?? ''],
       ['priority', data.priority],
       ['reportedBy', data.reportedBy],
       ['name', data.beneficiaryName],
@@ -50,7 +54,7 @@ export const PrivateReportStorage = {
   async get(reportId: string): Promise<PrivateEmergencyReportData | null> {
     if (Platform.OS === 'web') return null;
 
-    const [category, title, description, neighborhood, priority, reportedBy, beneficiaryName, age, exactAddress, contactPhone, consentAt] = await Promise.all([
+    const [category, title, description, neighborhood, priority, reportedBy, beneficiaryName, age, exactAddress, contactPhone, consentAt, districtUbigeo, neighborhoodId] = await Promise.all([
       SecureStore.getItemAsync(key(reportId, 'category')),
       SecureStore.getItemAsync(key(reportId, 'title')),
       SecureStore.getItemAsync(key(reportId, 'description')),
@@ -62,6 +66,8 @@ export const PrivateReportStorage = {
       SecureStore.getItemAsync(key(reportId, 'address')),
       SecureStore.getItemAsync(key(reportId, 'phone')),
       SecureStore.getItemAsync(key(reportId, 'consent')),
+      SecureStore.getItemAsync(key(reportId, 'districtUbigeo')),
+      SecureStore.getItemAsync(key(reportId, 'neighborhoodId')),
     ]);
 
     if ([category, title, description, neighborhood, priority, reportedBy, beneficiaryName, exactAddress, contactPhone, consentAt].some(value => value == null)) return null;
@@ -70,6 +76,8 @@ export const PrivateReportStorage = {
       title: title!,
       description: description!,
       neighborhood: neighborhood!,
+      districtUbigeo: districtUbigeo || undefined,
+      neighborhoodId: neighborhoodId || undefined,
       priority: priority!,
       reportedBy: reportedBy!,
       beneficiaryName: beneficiaryName!,
@@ -82,7 +90,7 @@ export const PrivateReportStorage = {
 
   async remove(reportId: string): Promise<void> {
     if (Platform.OS === 'web') return;
-    await Promise.all(['category', 'title', 'description', 'neighborhood', 'priority', 'reportedBy', 'name', 'age', 'address', 'phone', 'consent'].map(field =>
+    await Promise.all(['category', 'title', 'description', 'neighborhood', 'priority', 'reportedBy', 'name', 'age', 'address', 'phone', 'consent', 'districtUbigeo', 'neighborhoodId'].map(field =>
       SecureStore.deleteItemAsync(key(reportId, field)),
     ));
   },

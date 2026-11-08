@@ -18,7 +18,10 @@ export interface UserProfile {
   phone: string;
   region: string;
   district: string;
+  province?: string;
+  neighborhoodId?: string;
   neighborhood: string;
+  districtUbigeo?: string;
   gpsEnabled: boolean;
   coords?: {
     latitude: number;
@@ -47,6 +50,7 @@ export interface LocalService {
   providerName: string;
   providerPhone: string;
   neighborhood: string;
+  districtUbigeo?: string;
   addressApprox: string;
   description: string;
   avalesCount: number;
@@ -97,6 +101,7 @@ export interface CommunityFavor {
   authorName: string;
   authorPhone: string;
   neighborhood: string;
+  districtUbigeo?: string;
   distanceMeters: number;
   durationInfo: string;
   contactChannel: ContactChannel;
@@ -127,6 +132,7 @@ export interface EmergencyReport {
   title: string;
   description: string;
   neighborhood: string;
+  districtUbigeo?: string;
   // Sensitive Data (Protected by RF-18 / RNF-12)
   exactAddress: string;
   beneficiaryName: string;
@@ -157,6 +163,7 @@ export interface CriticalResource {
   mode: 'disponible' | 'solicitado';
   quantity: string;
   neighborhood: string;
+  districtUbigeo?: string;
   locationDetails: string;
   contactName: string;
   contactPhone: string;

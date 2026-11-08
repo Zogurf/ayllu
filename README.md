@@ -184,3 +184,11 @@ ayllu-app/
 │       ├── EmergencyDashboardScreen.tsx# Tablero de emergencias y recursos críticos
 │       └── ProfileScreen.tsx           # Perfil geográfico, roles, cola offline y moderación
 ```
+
+### Inicio de sesión social
+
+La app incluye acceso con Google mediante Supabase OAuth (PKCE). Requiere habilitar el proveedor Google y registrar los retornos móvil/web. Consulta [la guía de configuración](docs/social-auth.md). En móvil usa una development build con el esquema `ayllu`.
+
+### Ubicación nacional
+
+El registro y el perfil incluyen departamento, provincia y distrito de todo el catálogo Ubigeos Perú, con barrio/sector editable. El catálogo funciona offline; para guardar en Supabase aplica las dos migraciones nuevas descritas en [la guía de ubigeos](docs/ubigeos-peru.md).

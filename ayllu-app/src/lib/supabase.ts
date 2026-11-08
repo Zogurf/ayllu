@@ -46,6 +46,7 @@ export const supabase: SupabaseClient | null = url && publishableKey
         storage: authStorage,
         autoRefreshToken: true,
         persistSession: true,
+        flowType: 'pkce',
         detectSessionInUrl: false,
       },
     })

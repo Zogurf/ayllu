@@ -1,3 +1,4 @@
+import { LEGACY_CUSCO_UBIGEO } from '../lib/ubigeo';
 import { SyncQueueItem } from '../types';
 import { OfflineStorage } from '../storage/offlineStorage';
 import { supabase } from '../lib/supabase';
@@ -32,11 +33,12 @@ export async function submitQueuedItem(item: SyncQueueItem): Promise<void> {
     throw new Error('Este reporte antiguo no guardó el consentimiento. Vuelve a ingresarlo y confírmalo antes de enviarlo.');
   }
 
-  const { data: neighborhood, error: neighborhoodError } = await supabase
-    .from('neighborhoods')
-    .select('id')
-    .eq('name', privateData.neighborhood)
-    .single();
+  let neighborhoodQuery = supabase.from('neighborhoods').select('id');
+  if (privateData.neighborhoodId) neighborhoodQuery = neighborhoodQuery.eq('id', privateData.neighborhoodId);
+  else neighborhoodQuery = neighborhoodQuery
+    .eq('district_ubigeo', privateData.districtUbigeo ?? LEGACY_CUSCO_UBIGEO)
+    .eq('name', privateData.neighborhood);
+  const { data: neighborhood, error: neighborhoodError } = await neighborhoodQuery.single();
   if (neighborhoodError || !neighborhood) {
     throw new Error('No se encontró el barrio del reporte en la base de datos.');
   }

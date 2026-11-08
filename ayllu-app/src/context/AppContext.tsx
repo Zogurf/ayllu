@@ -1,3 +1,4 @@
+import { getLocation, locationMatchesScope, resolveProfileUbigeo } from '../lib/ubigeo';
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import * as Network from 'expo-network';
 import { 
@@ -109,7 +110,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     (async () => {
       try {
         const savedUser = await OfflineStorage.getUserProfile();
-        setUser(savedUser);
+        setUser({ ...savedUser, ...getLocation(resolveProfileUbigeo(savedUser) ?? '') });
 
         const savedServices = await OfflineStorage.getServices();
         setServices(savedServices);
@@ -269,6 +270,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addService = async (data: Omit<LocalService, 'id' | 'createdAt' | 'avalesCount' | 'avalesUserIds' | 'isVerified' | 'isOfflinePending'>) => {
     const newService: LocalService = {
       ...data,
+      districtUbigeo: resolveProfileUbigeo(user),
       id: `srv-${Date.now()}`,
       createdAt: new Date().toISOString(),
       avalesCount: 0,
@@ -362,6 +364,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addFavor = async (favorData: Omit<CommunityFavor, 'id' | 'createdAt' | 'status' | 'distanceMeters' | 'favorsCompletedByAuthor' | 'isOfflinePending'>) => {
     const newFavor: CommunityFavor = {
       ...favorData,
+      districtUbigeo: resolveProfileUbigeo(user),
       id: `fav-${Date.now()}`,
       createdAt: new Date().toISOString(),
       status: 'disponible',
@@ -406,6 +409,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const codeNum = Math.floor(100 + Math.random() * 900);
     const newReport: EmergencyReport = {
       ...reportData,
+      districtUbigeo: resolveProfileUbigeo(user),
       id,
       code: `#AY-${codeNum}`,
       createdAt: 'Ahora',
@@ -420,6 +424,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       title: reportData.title,
       description: reportData.description,
       neighborhood: reportData.neighborhood,
+      districtUbigeo: resolveProfileUbigeo(user),
+      neighborhoodId: user.neighborhoodId,
       priority: reportData.priority,
       reportedBy: reportData.reportedBy,
       beneficiaryName: reportData.beneficiaryName,
@@ -471,6 +477,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addCriticalResource = async (data: Omit<CriticalResource, 'id' | 'updatedAt'>) => {
     const newResource: CriticalResource = {
       ...data,
+      districtUbigeo: resolveProfileUbigeo(user),
       id: `res-${Date.now()}`,
       updatedAt: new Date().toISOString(),
     };
@@ -517,20 +524,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Geographic filtering logic (RF-03)
-  const isNeighborhoodMatch = (itemNeighborhood: string): boolean => {
-    if (user.coverageScope === 3) return true; // Distrito completo
-    if (user.coverageScope === 1) return itemNeighborhood === user.neighborhood; // Mi Barrio únicamente
-    
-    // Scope 2: Mi barrio + Colindantes
-    if (itemNeighborhood === user.neighborhood) return true;
-    const matchObj = INITIAL_NEIGHBORHOODS.find(n => n.name === itemNeighborhood);
-    return !!matchObj?.isAdjacent;
-  };
-
-  const filteredServices = services.filter(s => !s.isHidden && isNeighborhoodMatch(s.neighborhood));
-  const filteredFavors = favors.filter(f => !f.isHidden && isNeighborhoodMatch(f.neighborhood));
-  const filteredEmergencyReports = emergencyReports.filter(r => isNeighborhoodMatch(r.neighborhood));
-  const filteredCriticalResources = criticalResources.filter(r => isNeighborhoodMatch(r.neighborhood));
+  const adjacentNames = INITIAL_NEIGHBORHOODS.filter(n => n.isAdjacent).map(n => n.name);
+  const isNeighborhoodMatch = (item: { neighborhood: string; districtUbigeo?: string }) => locationMatchesScope(user, item, adjacentNames);
+  const filteredServices = services.filter(s => !s.isHidden && isNeighborhoodMatch(s));
+  const filteredFavors = favors.filter(f => !f.isHidden && isNeighborhoodMatch(f));
+  const filteredEmergencyReports = emergencyReports.filter(r => isNeighborhoodMatch(r));
+  const filteredCriticalResources = criticalResources.filter(r => isNeighborhoodMatch(r));
 
   return (
     <AppContext.Provider

@@ -1,0 +1,48 @@
+const { PGlite } = require('@electric-sql/pglite');
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const root = path.resolve(__dirname, '../..');
+(async () => {
+ const db = new PGlite();
+ await db.exec(`create role anon; create role authenticated; create schema auth; create schema extensions;
+ create table auth.users (id uuid primary key);
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid$$;
+ grant usage on schema auth to authenticated;
+ grant execute on function auth.uid() to authenticated;`);
+ for (const name of fs.readdirSync(root+'/supabase/migrations').sort().filter(n => n.endsWith('.sql'))) {
+   let sql=fs.readFileSync(root+'/supabase/migrations/'+name,'utf8').replace('create extension if not exists pgcrypto with schema extensions;', '');
+   await db.exec(sql);
+   console.log('Migration OK:',name);
+ }
+ const uid='10000000-0000-4000-8000-000000000001';
+ await db.exec(`insert into auth.users values ('${uid}'); select set_config('request.jwt.claim.sub','${uid}',false);`);
+ const save=async (name,code)=> (await db.query(`select public.complete_community_profile_v2('Vecino','+51912345678',$1,$2) as profile`,[name,code])).rows[0].profile;
+ await db.exec('set role authenticated');
+ assert.equal((await db.query('select count(*)::int as count from public.peru_districts')).rows[0].count,1892);
+ const lima = await save('Mi Barrio','150101');
+ const normalized = await save(' mi   barrio ', '150101');
+ assert.equal(lima.neighborhood_id,normalized.neighborhood_id);
+ const arequipa=await save('Mi Barrio','040101');
+ assert.notEqual(lima.neighborhood_id,arequipa.neighborhood_id);
+ await assert.rejects(save('Barrio','999999'),/Invalid district/);
+ await assert.rejects(save(' ','150101'),/Neighborhood/);
+ await assert.rejects(db.query(`select public.complete_community_profile_v2('X','123','Barrio','150101')`),/valid Peru/);
+ await db.exec('reset role');
+ assert.equal((await db.query(`select count(*)::int as count from public.community_memberships where user_id=$1`,[uid])).rows[0].count,1);
+ await db.query(`update public.community_memberships set role='admin' where user_id=$1`,[uid]);
+ await db.exec('set role authenticated');
+ await save('Mi Barrio','040101');
+ assert.equal((await db.query('select role from public.community_memberships')).rows[0].role,'admin');
+ await save('San Blas (Sector Central)','080101');
+ assert.equal((await db.query('select role from public.community_memberships')).rows[0].role,'vecino');
+ await db.query(`select public.complete_community_profile('Nombre','+51912345678','San Blas (Sector Central)')`);
+ await db.exec('reset role');
+ await db.exec(`select set_config('request.jwt.claim.sub','',false); set role authenticated;`);
+ await assert.rejects(save('Barrio','150101'),/Authentication required/);
+ await db.exec('reset role; set role anon;');
+ await assert.rejects(db.query('select * from public.peru_districts'),/permission denied/);
+ await assert.rejects(save('Barrio','150101'),/permission denied/);
+ await db.close();
+ console.log('PASS: nationwide profiles, ambiguous barrio names, validation, roles, legacy compatibility and anonymous access');
+})().catch(e=>{console.error(e);process.exitCode=1});

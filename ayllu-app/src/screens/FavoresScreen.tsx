@@ -11,7 +11,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
-import { CommunityFavor, FavorCategory, FavorStatus } from '../types';
+import { CommunityFavor, FavorStatus } from '../types';
 import { PublishFavorModal } from '../components/PublishFavorModal';
 import { ContactActionModal } from '../components/ContactActionModal';
 import { ContentReportModal } from '../components/ContentReportModal';
