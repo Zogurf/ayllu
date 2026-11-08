@@ -56,7 +56,7 @@ Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proye
 
 La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. El código incluye Auth, perfiles, barrios y RPC para reportes, favores, servicios, avales, recursos, emergencias, conversaciones y moderación. Las migraciones `202611080004` a `202611080007` agregan flujos compartidos, trazabilidad, límites anti-spam y Realtime. Aún deben aplicarse y validarse en un proyecto de pruebas antes de usarlos con datos reales.
 
-Sigue [SUPABASE_SETUP.md](SUPABASE_SETUP.md) para crear el proyecto, aplicar migraciones, configurar Auth, guardar las variables y probar el flujo. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
+Para configurar el backend, crea un proyecto Supabase, aplica las migraciones de `supabase/migrations/` en orden y configura Auth y las variables indicadas en `ayllu-app/.env.example`. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
 
 ---
 
@@ -135,20 +135,6 @@ Esta sección conserva los requisitos acordados para el producto. Su presencia a
 
 ---
 
-## 📂 Mapeo con las Plantillas Stitch del Proyecto
-
-| Carpeta Stitch Original | Pantalla / Componente React Native |
-|---|---|
-| `ayllu_registro_y_tutorial_minimalista/` | `src/screens/OnboardingScreen.tsx` + `src/components/TutorialModal.tsx` |
-| `ayllu_directorio_y_avales_rf_06_al_rf_10/` | `src/screens/DirectoryScreen.tsx` + `src/components/PublishServiceModal.tsx` |
-| `ayllu_cadena_de_favores_rf_11_al_rf_14/` | `src/screens/FavoresScreen.tsx` + `src/components/ContactActionModal.tsx` |
-| `ayllu_modal_publicar_favor_en_3_pasos_rf_13/` | `src/components/PublishFavorModal.tsx` |
-| `ayllu_perfil_geogr_fico_y_publicaci_n_rf_03_rf_05_rf_07/` | `src/screens/ProfileScreen.tsx` + `src/components/NeighborhoodModal.tsx` |
-| `ayllu_tablero_de_emergencias_rf_19/` | `src/screens/EmergencyDashboardScreen.tsx` + `src/components/ManageEmergencyModal.tsx` |
-| `civic_horizon/DESIGN.md` | `src/theme/colors.ts` (Paleta Civic Horizon Cobalt, Slate, Terracotta) |
-
----
-
 ## 🛠️ Estructura del Código Fuente
 
 ```text
@@ -189,8 +175,8 @@ ayllu-app/
 
 ### Inicio de sesión social
 
-La app incluye acceso con Google mediante Supabase OAuth (PKCE). Requiere habilitar el proveedor Google y registrar los retornos móvil/web. Consulta [la guía de configuración](docs/social-auth.md). En móvil usa una development build con el esquema `ayllu`.
+La app incluye acceso con Google mediante Supabase OAuth (PKCE). Requiere habilitar el proveedor Google y registrar los retornos móvil/web. En móvil usa una development build con el esquema `ayllu`.
 
 ### Ubicación nacional
 
-El registro y el perfil incluyen departamento, provincia y distrito de todo el catálogo Ubigeos Perú, con barrio/sector editable. El catálogo funciona offline; para guardar en Supabase aplica las dos migraciones nuevas descritas en [la guía de ubigeos](docs/ubigeos-peru.md).
+El registro y el perfil incluyen departamento, provincia y distrito de todo el catálogo Ubigeos Perú, con barrio/sector editable. El catálogo funciona offline; para guardar en Supabase aplica las migraciones `supabase/migrations/202611080001_peru_ubigeo_catalog.sql` y `supabase/migrations/202611080002_nationwide_community_profiles.sql`, junto con sus migraciones previas.
