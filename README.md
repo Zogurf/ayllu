@@ -54,7 +54,7 @@ Sin credenciales de Supabase, Ayllu opera en modo de demostración. Con el proye
 
 ### Base de datos y backend (siguiente etapa)
 
-La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. El código incluye Auth, perfiles, barrios y RPC para reportes, favores, servicios, avales, recursos, emergencias, conversaciones y moderación. Aplica las migraciones en orden; `202611080004_shared_services_moderation_resources.sql` agrega los flujos compartidos y `202611080005_emergency_audit_trail.sql` incorpora trazabilidad de emergencias. Deben validarse en un proyecto de pruebas antes de usarlos con datos reales.
+La solución prevista es **Supabase (PostgreSQL + Auth + Row Level Security)**. El código incluye Auth, perfiles, barrios y RPC para reportes, favores, servicios, avales, recursos, emergencias, conversaciones y moderación. Las migraciones `202611080004` a `202611080007` agregan flujos compartidos, trazabilidad, límites anti-spam y Realtime. Aún deben aplicarse y validarse en un proyecto de pruebas antes de usarlos con datos reales.
 
 Sigue [SUPABASE_SETUP.md](SUPABASE_SETUP.md) para crear el proyecto, aplicar migraciones, configurar Auth, guardar las variables y probar el flujo. La llave `service_role` nunca debe incluirse en la app. Web no permite guardar reportes identificables offline porque no dispone del almacenamiento seguro nativo.
 
@@ -129,9 +129,9 @@ Esta sección conserva los requisitos acordados para el producto. Su presencia a
 - **RNF-07 (Tolerancia a errores):** Confirmaciones antes de enviar reportes críticos y validación de campos obligatorios.
 - **RNF-08 (Rendimiento):** Renderizado en memoria local sin esperas de red (< 200 ms).
 - **RNF-09 (Disponibilidad offline):** Objetivo de producto; no se garantiza disponibilidad ni vigencia de datos en cualquier circunstancia.
-- **RNF-10 / RNF-11 / RNF-12 (Privacidad y consentimientos):** Los identificadores del reporte se separan en el esquema servidor y los datos locales se guardan en SecureStore móvil. Falta autenticar usuarios y verificar RLS en un proyecto real; la demo no debe contener datos personales reales.
-- **RNF-13 (Seguridad de roles):** El conmutador en *"Mi Barrio"* solo cambia el rol local para la demo. La autorización de producción está pendiente y debe ser aplicada en el backend.
-- **RNF-14 (Integridad de avales):** La demo evita repetir un aval en el estado local; falta una restricción transaccional compartida en servidor.
+- **RNF-10 / RNF-11 / RNF-12 (Privacidad y consentimientos):** Los identificadores del reporte se separan en el esquema servidor y los datos locales se guardan en SecureStore móvil. Auth, RLS y RPC están implementados en el código; falta aplicarlos y validarlos en un proyecto Supabase real. La demo no debe contener datos personales reales.
+- **RNF-13 (Seguridad de roles):** El conmutador en *"Mi Barrio"* solo cambia el rol local para la demo. Las operaciones compartidas verifican roles en el backend; faltan aplicar las migraciones y validar permisos en Supabase.
+- **RNF-14 (Integridad de avales):** El servidor aplica unicidad por cuenta y servicio; falta probar concurrencia en el proyecto Supabase.
 
 ---
 

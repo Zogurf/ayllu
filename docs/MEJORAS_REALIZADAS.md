@@ -2,6 +2,12 @@
 
 Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu` para que el equipo pueda ubicar cada cambio y continuar el trabajo.
 
+## Resumen actual
+
+La rama incluye auditoría de emergencias y control del acceso privado, recuperación de contraseña, avisos web/móvil, mejoras de accesibilidad, límites anti-spam, Realtime para favores, paginación, corrección de barrios colindantes de Cusco y CI. El commit `79933b7` añadió el último paquete de cambios descrito aquí.
+
+Queda pendiente aplicar las migraciones `202611080004`–`202611080007` en Supabase, validar flujos con cuentas y dispositivos reales, confirmar la primera ejecución del CI en GitHub y completar las revisiones manuales de accesibilidad, privacidad y despliegue.
+
 ## Backend y base de datos
 
 - `supabase/migrations/202611080006_rate_limits.sql`

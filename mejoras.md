@@ -12,6 +12,8 @@ Este documento recoge el trabajo pendiente según el código y las comprobacione
 - Corrección implementada para que los pendientes de otra cuenta no oculten publicaciones compartidas. Falta confirmar el resultado en la versión actualizada de la app del usuario.
 - Envío de reportes de emergencia mediante RPC autenticado, con datos privados separados y almacenamiento protegido en móvil.
 - La migración `202611080004_shared_services_moderation_resources.sql` agrega RPC/RLS de servicios, avales, recursos, emergencias, acceso privado, denuncias, moderación y mensajería. Está en el repositorio; falta aplicarla y validarla en Supabase.
+- Las migraciones `202611080005`–`202611080007` agregan auditoría de emergencias, límites anti-spam y Realtime para favores. Se verificaron localmente; falta aplicarlas al proyecto remoto.
+- Verificación local del paquete más reciente: `npm run typecheck`, `npm run lint`, 23 pruebas y `scripts/check-favor-migrations.cjs` pasaron. La primera ejecución de CI en GitHub no se ha confirmado.
 - Se retiró la insignia de verificación de los proveedores de demostración. Ayllu no verifica identidad ni teléfono.
 - Botón para mostrar u ocultar contraseña en inicio de sesión y registro.
 
@@ -101,6 +103,7 @@ Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuen
 - [ ] Comprobar copias de seguridad y restauración; registrar errores sin incluir contraseñas, tokens ni información privada de reportes.
 - [ ] Definir compilaciones y distribución para Android/iOS, alojamiento web y una forma visible de identificar la versión cargada.
 - [ ] Revisar la política de privacidad, consentimiento y eliminación de cuenta antes de recopilar datos reales.
+- [ ] Revisar las 12 vulnerabilidades moderadas reportadas por `npm ci` y decidir actualizaciones seguras de dependencias.
 
 ## Documentación por actualizar
 
@@ -110,8 +113,8 @@ Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuen
 
 ## Orden recomendado
 
-1. Confirmar favores entre cuentas y dispositivos con la versión actualizada.
-2. Resolver el contacto real entre vecinos y eliminar confirmaciones simuladas.
-3. Conectar servicios y avales.
-4. Completar tablero de emergencias, recursos y moderación compartidos.
-5. Consolidar pruebas, despliegue, privacidad y recuperación antes de ampliar el uso.
+1. Revisar el `dry-run` y aplicar las migraciones `202611080004`–`202611080007` a un proyecto Supabase de pruebas.
+2. Probar roles, datos privados y bitácora con cuentas de distintos roles y barrios.
+3. Probar Realtime, cola offline, reintentos y cambio de cuenta con dos cuentas y dos dispositivos.
+4. Comprobar recuperación de correo y Google OAuth en web y móvil con proveedores configurados.
+5. Validar el workflow en GitHub, hacer revisión de accesibilidad manual y cerrar las tareas de despliegue, privacidad y copias de seguridad.
