@@ -14,6 +14,7 @@ import { Colors } from '../theme/colors';
 import { useApp } from '../context/AppContext';
 import { NeighborhoodModal } from '../components/NeighborhoodModal';
 import { TutorialModal } from '../components/TutorialModal';
+import { AylluLogo } from '../components/AylluLogo';
 import { getLocation, resolveProfileUbigeo } from '../lib/ubigeo';
 import { saveCommunityProfile } from '../lib/communityProfile';
 import { normalizePeruMobilePhone, isReasonableText } from '../utils/validation';
@@ -84,9 +85,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header Compacto Minimalista y Elegante */}
         <View style={styles.header}>
-          <View style={styles.logoBadge}>
-            <MaterialIcons name="diversity-3" size={26} color={Colors.primary} />
-          </View>
+          <AylluLogo size={44} rounded />
           <View style={{ flex: 1 }}>
             <View style={styles.titleRow}>
               <Text style={styles.headerTitle}>Únete a Ayllu</Text>

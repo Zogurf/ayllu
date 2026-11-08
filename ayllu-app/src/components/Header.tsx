@@ -1,4 +1,5 @@
 import { Avatar } from './Avatar';
+import { AylluLogo } from './AylluLogo';
 import { LEGACY_CUSCO_UBIGEO, resolveProfileUbigeo } from '../lib/ubigeo';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
@@ -46,9 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
       <View style={styles.topRow}>
         {/* Ayllu Logo + Status */}
         <View style={styles.leftSection}>
-          <View style={styles.logoBadge}>
-            <MaterialIcons name="diversity-3" size={20} color={Colors.primary} />
-          </View>
+          <AylluLogo size={36} rounded />
           <View style={styles.titleColumn}>
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>AYLLU</Text>
