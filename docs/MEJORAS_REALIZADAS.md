@@ -19,6 +19,14 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 
 ## Aplicación
 
+- `ayllu-app/src/components/SupabaseAuthScreen.tsx`
+  - Agrega solicitud de recuperación de contraseña y reenvío de confirmación; ambos muestran respuestas neutrales y validan el correo.
+  - Usa el retorno configurado para registro y correos de Auth.
+- `ayllu-app/src/components/PasswordRecoveryScreen.tsx` y `ayllu-app/src/AppNavigator.tsx`
+  - Detectan el evento `PASSWORD_RECOVERY` y permiten fijar y confirmar una contraseña nueva desde el enlace PKCE.
+- `ayllu-app/src/lib/socialAuth.ts`
+  - Reconoce errores de enlaces vencidos o reutilizados y limpia parámetros de error del callback web.
+
 - `ayllu-app/src/components/PublishFavorModal.tsx`
   - Presenta los errores de validación dentro del formulario para que también se vean en web.
   - Aclara que WhatsApp no está verificado.
@@ -46,7 +54,7 @@ Este documento detalla los archivos modificados en la rama `ventu/mejoras-ayllu`
 - `README.md`
   - Actualiza el estado real de servicios, mensajería, emergencias, recursos y moderación.
 - `SUPABASE_SETUP.md`
-  - Documenta la migración nueva, cómo aplicarla y qué flujos requieren backend configurado.
+  - Documenta migraciones, la configuración de Auth y los retornos requeridos para correos.
 
 ## Pendiente para continuar
 

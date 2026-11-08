@@ -11,26 +11,29 @@ export function getAuthRedirectUrl(): string {
 
 const exchanges = new Map<string, Promise<void>>();
 
-export async function completeAuthCallback(url: string): Promise<void> {
-  if (!supabase) return;
+export async function completeAuthCallback(url: string): Promise<'recovery' | null> {
+  if (!supabase) return null;
   const callback = new URL(url);
   const expected = new URL(getAuthRedirectUrl());
-  if (callback.protocol !== expected.protocol || callback.host !== expected.host || callback.pathname !== expected.pathname) return;
+  if (callback.protocol !== expected.protocol || callback.host !== expected.host || callback.pathname !== expected.pathname) return null;
   const params = callback.searchParams;
   const clearWebCallback = () => {
     if (Platform.OS !== 'web') return;
-    for (const key of ['code', 'error', 'error_code', 'error_description']) params.delete(key);
+    for (const key of ['code', 'error', 'error_code', 'error_description', 'type']) params.delete(key);
     const fragment = new URLSearchParams(callback.hash.slice(1));
-    if (fragment.has('error')) callback.hash = '';
+    if (fragment.has('error') || fragment.has('error_code')) callback.hash = '';
     window.history.replaceState(window.history.state, '', callback.pathname + callback.search + callback.hash);
   };
-  const error = params.get('error') ?? new URLSearchParams(callback.hash.slice(1)).get('error');
-  if (error) {
+  const fragmentParams = new URLSearchParams(callback.hash.slice(1));
+  const error = params.get('error') ?? fragmentParams.get('error');
+  const errorCode = params.get('error_code') ?? fragmentParams.get('error_code');
+  if (error || errorCode) {
     clearWebCallback();
-    throw new Error('No se pudo autorizar el acceso. Inténtalo nuevamente o usa tu correo.');
+    if (errorCode === 'otp_expired') throw new Error('El enlace venció o ya fue utilizado. Solicita uno nuevo desde Ayllu.');
+    throw new Error('No se pudo completar el enlace de acceso. Solicita uno nuevo e inténtalo otra vez.');
   }
   const code = params.get('code');
-  if (!code) return;
+  if (!code) return null;
   let exchange = exchanges.get(code);
   if (!exchange) {
     const client = supabase;
@@ -44,6 +47,7 @@ export async function completeAuthCallback(url: string): Promise<void> {
   }
   try {
     await exchange;
+    return params.get('type') === 'recovery' ? 'recovery' : null;
   } finally {
     clearWebCallback();
   }

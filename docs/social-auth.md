@@ -9,7 +9,7 @@ La app conserva correo/contraseña y usa Supabase OAuth con PKCE para Google. El
 3. En Authentication > URL Configuration, agrega a Redirect URLs:
    - `ayllu://auth/callback` para Android/iOS.
    - La URL exacta donde abres la app web, por ejemplo `http://localhost:8081/` durante desarrollo y `https://tu-dominio/` en producción. Si se sirve en un subdirectorio, incluye ese path y su barra final tal como aparece en el navegador.
-4. Configura Site URL con la dirección pública de la web.
+4. Configura Site URL con la dirección pública de la web. Los mismos Redirect URLs permiten confirmar cuentas, reenviar confirmaciones y recuperar contraseñas.
 5. En Authentication > Providers, habilita Google con sus credenciales.
 
 ## Google Cloud
@@ -37,6 +37,8 @@ Comprueba con proveedores configurados:
 - Reiniciar la app conserva la sesión y cerrar sesión vuelve al acceso.
 - Cambiar de una cuenta existente a una nueva no precarga nombre, teléfono o barrio de la anterior.
 - Correo/contraseña sigue funcionando; el flujo actual de confirmación de correo se conserva.
+- Recuperación: el enlace permitido vuelve a la app, pide una contraseña nueva y la actualización se confirma antes de continuar.
+- Confirmación: el registro y el reenvío usan el retorno de la plataforma; verifica llegada del mensaje, expiración y reenvío respetando los límites de Auth.
 
 El almacenamiento operativo offline sigue siendo compartido por dispositivo como antes. Este cambio limpia los campos del perfil al cargar otra cuenta, pero no implementa una separación completa de todas las cachés por usuario.
 

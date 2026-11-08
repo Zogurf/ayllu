@@ -21,7 +21,14 @@ El CLI pedirá la contraseña de la base de datos si la necesita. `--remote` es 
 
 ## 3. Configurar Auth
 
-En el Dashboard abre **Authentication → Providers** y habilita **Email**. Para la primera prueba, deja la confirmación de correo activada: crea la cuenta en la app, abre el correo de verificación y luego inicia sesión con ese correo y contraseña. El proyecto todavía no configura enlaces profundos de Ayllu para completar la sesión desde el correo.
+En el Dashboard abre **Authentication → Providers** y habilita **Email**. Conserva la confirmación de correo activada. La app puede reenviar la confirmación y enviar enlaces de recuperación; al abrir un enlace válido, la app recibe la sesión PKCE y muestra el formulario para guardar una contraseña nueva. Supabase debe poder enviar los correos; para producción configura un proveedor SMTP con límites adecuados.
+
+En **Authentication → URL Configuration**, agrega a **Redirect URLs**:
+
+- `ayllu://auth/callback` para Android/iOS.
+- El origen y la ruta exacta de la web local y publicada, por ejemplo `http://localhost:8081/` y `https://tu-dominio/`.
+
+El enlace de confirmación del registro, el reenvío de confirmación y la recuperación usan el mismo retorno configurado por plataforma. Con PKCE, abre el enlace en el mismo navegador/dispositivo donde solicitaste el correo para que esté disponible el verificador de sesión. Un enlace expirado o ya utilizado muestra un aviso para solicitar otro.
 
 ## 4. Poner las credenciales en la app
 

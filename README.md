@@ -32,7 +32,7 @@ Las pantallas y los flujos visuales de los módulos están implementados en dist
 
 | Área | Estado actual | Pendiente para cumplir el README |
 |---|---|---|
-| Registro y perfil | Perfil local persistido; Auth por correo/contraseña y perfil remoto opcionales al configurar Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo |
+| Registro y perfil | Perfil local persistido; Auth por correo/contraseña, recuperación de contraseña y reenvío de confirmación con Supabase | Verificación de identidad y teléfono, permisos de ubicación del dispositivo; los retornos de correo requieren configurar Supabase |
 | Directorio y contactos | Contactos de emergencia semilla; servicios autenticados consultados por distrito | Fuente administrable para contactos y validación real de proveedores y vigencia |
 | Servicios y avales | RPC autenticados, RLS por distrito, aval único por usuario y cola persistente; requiere migración `202611080004` | Aplicar migración y validar con dos cuentas en Supabase |
 | Favores | Muro compartido por distrito, cola offline, edición/estados/retiro y permisos por autor | Aplicar migraciones pendientes y comprobar en dos dispositivos |

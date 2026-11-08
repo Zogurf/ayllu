@@ -74,7 +74,8 @@ Criterio de cierre: los coordinadores autorizados ven el mismo tablero; una cuen
 
 ## Prioridad 3: cuenta, ubicación y experiencia de uso
 
-- [ ] Agregar recuperación y cambio de contraseña, reenvío de confirmación y retornos de correo comprobados en móvil y web.
+- [x] Implementar recuperación de contraseña con enlace PKCE, formulario de cambio al volver a la app y reenvío de confirmación.
+- [ ] Probar los retornos y envíos de correo en móvil y web con Supabase configurado y proveedor SMTP listo.
 - [x] Mostrar errores y confirmaciones de correo/contraseña dentro del formulario de login y registro.
 - [ ] Revisar los usos restantes de `Alert.alert` en otros flujos que no ofrecen una experiencia equivalente en web. Las validaciones de publicación de favores y servicios ya aparecen dentro del formulario.
 - [ ] Validar Google OAuth en Android, iOS y web con la configuración y las compilaciones correspondientes.
