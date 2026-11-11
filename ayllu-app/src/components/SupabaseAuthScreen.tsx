@@ -118,9 +118,49 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
       <View style={styles.card}>
         <AylluLogo size={56} rounded />
         <Text style={styles.title}>{isRecoveringPassword ? 'Restablecer contraseña' : isCreatingAccount ? 'Crear cuenta Ayllu' : 'Inicia sesión en Ayllu'}</Text>
-        <Text style={styles.subtitle}>{isRecoveringPassword ? 'Te enviaremos un enlace seguro a tu correo.' : 'Accede con tu cuenta de Google o tu correo.'}</Text>
+        <Text style={styles.subtitle}>{isRecoveringPassword ? 'Te enviaremos un enlace seguro a tu correo.' : isCreatingAccount ? 'Únete a tu comunidad vecinal y participa en el apoyo mutuo.' : 'Accede con tu cuenta de Google o tu correo.'}</Text>
 
-        {!isRecoveringPassword && (socialError || callbackError) ? <Text accessibilityRole="alert" style={styles.errorText}>{socialError || callbackError}</Text> : null}
+        {!isRecoveringPassword && (
+          <View style={styles.authModeSelector}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.authModeTab, !isCreatingAccount && styles.authModeTabActive]}
+              onPress={() => {
+                setIsCreatingAccount(false);
+                setFormError('');
+                setFormNotice('');
+                setSocialError('');
+              }}
+              disabled={busy}
+            >
+              <Text style={[styles.authModeText, !isCreatingAccount && styles.authModeTextActive]}>
+                Iniciar Sesión
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.authModeTab, isCreatingAccount && styles.authModeTabActive]}
+              onPress={() => {
+                setIsCreatingAccount(true);
+                setFormError('');
+                setFormNotice('');
+                setSocialError('');
+              }}
+              disabled={busy}
+            >
+              <Text style={[styles.authModeText, isCreatingAccount && styles.authModeTextActive]}>
+                Crear Cuenta
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {!isRecoveringPassword && (socialError || callbackError) ? (
+          <View style={styles.errorBox}>
+            <MaterialIcons name="error-outline" size={16} color={Colors.emergencyDark} />
+            <Text accessibilityRole="alert" style={styles.errorText}>{socialError || callbackError}</Text>
+          </View>
+        ) : null}
         {!isRecoveringPassword && <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Continuar con Google"
@@ -147,6 +187,9 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
           textContentType="emailAddress"
           editable={!busy}
         />
+        {isCreatingAccount && (
+          <Text style={styles.inputHelper}>Usa un correo real (Gmail, Outlook, etc.). Supabase valida que el dominio exista.</Text>
+        )}
         {!isRecoveringPassword && <Text style={styles.label}>Contraseña</Text>}
         {!isRecoveringPassword && <View style={styles.passwordContainer}>
           <TextInput
@@ -174,9 +217,22 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
             <MaterialIcons name={showPassword ? 'visibility-off' : 'visibility'} size={22} color={Colors.slateDim} />
           </TouchableOpacity>
         </View>}
+        {isCreatingAccount && (
+          <Text style={styles.inputHelper}>Mínimo 8 caracteres (letras y números).</Text>
+        )}
 
-        {!!formError && <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>{formError}</Text>}
-        {!!formNotice && <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{formNotice}</Text>}
+        {!!formError && (
+          <View style={styles.errorBox}>
+            <MaterialIcons name="error-outline" size={16} color={Colors.emergencyDark} />
+            <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.errorText}>{formError}</Text>
+          </View>
+        )}
+        {!!formNotice && (
+          <View style={styles.noticeBox}>
+            <MaterialIcons name="info-outline" size={18} color={Colors.primaryDark} />
+            <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{formNotice}</Text>
+          </View>
+        )}
 
         <TouchableOpacity accessibilityRole="button" style={styles.submitButton} onPress={isRecoveringPassword ? () => { void sendAccountEmail('recovery'); } : handleSubmit} disabled={busy}>
           {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isRecoveringPassword ? 'Enviar enlace' : isCreatingAccount ? 'Crear cuenta' : 'Iniciar sesión'}</Text>}
@@ -188,11 +244,11 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
         {!isRecoveringPassword && !isCreatingAccount && <TouchableOpacity accessibilityRole="button" onPress={() => { void sendAccountEmail('confirmation'); }} disabled={busy}>
           <Text style={styles.toggleText}>Reenviar correo de confirmación</Text>
         </TouchableOpacity>}
-        <TouchableOpacity accessibilityRole="button" onPress={() => { if (isRecoveringPassword) { setIsRecoveringPassword(false); } else { setIsCreatingAccount(value => !value); } setShowPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
-          <Text style={styles.toggleText}>
-            {isRecoveringPassword ? 'Volver a iniciar sesión' : isCreatingAccount ? '¿Ya tienes una cuenta? Inicia sesión' : '¿Primera vez? Crea una cuenta'}
-          </Text>
-        </TouchableOpacity>
+        {isRecoveringPassword && (
+          <TouchableOpacity accessibilityRole="button" onPress={() => { setIsRecoveringPassword(false); setFormError(''); setFormNotice(''); setSocialError(''); }} disabled={busy}>
+            <Text style={styles.toggleText}>Volver al inicio de sesión</Text>
+          </TouchableOpacity>
+        )}
         {!isRecoveringPassword && <Text style={styles.footnote}>Al crear una cuenta, el perfil comienza con permisos de vecino. Un administrador podrá asignar otros roles.</Text>}
       </View>
     </ScrollView>
@@ -201,8 +257,67 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
 };
 
 const styles = StyleSheet.create({
-  noticeText: { color: Colors.primaryDark, backgroundColor: Colors.primaryContainer, padding: 12, borderRadius: 10, fontSize: 14, lineHeight: 20 },
-  errorText: { color: Colors.emergencyDark, fontSize: 14, lineHeight: 20 },
+  authModeSelector: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surfaceSubtle,
+    borderRadius: 12,
+    padding: 3,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  authModeTab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
+  },
+  authModeTabActive: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  authModeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.secondaryMuted,
+  },
+  authModeTextActive: {
+    color: Colors.primaryDark,
+    fontWeight: '800',
+  },
+  inputHelper: {
+    fontSize: 11.5,
+    color: Colors.secondaryMuted,
+    marginTop: -4,
+    marginBottom: 2,
+    lineHeight: 16,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderRadius: 10,
+    padding: 10,
+  },
+  errorText: { color: Colors.emergencyDark, fontSize: 13, lineHeight: 18, flex: 1, fontWeight: '500' },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 10,
+    padding: 12,
+  },
+  noticeText: { color: Colors.primaryDark, fontSize: 13, lineHeight: 18, flex: 1, fontWeight: '500' },
   socialButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.border, borderRadius: 10 },
   socialText: { color: Colors.secondary, fontWeight: '700', fontSize: 15 },
   disabled: { opacity: 0.6 },
@@ -211,7 +326,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 24, gap: 12, borderWidth: 1, borderColor: Colors.border },
   icon: { width: 52, height: 52, borderRadius: 16, backgroundColor: Colors.primaryContainer, alignItems: 'center', justifyContent: 'center' },
   title: { color: Colors.secondary, fontSize: 24, fontWeight: '800', marginTop: 4 },
-  subtitle: { color: Colors.secondaryMuted, fontSize: 14, lineHeight: 20, marginBottom: 8 },
+  subtitle: { color: Colors.secondaryMuted, fontSize: 13.5, lineHeight: 19, marginBottom: 4 },
   label: { color: Colors.secondary, fontWeight: '700', fontSize: 13, marginBottom: -6 },
   input: { minHeight: 48, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, paddingHorizontal: 12, color: Colors.secondary, backgroundColor: '#fff' },
   passwordContainer: { flexDirection: 'row', alignItems: 'center', minHeight: 48, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, backgroundColor: '#fff' },

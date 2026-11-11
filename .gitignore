@@ -34,10 +34,12 @@ yarn-debug.*
 yarn-error.*
 *.log
 
-# OS
+# OS & IDE
 .DS_Store
 Thumbs.db
 *.pem
+.vscode/
+.idea/
 
 # Local env files
 .env
