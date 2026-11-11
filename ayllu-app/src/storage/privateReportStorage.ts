@@ -17,7 +17,11 @@ export interface PrivateEmergencyReportData {
   consentAt: string;
 }
 
-const key = (reportId: string, field: string) => `ayllu:report:${reportId}:${field}`;
+const key = (reportId: string, field: string) => {
+  const cleanId = reportId.replace(/[^A-Za-z0-9._-]/g, '_');
+  const cleanField = field.replace(/[^A-Za-z0-9._-]/g, '_');
+  return `ayllu_report_${cleanId}_${cleanField}`;
+};
 
 export const PrivateReportStorage = {
   async save(reportId: string, data: PrivateEmergencyReportData): Promise<void> {

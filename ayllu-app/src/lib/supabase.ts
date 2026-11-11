@@ -5,35 +5,52 @@ import { AppState, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const CHUNK_SIZE = 600;
+
+function toSecureStoreKey(key: string, suffix: string | number): string {
+  const sanitized = key.replace(/[^A-Za-z0-9._-]/g, '_');
+  return `${sanitized}_${suffix}`;
+}
+
 const authStorage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') return AsyncStorage.getItem(key);
-    const count = Number(await SecureStore.getItemAsync(`${key}:parts`));
-    if (!Number.isInteger(count) || count < 1) return null;
-    const parts = await Promise.all(Array.from({ length: count }, (_, index) =>
-      SecureStore.getItemAsync(`${key}:${index}`),
-    ));
-    return parts.some(part => part == null) ? null : parts.join('');
+    try {
+      const partsKey = toSecureStoreKey(key, 'parts');
+      const count = Number(await SecureStore.getItemAsync(partsKey));
+      if (!Number.isInteger(count) || count < 1) return null;
+      const parts = await Promise.all(Array.from({ length: count }, (_, index) =>
+        SecureStore.getItemAsync(toSecureStoreKey(key, index)),
+      ));
+      return parts.some(part => part == null) ? null : parts.join('');
+    } catch {
+      return null;
+    }
   },
   async setItem(key: string, value: string): Promise<void> {
     if (Platform.OS === 'web') return AsyncStorage.setItem(key, value);
-    const previousCount = Number(await SecureStore.getItemAsync(`${key}:parts`)) || 0;
+    const partsKey = toSecureStoreKey(key, 'parts');
+    const previousCount = Number(await SecureStore.getItemAsync(partsKey)) || 0;
     const parts = value.match(new RegExp(`.{1,${CHUNK_SIZE}}`, 'gs')) ?? [''];
     for (let index = 0; index < parts.length; index += 1) {
-      await SecureStore.setItemAsync(`${key}:${index}`, parts[index]);
+      await SecureStore.setItemAsync(toSecureStoreKey(key, index), parts[index]);
     }
-    await SecureStore.setItemAsync(`${key}:parts`, String(parts.length));
+    await SecureStore.setItemAsync(partsKey, String(parts.length));
     for (let index = parts.length; index < previousCount; index += 1) {
-      await SecureStore.deleteItemAsync(`${key}:${index}`);
+      await SecureStore.deleteItemAsync(toSecureStoreKey(key, index));
     }
   },
   async removeItem(key: string): Promise<void> {
     if (Platform.OS === 'web') return AsyncStorage.removeItem(key);
-    const count = Number(await SecureStore.getItemAsync(`${key}:parts`)) || 0;
-    await Promise.all([
-      SecureStore.deleteItemAsync(`${key}:parts`),
-      ...Array.from({ length: count }, (_, index) => SecureStore.deleteItemAsync(`${key}:${index}`)),
-    ]);
+    try {
+      const partsKey = toSecureStoreKey(key, 'parts');
+      const count = Number(await SecureStore.getItemAsync(partsKey)) || 0;
+      await Promise.all([
+        SecureStore.deleteItemAsync(partsKey),
+        ...Array.from({ length: count }, (_, index) => SecureStore.deleteItemAsync(toSecureStoreKey(key, index))),
+      ]);
+    } catch {
+      // Ignored
+    }
   },
 };
 
