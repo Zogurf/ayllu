@@ -3,6 +3,31 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Crypto from 'expo-crypto';
+
+// Polyfill WebCrypto subtle.digest for PKCE on React Native
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as any).crypto = {};
+}
+if (!(globalThis.crypto as any).getRandomValues) {
+  (globalThis.crypto as any).getRandomValues = (array: Uint8Array) => Crypto.getRandomValues(array as any);
+}
+if (!(globalThis.crypto as any).subtle) {
+  (globalThis.crypto as any).subtle = {
+    async digest(algorithm: string, data: Uint8Array): Promise<ArrayBuffer> {
+      if (algorithm === 'SHA-256') {
+        const text = Array.from(data).map(b => String.fromCharCode(b)).join('');
+        const hex = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, text, {
+          encoding: Crypto.CryptoEncoding.HEX,
+        });
+        const match = hex.match(/.{1,2}/g) ?? [];
+        const bytes = new Uint8Array(match.map(byte => parseInt(byte, 16)));
+        return bytes.buffer;
+      }
+      throw new Error(`Algoritmo no soportado: ${algorithm}`);
+    },
+  };
+}
 
 const CHUNK_SIZE = 600;
 

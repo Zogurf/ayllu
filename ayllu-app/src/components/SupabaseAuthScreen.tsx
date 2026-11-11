@@ -62,21 +62,21 @@ export const SupabaseAuthScreen: React.FC<{ callbackError?: string }> = ({ callb
       if (result.error) throw result.error;
 
       if (isCreatingAccount && !result.data.session) {
-        setFormNotice('Revisa tu correo para confirmar la cuenta. Si recibes un enlace de verificación, ábrelo y luego inicia sesión aquí.');
+        setFormNotice('¡Cuenta registrada! Supabase envió un correo de confirmación a ' + normalizedEmail + '. Por favor revisa tu bandeja de entrada o spam y confirma el enlace para poder iniciar sesión.');
       }
     } catch (error) {
       const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
       const messages: Record<string, string> = {
         invalid_credentials: 'El correo o la contraseña no son correctos. Revisa tus datos.',
-        email_not_confirmed: 'Confirma tu correo antes de iniciar sesión. Revisa también la carpeta de spam.',
-        user_already_exists: 'No se pudo crear la cuenta con estos datos. Prueba iniciar sesión.',
-        email_exists: 'No se pudo crear la cuenta con estos datos. Prueba iniciar sesión.',
+        email_not_confirmed: 'Tu cuenta aún no está confirmada. Abre el enlace que te enviamos a tu correo (revisa también spam), o solicita reenviarlo abajo.',
+        user_already_exists: 'Ya existe una cuenta con este correo. Cambia a "Iniciar Sesión".',
+        email_exists: 'Ya existe una cuenta con este correo. Cambia a "Iniciar Sesión".',
         weak_password: 'Elige una contraseña más segura y de al menos 8 caracteres.',
-        over_request_rate_limit: 'Hay demasiados intentos. Espera unos minutos y vuelve a intentarlo.',
-        over_email_send_rate_limit: 'Espera unos minutos antes de solicitar otro correo.',
+        over_request_rate_limit: 'Hay demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.',
+        over_email_send_rate_limit: 'Ya se envió un correo de confirmación recientemente. Revisa tu bandeja de entrada (o carpeta de spam). Si no llegó, espera 1 minuto antes de pedir otro.',
         signup_disabled: 'El registro de cuentas no está disponible en este momento.',
         email_provider_disabled: 'El acceso por correo no está disponible en este momento.',
-        email_address_invalid: 'Revisa tu dirección de correo o utiliza otra.',
+        email_address_invalid: 'Revisa tu dirección de correo o utiliza otra (ej. Gmail, Outlook).',
       };
       const networkError = error instanceof Error && /network|fetch|connection|timeout/i.test(error.message);
       setFormError(messages[code] ?? (networkError
